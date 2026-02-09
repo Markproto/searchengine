@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Source Submissions - Admin{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>Source Submissions ({{ submissions|length }})</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+
+    {% if submissions %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>URL</th>
+                <th>Category</th>
+                <th>Reason</th>
+                <th>Submitted By</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sub in submissions %}
+            <tr class="submission-{{ sub.status }}">
+                <td><strong>{{ sub.name }}</strong></td>
+                <td><a href="{{ sub.url }}" target="_blank" rel="noopener">{{ sub.url[:50] }}...</a></td>
+                <td><span class="category-tag-{{ sub.category }}">{{ sub.category|title }}</span></td>
+                <td>{{ sub.reason or '-' }}</td>
+                <td>{{ sub.submitted_by or 'Anonymous' }}</td>
+                <td>{{ sub.submitted_at.strftime('%Y-%m-%d %H:%M') if sub.submitted_at else '-' }}</td>
+                <td>
+                    <span class="status-badge status-{{ sub.status }}">{{ sub.status|title }}</span>
+                </td>
+                <td class="actions-cell">
+                    {% if sub.status == 'pending' %}
+                    <form method="POST" action="{{ url_for('admin.review_submission', id=sub.id) }}" style="display:inline">
+                        <input type="hidden" name="action" value="approve">
+                        <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('admin.review_submission', id=sub.id) }}" style="display:inline">
+                        <input type="hidden" name="action" value="reject">
+                        <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted">Reviewed</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="no-results">
+        <h2>No submissions yet</h2>
+        <p>Public source suggestions will appear here when users submit them via <a href="/submit">/submit</a>.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

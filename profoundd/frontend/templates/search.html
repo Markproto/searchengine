@@ -75,6 +75,10 @@
                 {% if article.published_at %}
                 <span class="result-date">{{ article.published_at[:10] }}</span>
                 {% endif %}
+                <span class="vote-controls" data-url="{{ article.url }}">
+                    <button class="vote-btn vote-up" onclick="vote('{{ article.url }}', 1, this)" title="Thumbs up">&#x1F44D; <span class="vote-count up-count">0</span></button>
+                    <button class="vote-btn vote-down" onclick="vote('{{ article.url }}', -1, this)" title="Thumbs down">&#x1F44E; <span class="vote-count down-count">0</span></button>
+                </span>
             </div>
         </article>
         {% endfor %}
@@ -112,4 +116,43 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const controls = document.querySelectorAll('.vote-controls');
+    if (!controls.length) return;
+    const urls = Array.from(controls).map(c => c.dataset.url);
+    const params = urls.map(u => 'url=' + encodeURIComponent(u)).join('&');
+    fetch('/api/votes?' + params)
+        .then(r => r.json())
+        .then(data => {
+            controls.forEach(c => {
+                const info = data[c.dataset.url];
+                if (!info) return;
+                c.querySelector('.up-count').textContent = info.ups || 0;
+                c.querySelector('.down-count').textContent = info.downs || 0;
+                if (info.your_vote === 1) c.querySelector('.vote-up').classList.add('voted');
+                if (info.your_vote === -1) c.querySelector('.vote-down').classList.add('voted');
+            });
+        });
+});
+
+function vote(articleUrl, value, btn) {
+    fetch('/api/vote', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({article_url: articleUrl, vote: value})
+    })
+    .then(r => r.json())
+    .then(data => {
+        const controls = btn.closest('.vote-controls');
+        controls.querySelector('.up-count').textContent = data.ups || 0;
+        controls.querySelector('.down-count').textContent = data.downs || 0;
+        controls.querySelector('.vote-up').classList.toggle('voted', data.your_vote === 1);
+        controls.querySelector('.vote-down').classList.toggle('voted', data.your_vote === -1);
+    });
+}
+</script>
 {% endblock %}

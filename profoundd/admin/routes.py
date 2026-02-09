@@ -7,7 +7,7 @@ from functools import wraps
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission
 from profoundd.config.settings import get_config
 from profoundd.config.sources import ALL_SOURCES, CATEGORIES
 from profoundd.search.engine import SearchEngine
@@ -275,6 +275,52 @@ def crawl_history():
     """View crawl history."""
     logs = db.session.query(CrawlLog).order_by(CrawlLog.started_at.desc()).limit(50).all()
     return render_template("admin/crawl_history.html", logs=logs, categories=CATEGORIES)
+
+
+@admin_bp.route("/submissions")
+@login_required
+def submissions_list():
+    """View public source submissions."""
+    submissions = db.session.query(SourceSubmission).order_by(
+        SourceSubmission.submitted_at.desc()
+    ).all()
+    return render_template("admin/submissions.html", submissions=submissions, categories=CATEGORIES)
+
+
+@admin_bp.route("/submissions/<int:id>/review", methods=["POST"])
+@login_required
+def review_submission(id):
+    """Approve or reject a source submission."""
+    sub = db.session.query(SourceSubmission).get(id)
+    if not sub:
+        flash("Submission not found.", "error")
+        return redirect(url_for("admin.submissions_list"))
+
+    action = request.form.get("action")
+    if action == "approve":
+        # Create a new Source from the submission
+        existing = db.session.query(Source).filter_by(url=sub.url).first()
+        if existing:
+            flash(f"Source '{sub.name}' already exists.", "warning")
+        else:
+            source = Source(
+                name=sub.name,
+                url=sub.url,
+                category=sub.category,
+                feed_type=sub.feed_type,
+                credibility=7,
+            )
+            db.session.add(source)
+            flash(f"Approved and added '{sub.name}' as a new source.", "success")
+        sub.status = "approved"
+        sub.reviewed_at = datetime.now(timezone.utc)
+    elif action == "reject":
+        sub.status = "rejected"
+        sub.reviewed_at = datetime.now(timezone.utc)
+        flash(f"Rejected '{sub.name}'.", "info")
+
+    db.session.commit()
+    return redirect(url_for("admin.submissions_list"))
 
 
 # --- API endpoints for AJAX ---

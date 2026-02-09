@@ -131,3 +131,36 @@ class CrawlLog(db.Model):
     trigger = db.Column(db.String(20), default="manual")  # manual, scheduler
     category = db.Column(db.String(50))
     duration_seconds = db.Column(db.Float)
+
+
+class SourceSubmission(db.Model):
+    """Public source suggestion from users."""
+    __tablename__ = "source_submissions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    url = db.Column(db.String(500), nullable=False)
+    category = db.Column(db.String(50), nullable=False)
+    feed_type = db.Column(db.String(20), default="rss")
+    reason = db.Column(db.Text)  # why they want this source added
+    submitted_by = db.Column(db.String(100))  # optional name/handle
+    ip_address = db.Column(db.String(45))
+    status = db.Column(db.String(20), default="pending")  # pending, approved, rejected
+    admin_notes = db.Column(db.Text)
+    submitted_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    reviewed_at = db.Column(db.DateTime)
+
+
+class ArticleVote(db.Model):
+    """Public thumbs up/down votes on search results."""
+    __tablename__ = "article_votes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    article_url = db.Column(db.String(1000), nullable=False, index=True)
+    vote = db.Column(db.Integer, nullable=False)  # +1 or -1
+    ip_address = db.Column(db.String(45))
+    voted_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        db.UniqueConstraint('article_url', 'ip_address', name='unique_vote_per_ip'),
+    )

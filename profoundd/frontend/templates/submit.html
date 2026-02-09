@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Suggest a Source - Profoundd{% endblock %}
+
+{% block content %}
+<div class="container submit-page">
+    <h1>Suggest a News Source</h1>
+    <p class="submit-intro">Know a source we should be indexing? Submit it below and our team will review it. We value independent and alternative voices.</p>
+
+    <form method="POST" action="/submit" class="source-form">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="name">Source Name *</label>
+                <input type="text" id="name" name="name" required placeholder="e.g. The Daily Wire">
+            </div>
+
+            <div class="form-group">
+                <label for="url">Website or RSS Feed URL *</label>
+                <input type="url" id="url" name="url" required placeholder="https://example.com/feed/rss">
+                <small>RSS/Atom feed URL preferred, but a website URL is fine too.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="category">Category *</label>
+                <select id="category" name="category" required>
+                    <option value="">Select a category...</option>
+                    {% for key, cat in categories.items() %}
+                    <option value="{{ key }}">{{ cat.label }} - {{ cat.description }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="feed_type">Feed Type</label>
+                <select id="feed_type" name="feed_type">
+                    <option value="rss">RSS</option>
+                    <option value="atom">Atom</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="reason">Why should we add this source?</label>
+            <textarea id="reason" name="reason" rows="3" placeholder="Tell us why this source is valuable..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="submitted_by">Your Name (optional)</label>
+            <input type="text" id="submitted_by" name="submitted_by" placeholder="Anonymous">
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Submit Source</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

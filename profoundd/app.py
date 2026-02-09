@@ -11,7 +11,7 @@ from flask_login import LoginManager
 
 from profoundd.config.settings import get_config
 from profoundd.config.sources import CATEGORIES
-from profoundd.utils.models import db, AdminUser, SearchLog
+from profoundd.utils.models import db, AdminUser, SearchLog, SourceSubmission, ArticleVote
 from profoundd.search.engine import SearchEngine
 from profoundd.admin.routes import admin_bp
 from profoundd.utils.logging_config import setup_logging
@@ -191,6 +191,81 @@ def create_app(config_override=None):
             },
             "categories": len(CATEGORIES),
         }), code
+
+    @app.route("/submit", methods=["GET", "POST"])
+    def submit_source():
+        """Public source submission form."""
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            url = request.form.get("url", "").strip()
+            category = request.form.get("category", "").strip()
+            if not name or not url or not category:
+                flash("Name, URL, and category are required.", "error")
+                return redirect("/submit")
+            submission = SourceSubmission(
+                name=name,
+                url=url,
+                category=category,
+                feed_type=request.form.get("feed_type", "rss"),
+                reason=request.form.get("reason", "").strip(),
+                submitted_by=request.form.get("submitted_by", "").strip() or "Anonymous",
+                ip_address=request.remote_addr,
+            )
+            db.session.add(submission)
+            db.session.commit()
+            flash("Thanks! Your source suggestion has been submitted for review.", "success")
+            return redirect("/submit")
+        return render_template("submit.html", categories=CATEGORIES)
+
+    @app.route("/api/vote", methods=["POST"])
+    def vote_article():
+        """Public thumbs up/down on an article."""
+        data = request.get_json(silent=True)
+        if not data or "article_url" not in data or "vote" not in data:
+            return jsonify({"error": "article_url and vote required"}), 400
+        vote_val = 1 if data["vote"] > 0 else -1
+        article_url = data["article_url"]
+        ip = request.remote_addr
+        existing = db.session.query(ArticleVote).filter_by(
+            article_url=article_url, ip_address=ip
+        ).first()
+        if existing:
+            if existing.vote == vote_val:
+                db.session.delete(existing)
+                db.session.commit()
+                totals = _get_vote_totals(article_url)
+                return jsonify({"status": "removed", **totals})
+            existing.vote = vote_val
+        else:
+            existing = ArticleVote(article_url=article_url, vote=vote_val, ip_address=ip)
+            db.session.add(existing)
+        db.session.commit()
+        totals = _get_vote_totals(article_url)
+        return jsonify({"status": "voted", "your_vote": vote_val, **totals})
+
+    def _get_vote_totals(article_url):
+        from sqlalchemy import func
+        ups = db.session.query(func.count()).filter(
+            ArticleVote.article_url == article_url, ArticleVote.vote == 1
+        ).scalar()
+        downs = db.session.query(func.count()).filter(
+            ArticleVote.article_url == article_url, ArticleVote.vote == -1
+        ).scalar()
+        return {"ups": ups, "downs": downs, "score": ups - downs}
+
+    @app.route("/api/votes")
+    def get_votes():
+        """Get vote totals for a list of article URLs."""
+        urls = request.args.getlist("url")
+        ip = request.remote_addr
+        result = {}
+        for url in urls[:50]:
+            totals = _get_vote_totals(url)
+            user_vote = db.session.query(ArticleVote).filter_by(
+                article_url=url, ip_address=ip
+            ).first()
+            result[url] = {**totals, "your_vote": user_vote.vote if user_vote else 0}
+        return jsonify(result)
 
     @app.route("/about")
     def about():
