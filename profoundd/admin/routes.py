@@ -2,7 +2,8 @@
 Admin panel routes for managing sources, rankings, and monitoring.
 """
 import logging
-from datetime import datetime, timezone
+from collections import defaultdict
+from datetime import datetime, timezone, timedelta
 from functools import wraps
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
@@ -17,6 +18,11 @@ logger = logging.getLogger(__name__)
 config = get_config()
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
+# Rate limiting: {ip: [timestamp, timestamp, ...]}
+_login_attempts = defaultdict(list)
+LOGIN_MAX_ATTEMPTS = 10
+LOGIN_LOCKOUT_SECONDS = 180  # 3 minutes
+
 
 def login_required(f):
     @wraps(f)
@@ -27,20 +33,40 @@ def login_required(f):
     return decorated
 
 
+def _is_locked_out(ip):
+    """Check if IP is locked out from too many login attempts."""
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(seconds=LOGIN_LOCKOUT_SECONDS)
+    # Clean old attempts
+    _login_attempts[ip] = [t for t in _login_attempts[ip] if t > cutoff]
+    return len(_login_attempts[ip]) >= LOGIN_MAX_ATTEMPTS
+
+
 @admin_bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
+        ip = request.remote_addr
+        if _is_locked_out(ip):
+            flash("Too many login attempts. Try again in 3 minutes.", "error")
+            return render_template("admin/login.html")
+
         username = request.form.get("username")
         password = request.form.get("password")
 
         user = db.session.query(AdminUser).filter_by(username=username).first()
         if user and user.check_password(password):
+            _login_attempts.pop(ip, None)  # clear on success
             session["admin_logged_in"] = True
             session["admin_user"] = username
             flash("Logged in successfully.", "success")
             return redirect(url_for("admin.dashboard"))
 
-        flash("Invalid credentials.", "error")
+        _login_attempts[ip].append(datetime.now(timezone.utc))
+        remaining = LOGIN_MAX_ATTEMPTS - len(_login_attempts[ip])
+        if remaining > 0:
+            flash(f"Invalid credentials. {remaining} attempts remaining.", "error")
+        else:
+            flash("Too many login attempts. Try again in 3 minutes.", "error")
 
     return render_template("admin/login.html")
 
