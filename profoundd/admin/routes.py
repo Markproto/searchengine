@@ -162,8 +162,9 @@ def delete_source(source_id):
 @admin_bp.route("/sources/seed", methods=["POST"])
 @login_required
 def seed_sources():
-    """Populate sources from the default config."""
+    """Populate sources from the default config and sync credibility ratings."""
     added = 0
+    updated = 0
     for src in ALL_SOURCES:
         existing = db.session.query(Source).filter_by(url=src["url"]).first()
         if not existing:
@@ -176,8 +177,25 @@ def seed_sources():
             )
             db.session.add(source)
             added += 1
+        else:
+            # Sync fields from central config so code stays authoritative
+            changed = False
+            if existing.credibility != src.get("credibility", 5):
+                existing.credibility = src.get("credibility", 5)
+                changed = True
+            if existing.name != src["name"]:
+                existing.name = src["name"]
+                changed = True
+            if existing.category != src["category"]:
+                existing.category = src["category"]
+                changed = True
+            if existing.feed_type != src.get("feed_type", "rss"):
+                existing.feed_type = src.get("feed_type", "rss")
+                changed = True
+            if changed:
+                updated += 1
     db.session.commit()
-    flash(f"Seeded {added} new sources from default config.", "success")
+    flash(f"Seeded {added} new sources, updated {updated} existing from config.", "success")
     return redirect(url_for("admin.sources_list"))
 
 
