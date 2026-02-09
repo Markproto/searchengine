@@ -33,7 +33,12 @@ fi
 echo "[4/8] Setting up application..."
 APP_DIR="/opt/profoundd"
 mkdir -p $APP_DIR
-cp -r . $APP_DIR/
+
+# Copy files only if not already running from APP_DIR
+CURRENT_DIR=$(cd "$(dirname "$0")/.." && pwd)
+if [ "$CURRENT_DIR" != "$APP_DIR" ]; then
+    cp -r "$CURRENT_DIR/." $APP_DIR/
+fi
 chown -R profoundd:profoundd $APP_DIR
 
 # --- Python Environment ---
@@ -80,7 +85,7 @@ FLASK_ENV=production
 SECRET_KEY=$SECRET
 DOMAIN=profoundd.com
 ELASTICSEARCH_URL=http://localhost:9200
-DATABASE_URL=sqlite:///data/profoundd.db
+DATABASE_URL=sqlite:////opt/profoundd/data/profoundd.db
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=$(python3 -c "import secrets; print(secrets.token_urlsafe(16))")
 CRAWL_INTERVAL_MINUTES=60
