@@ -24,6 +24,9 @@ with app.app_context():
             db.session.add(source)
             added += 1
         else:
+            # Skip sources that were manually deactivated by admin
+            if not existing.is_active:
+                continue
             changed = False
             if existing.credibility != src.get("credibility", 5):
                 existing.credibility = src.get("credibility", 5)

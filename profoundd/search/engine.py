@@ -269,14 +269,29 @@ class SearchEngine:
 
         body = {
             "query": {
-                "bool": {
-                    "filter": filter_clauses,
-                    "should": [
-                        {"range": {"source_credibility": {"gte": 8, "boost": 3}}}
+                "function_score": {
+                    "query": {
+                        "bool": {
+                            "filter": filter_clauses,
+                        }
+                    },
+                    "functions": [
+                        {
+                            "field_value_factor": {
+                                "field": "source_credibility",
+                                "factor": 1,
+                                "modifier": "none",
+                                "missing": 5,
+                            }
+                        }
                     ],
+                    "boost_mode": "multiply",
                 }
             },
-            "sort": [{"published_at": {"order": "desc"}}],
+            "sort": [
+                {"source_credibility": {"order": "desc"}},
+                {"published_at": {"order": "desc"}},
+            ],
             "size": size,
         }
 

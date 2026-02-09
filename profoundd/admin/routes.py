@@ -179,9 +179,10 @@ def delete_source(source_id):
     source = db.session.get(Source, source_id)
     if not source:
         return "Not found", 404
-    db.session.delete(source)
+    # Deactivate instead of hard-delete so seed won't re-add it
+    source.is_active = False
     db.session.commit()
-    flash(f"Source '{source.name}' deleted.", "warning")
+    flash(f"Source '{source.name}' removed. It will not be re-added on re-seed.", "warning")
     return redirect(url_for("admin.sources_list"))
 
 
@@ -204,6 +205,9 @@ def seed_sources():
             db.session.add(source)
             added += 1
         else:
+            # Skip sources that were manually deactivated by admin
+            if not existing.is_active:
+                continue
             # Sync fields from central config so code stays authoritative
             changed = False
             if existing.credibility != src.get("credibility", 5):
