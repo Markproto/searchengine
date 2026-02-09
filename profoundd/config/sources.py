@@ -48,6 +48,11 @@ MEDICAL_SOURCES = [
     {"name": "NEJM", "url": "https://www.nejm.org/action/showFeed?jc=nejm&type=etoc&feed=rss", "category": "medical", "credibility": 10, "feed_type": "rss"},
     {"name": "WebMD Health", "url": "https://rssfeeds.webmd.com/rss/rss.aspx?RSSSource=RSS_PUBLIC", "category": "medical", "credibility": 6, "feed_type": "rss"},
     {"name": "FDA News", "url": "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/fda-newsroom/rss.xml", "category": "medical", "credibility": 10, "feed_type": "rss"},
+
+    # --- Independent Health / Substack ---
+    {"name": "Dr. Robert Malone", "url": "https://rwmalonemd.substack.com/feed", "category": "medical", "credibility": 5, "feed_type": "rss"},
+    {"name": "David Avocado Wolfe (Substack)", "url": "https://davidavocadowolfe.substack.com/feed", "category": "medical", "credibility": 4, "feed_type": "rss"},
+    {"name": "David Avocado Wolfe (Blog)", "url": "https://shop.davidwolfe.com/blogs/learn.atom", "category": "medical", "credibility": 4, "feed_type": "atom"},
 ]
 
 LEGAL_SOURCES = [
