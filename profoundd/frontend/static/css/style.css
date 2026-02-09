@@ -274,6 +274,13 @@ main { flex: 1; }
 /* --- Search Results Page --- */
 .search-page { padding: 30px 0; }
 
+/* Mobile back/home bar - hidden on desktop */
+.mobile-back-bar {
+    display: none;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
 .search-controls {
     margin-bottom: 20px;
     padding: 16px;
@@ -371,7 +378,9 @@ main { flex: 1; }
 }
 .result-footer {
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
     font-size: 0.75rem;
     color: var(--text-muted);
 }
@@ -705,12 +714,62 @@ main { flex: 1; }
     .hero { padding: 50px 0 40px; }
     .search-input-group { flex-direction: column; }
     .category-select { border-left: none; border-top: 1px solid var(--border); }
-    .nav-links { gap: 10px; }
     .footer-content { grid-template-columns: 1fr; gap: 20px; }
     .admin-header { flex-direction: column; gap: 12px; }
     .stats-grid { grid-template-columns: 1fr; }
     .admin-table { font-size: 0.8rem; }
     .admin-table th, .admin-table td { padding: 8px; }
+
+    /* Mobile nav: wrap to two rows */
+    .nav-content {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .nav-links {
+        gap: 12px;
+        font-size: 0.8rem;
+        order: 3;
+        width: 100%;
+        justify-content: center;
+        border-top: 1px solid var(--border);
+        padding-top: 8px;
+    }
+    .nav-search-form {
+        order: 2;
+        flex: 1;
+        min-width: 0;
+        max-width: none;
+    }
+    .nav-search-input {
+        font-size: 16px; /* prevents iOS zoom on focus */
+        padding: 10px 14px;
+    }
+
+    /* Search page mobile */
+    .mobile-back-bar { display: flex; }
+    .search-page { padding: 16px 0; }
+    .search-controls { padding: 10px; }
+    .search-filters { gap: 10px; }
+    .filter-group { flex: 1; min-width: 0; }
+    .filter-group select { width: 100%; font-size: 16px; }
+
+    /* Result cards */
+    .result-card { padding: 14px; }
+    .result-title { font-size: 1rem; }
+    .result-header { gap: 6px; }
+    .result-footer { flex-wrap: wrap; gap: 8px; }
+    .result-url { font-size: 0.7rem; flex: 1 1 100%; }
+
+    /* Vote buttons */
+    .vote-controls { width: 100%; justify-content: flex-start; margin-left: 0; }
+    .vote-btn { padding: 6px 12px; font-size: 0.85rem; }
+
+    /* Submit page */
+    .submit-page .form-grid { grid-template-columns: 1fr; }
+
+    /* Pagination */
+    .pagination { flex-wrap: wrap; }
+    .page-link { padding: 8px 12px; }
 }
 
 .text-muted { color: var(--text-muted); }
@@ -849,10 +908,3 @@ main { flex: 1; }
 .btn-success:hover { background: rgba(34,197,94,0.35); }
 .actions-cell { white-space: nowrap; }
 
-/* Make result footer flex for vote alignment */
-.result-footer {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}

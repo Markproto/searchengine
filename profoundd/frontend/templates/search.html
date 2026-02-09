@@ -10,6 +10,10 @@
 
 {% block content %}
 <div class="container search-page">
+    <div class="mobile-back-bar">
+        <a href="/" class="btn btn-sm btn-secondary">&#8592; Home</a>
+        <a href="/search" class="btn btn-sm btn-secondary">New Search</a>
+    </div>
     <div class="search-controls">
         <form action="/search" method="GET" class="search-filters">
             <input type="hidden" name="q" value="{{ query }}">
