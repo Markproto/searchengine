@@ -121,6 +121,11 @@ POLITICS_SOURCES = [
     {"name": "Brookings", "url": "https://www.brookings.edu/feed/", "category": "politics", "credibility": 9, "feed_type": "rss"},
     {"name": "RAND", "url": "https://www.rand.org/content/rand/blog.rss", "category": "politics", "credibility": 9, "feed_type": "rss"},
     {"name": "CRS Reports", "url": "https://crsreports.congress.gov/rss/reports", "category": "politics", "credibility": 10, "feed_type": "rss"},
+
+    # --- Independent Commentary / Podcasts ---
+    {"name": "Candace Owens (Podcast)", "url": "https://feeds.megaphone.fm/candace", "category": "politics", "credibility": 5, "feed_type": "rss"},
+    {"name": "Candace Owens (Soundcloud)", "url": "https://feeds.soundcloud.com/users/soundcloud:users:593344158/sounds.rss", "category": "politics", "credibility": 5, "feed_type": "rss"},
+    {"name": "Tucker Carlson (Podcast)", "url": "https://feeds.megaphone.fm/RSV1597324942", "category": "politics", "credibility": 5, "feed_type": "rss"},
 ]
 
 TWITTER_SOURCES = [
