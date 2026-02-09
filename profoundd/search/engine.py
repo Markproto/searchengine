@@ -20,6 +20,7 @@ ARTICLE_MAPPING = {
             "source_name": {"type": "keyword"},
             "source_credibility": {"type": "integer"},
             "url": {"type": "keyword"},
+            "tags": {"type": "keyword"},
             "published_at": {"type": "date"},
             "crawled_at": {"type": "date"},
         }
@@ -284,3 +285,46 @@ class SearchEngine:
             return [hit["_source"] for hit in result["hits"]["hits"]]
         except Exception:
             return []
+
+    def get_suggestions(self, query, size=5):
+        """Get search suggestions based on article titles."""
+        try:
+            body = {
+                "query": {
+                    "multi_match": {
+                        "query": query,
+                        "fields": ["title"],
+                        "type": "phrase_prefix",
+                    }
+                },
+                "_source": ["title", "category", "source_name"],
+                "size": size,
+            }
+            result = self.es.search(index=self.index_name, body=body)
+            return [
+                {
+                    "title": hit["_source"]["title"],
+                    "category": hit["_source"].get("category", ""),
+                    "source": hit["_source"].get("source_name", ""),
+                }
+                for hit in result["hits"]["hits"]
+            ]
+        except Exception:
+            return []
+
+    def get_category_counts(self):
+        """Get article count per category."""
+        try:
+            body = {
+                "size": 0,
+                "aggs": {
+                    "categories": {
+                        "terms": {"field": "category", "size": 20}
+                    }
+                }
+            }
+            result = self.es.search(index=self.index_name, body=body)
+            buckets = result["aggregations"]["categories"]["buckets"]
+            return {b["key"]: b["doc_count"] for b in buckets}
+        except Exception:
+            return {}

@@ -7,7 +7,7 @@ from functools import wraps
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog
 from profoundd.config.settings import get_config
 from profoundd.config.sources import ALL_SOURCES, CATEGORIES
 from profoundd.search.engine import SearchEngine
@@ -180,7 +180,8 @@ def seed_sources():
 @admin_bp.route("/crawl", methods=["POST"])
 @login_required
 def trigger_crawl():
-    """Trigger a manual crawl."""
+    """Trigger a manual crawl with logging."""
+    from time import time
     category = request.form.get("category", None)
     engine = SearchEngine(config.ELASTICSEARCH_URL)
 
@@ -190,6 +191,7 @@ def trigger_crawl():
 
     engine.create_index()
     crawler = FeedCrawler(search_engine=engine)
+    start = time()
 
     # Use database sources if available, otherwise defaults
     if Source.query.count() > 0:
@@ -200,7 +202,24 @@ def trigger_crawl():
     else:
         count = crawler.crawl_all() if not category else len(crawler.crawl_category(category))
 
-    flash(f"Crawl complete: {count} articles indexed.", "success")
+    duration = time() - start
+    stats = crawler.get_stats()
+
+    # Log the crawl
+    crawl_log = CrawlLog(
+        articles_found=stats["found"],
+        articles_new=stats["new"],
+        articles_duplicate=stats["duplicate"],
+        errors=stats["errors"],
+        status="success" if count > 0 else "empty",
+        trigger="manual",
+        category=category if category and category != "all" else None,
+        duration_seconds=round(duration, 1),
+    )
+    db.session.add(crawl_log)
+    db.session.commit()
+
+    flash(f"Crawl complete in {duration:.0f}s: {count} articles ({stats['duplicate']} duplicates, {stats['errors']} errors).", "success")
     return redirect(url_for("admin.dashboard"))
 
 
@@ -213,6 +232,14 @@ def cleanup_old():
     deleted = engine.delete_old_articles(days=days)
     flash(f"Cleaned up {deleted} articles older than {days} days.", "info")
     return redirect(url_for("admin.dashboard"))
+
+
+@admin_bp.route("/crawl-history")
+@login_required
+def crawl_history():
+    """View crawl history."""
+    logs = CrawlLog.query.order_by(CrawlLog.started_at.desc()).limit(50).all()
+    return render_template("admin/crawl_history.html", logs=logs, categories=CATEGORIES)
 
 
 # --- API endpoints for AJAX ---

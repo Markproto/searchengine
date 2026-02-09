@@ -714,3 +714,79 @@ main { flex: 1; }
 }
 
 .text-muted { color: var(--text-muted); }
+.text-danger { color: var(--danger); }
+
+/* --- New Category Colors --- */
+.category-education .category-icon, .category-tag-education { color: #ec4899; }
+.category-environment .category-icon, .category-tag-environment { color: #10b981; }
+.category-politics .category-icon, .category-tag-politics { color: #8b5cf6; }
+.category-education:hover { border-color: #ec4899; }
+.category-environment:hover { border-color: #10b981; }
+.category-politics:hover { border-color: #8b5cf6; }
+
+/* --- Search Suggestions Dropdown --- */
+.suggestions-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 200;
+    box-shadow: var(--shadow);
+}
+.suggestion-item {
+    display: block;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    transition: background 0.15s;
+}
+.suggestion-item:hover {
+    background: var(--bg-input);
+    color: var(--accent);
+}
+.suggestion-title {
+    display: block;
+    font-size: 0.9rem;
+    line-height: 1.3;
+}
+.suggestion-meta {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* --- Category Page --- */
+.category-page { padding: 30px 0; }
+.category-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+.category-header h1 { font-size: 2rem; margin-bottom: 8px; }
+.category-header p { color: var(--text-secondary); margin-bottom: 24px; }
+.category-search { max-width: 600px; margin: 0 auto; }
+.articles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+/* --- Badges --- */
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+.badge-primary { background: rgba(99,102,241,0.2); color: var(--accent); }
+.badge-info { background: rgba(6,182,212,0.2); color: #06b6d4; }
+.badge-success { background: rgba(34,197,94,0.15); color: var(--success); }
+.badge-warning { background: rgba(234,179,8,0.15); color: var(--warning); }
+.badge-danger { background: rgba(239,68,68,0.15); color: var(--danger); }

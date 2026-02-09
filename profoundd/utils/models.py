@@ -115,3 +115,19 @@ class SearchLog(db.Model):
     results_count = db.Column(db.Integer, default=0)
     ip_address = db.Column(db.String(45))
     searched_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class CrawlLog(db.Model):
+    """Log of crawl runs for monitoring."""
+    __tablename__ = "crawl_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    started_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    articles_found = db.Column(db.Integer, default=0)
+    articles_new = db.Column(db.Integer, default=0)
+    articles_duplicate = db.Column(db.Integer, default=0)
+    errors = db.Column(db.Integer, default=0)
+    status = db.Column(db.String(20), default="running")  # running, success, failed, empty
+    trigger = db.Column(db.String(20), default="manual")  # manual, scheduler
+    category = db.Column(db.String(50))
+    duration_seconds = db.Column(db.Float)

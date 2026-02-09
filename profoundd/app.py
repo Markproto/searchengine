@@ -14,6 +14,7 @@ from profoundd.config.sources import CATEGORIES
 from profoundd.utils.models import db, AdminUser, SearchLog
 from profoundd.search.engine import SearchEngine
 from profoundd.admin.routes import admin_bp
+from profoundd.utils.logging_config import setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,9 @@ def create_app(config_override=None):
     config = config_override or get_config()
     app.config.from_object(config)
     CORS(app)
+
+    # Setup logging
+    setup_logging()
 
     # Init extensions
     db.init_app(app)
@@ -52,6 +56,14 @@ def create_app(config_override=None):
         db.create_all()
         _ensure_admin(app.config)
 
+    # Start background scheduler (only in production, not in testing)
+    if not app.config.get("TESTING"):
+        try:
+            from profoundd.utils.scheduler import init_scheduler
+            init_scheduler(app)
+        except Exception as e:
+            logger.warning("Could not start scheduler: %s", e)
+
     # --- Routes ---
 
     @app.route("/")
@@ -59,7 +71,7 @@ def create_app(config_override=None):
         """Homepage with search bar and category cards."""
         trending = []
         if search_engine.is_available():
-            trending = search_engine.get_trending(size=6)
+            trending = search_engine.get_trending(size=9)
         return render_template("index.html", categories=CATEGORIES, trending=trending)
 
     @app.route("/search")
@@ -98,9 +110,25 @@ def create_app(config_override=None):
         return render_template("search.html", results=results, categories=CATEGORIES,
                                query=query, category=category, sort_by=sort_by)
 
+    @app.route("/category/<category_name>")
+    def category_page(category_name):
+        """Browse a specific category."""
+        if category_name not in CATEGORIES:
+            return render_template("404.html", categories=CATEGORIES), 404
+
+        trending = []
+        if search_engine.is_available():
+            trending = search_engine.get_trending(category=category_name, size=20, hours=72)
+
+        cat_info = CATEGORIES[category_name]
+        return render_template("category.html", category_name=category_name,
+                               category=cat_info, articles=trending, categories=CATEGORIES)
+
+    # --- API Routes ---
+
     @app.route("/api/search")
     def api_search():
-        """JSON API for search (for future apps/integrations)."""
+        """JSON API for search."""
         query = request.args.get("q", "").strip()
         category = request.args.get("category", "all")
         page = request.args.get("page", 1, type=int)
@@ -119,6 +147,44 @@ def create_app(config_override=None):
         hours = request.args.get("hours", 24, type=int)
         trending = search_engine.get_trending(category=category, hours=hours)
         return jsonify({"articles": trending, "category": category})
+
+    @app.route("/api/suggest")
+    def api_suggest():
+        """Search suggestions based on indexed titles."""
+        query = request.args.get("q", "").strip()
+        if not query or len(query) < 2:
+            return jsonify({"suggestions": []})
+
+        suggestions = search_engine.get_suggestions(query)
+        return jsonify({"suggestions": suggestions})
+
+    @app.route("/api/sources")
+    def api_sources():
+        """List all configured categories and source counts."""
+        from profoundd.utils.models import Source
+        cat_data = {}
+        for key, cat in CATEGORIES.items():
+            count = Source.query.filter_by(category=key, is_active=True).count()
+            cat_data[key] = {"label": cat["label"], "sources": count}
+        return jsonify({"categories": cat_data})
+
+    @app.route("/health")
+    def health_check():
+        """Health check endpoint for monitoring."""
+        es_ok = search_engine.is_available()
+        es_stats = search_engine.get_stats() if es_ok else {}
+        status = "healthy" if es_ok else "degraded"
+        code = 200 if es_ok else 503
+
+        return jsonify({
+            "status": status,
+            "version": "1.0.0",
+            "elasticsearch": {
+                "available": es_ok,
+                "articles": es_stats.get("total_articles", 0),
+            },
+            "categories": len(CATEGORIES),
+        }), code
 
     @app.route("/about")
     def about():

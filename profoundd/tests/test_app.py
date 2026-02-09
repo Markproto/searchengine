@@ -167,3 +167,57 @@ class TestSources:
         assert "tech" in CATEGORIES
         assert "finance" in CATEGORIES
         assert "science" in CATEGORIES
+        assert "education" in CATEGORIES
+        assert "environment" in CATEGORIES
+        assert "politics" in CATEGORIES
+
+    def test_source_count(self):
+        from profoundd.config.sources import ALL_SOURCES
+        assert len(ALL_SOURCES) >= 70  # We have 80+ sources
+
+
+class TestNewEndpoints:
+    def test_health_check(self, client):
+        response = client.get("/health")
+        assert response.status_code in (200, 503)
+        data = response.get_json()
+        assert "status" in data
+        assert "version" in data
+
+    def test_api_suggest_requires_query(self, client):
+        response = client.get("/api/suggest")
+        data = response.get_json()
+        assert data["suggestions"] == []
+
+    def test_api_suggest_short_query(self, client):
+        response = client.get("/api/suggest?q=a")
+        data = response.get_json()
+        assert data["suggestions"] == []
+
+    def test_api_sources(self, client):
+        response = client.get("/api/sources")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "categories" in data
+
+    def test_category_page_valid(self, client):
+        response = client.get("/category/news")
+        assert response.status_code == 200
+
+    def test_category_page_invalid(self, client):
+        response = client.get("/category/nonexistent")
+        assert response.status_code == 404
+
+    def test_crawl_history_requires_auth(self, client):
+        response = client.get("/admin/crawl-history", follow_redirects=False)
+        assert response.status_code == 302
+
+
+class TestCrawler:
+    def test_crawler_deduplication(self):
+        from profoundd.crawler.feed_crawler import FeedCrawler
+        crawler = FeedCrawler.__new__(FeedCrawler)
+        crawler._seen_urls = set()
+        assert not crawler._is_duplicate("http://example.com/1")
+        assert crawler._is_duplicate("http://example.com/1")
+        assert not crawler._is_duplicate("http://example.com/2")

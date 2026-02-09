@@ -1,11 +1,12 @@
 """
 Multi-domain RSS/Atom feed crawler for Profoundd.
 Fetches articles from configured sources and indexes them in Elasticsearch.
+Includes URL-based deduplication and crawl statistics.
 """
 import logging
 import hashlib
 from datetime import datetime, timezone
-from time import sleep
+from time import sleep, time
 
 import feedparser
 import requests
@@ -30,22 +31,39 @@ class FeedCrawler:
         self.max_per_feed = config.MAX_ARTICLES_PER_FEED
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": self.user_agent})
+        # Deduplication: track seen URLs within a crawl run
+        self._seen_urls = set()
+        # Statistics
+        self.stats = {"found": 0, "new": 0, "duplicate": 0, "errors": 0}
+
+    def _is_duplicate(self, url):
+        """Check if URL has already been seen in this crawl run."""
+        url_hash = hashlib.md5(url.encode()).hexdigest()
+        if url_hash in self._seen_urls:
+            return True
+        self._seen_urls.add(url_hash)
+        return False
 
     def fetch_feed(self, source):
-        """Fetch and parse an RSS/Atom feed."""
-        try:
-            response = self.session.get(source["url"], timeout=30)
-            response.raise_for_status()
-            feed = feedparser.parse(response.content)
+        """Fetch and parse an RSS/Atom feed with retry."""
+        for attempt in range(3):
+            try:
+                response = self.session.get(source["url"], timeout=30)
+                response.raise_for_status()
+                feed = feedparser.parse(response.content)
 
-            if feed.bozo and not feed.entries:
-                logger.warning("Failed to parse feed: %s (%s)", source["name"], feed.bozo_exception)
+                if feed.bozo and not feed.entries:
+                    logger.warning("Failed to parse feed: %s (%s)", source["name"], feed.bozo_exception)
+                    return []
+
+                return feed.entries[:self.max_per_feed]
+            except requests.RequestException as e:
+                if attempt < 2:
+                    sleep(2 ** attempt)
+                    continue
+                logger.error("Failed to fetch %s after %d attempts: %s", source["name"], attempt + 1, e)
+                self.stats["errors"] += 1
                 return []
-
-            return feed.entries[:self.max_per_feed]
-        except requests.RequestException as e:
-            logger.error("Failed to fetch %s: %s", source["name"], e)
-            return []
 
     def extract_article(self, entry, source):
         """Extract article data from a feed entry."""
@@ -89,6 +107,11 @@ class FeedCrawler:
 
         author = getattr(entry, "author", source["name"])
 
+        # Extract tags/keywords if available
+        tags = []
+        if hasattr(entry, "tags") and entry.tags:
+            tags = [t.get("term", "") for t in entry.tags[:5]]
+
         return {
             "title": title,
             "url": link,
@@ -100,10 +123,11 @@ class FeedCrawler:
             "source_credibility": source.get("credibility", 5),
             "published_at": published.isoformat(),
             "crawled_at": datetime.now(timezone.utc).isoformat(),
+            "tags": tags,
         }
 
     def crawl_source(self, source):
-        """Crawl a single source and return articles."""
+        """Crawl a single source and return deduplicated articles."""
         logger.info("Crawling: %s (%s)", source["name"], source["category"])
         entries = self.fetch_feed(source)
         articles = []
@@ -111,12 +135,24 @@ class FeedCrawler:
         for entry in entries:
             try:
                 article = self.extract_article(entry, source)
-                if article["url"] and article["title"]:
-                    articles.append(article)
+                if not article["url"] or not article["title"]:
+                    continue
+
+                self.stats["found"] += 1
+
+                if self._is_duplicate(article["url"]):
+                    self.stats["duplicate"] += 1
+                    continue
+
+                self.stats["new"] += 1
+                articles.append(article)
             except Exception as e:
                 logger.error("Failed to extract article from %s: %s", source["name"], e)
+                self.stats["errors"] += 1
 
-        logger.info("Extracted %d articles from %s", len(articles), source["name"])
+        logger.info("Extracted %d articles from %s (%d skipped as duplicates)",
+                     len(articles), source["name"],
+                     self.stats["duplicate"])
         return articles
 
     def crawl_category(self, category):
@@ -139,6 +175,7 @@ class FeedCrawler:
     def crawl_all(self):
         """Crawl all configured sources."""
         logger.info("Starting full crawl of %d sources", len(ALL_SOURCES))
+        start_time = time()
         total_articles = []
 
         for source in ALL_SOURCES:
@@ -149,7 +186,10 @@ class FeedCrawler:
         # Bulk index everything
         if total_articles:
             indexed = self.search_engine.bulk_index(total_articles)
-            logger.info("Full crawl complete: indexed %d/%d articles", indexed, len(total_articles))
+            duration = time() - start_time
+            logger.info("Full crawl complete in %.1fs: indexed %d/%d articles (dupes: %d, errors: %d)",
+                         duration, indexed, len(total_articles),
+                         self.stats["duplicate"], self.stats["errors"])
 
         return len(total_articles)
 
@@ -172,6 +212,10 @@ class FeedCrawler:
             self.search_engine.bulk_index(all_articles)
 
         return len(all_articles)
+
+    def get_stats(self):
+        """Return crawl statistics."""
+        return dict(self.stats)
 
 
 def run_crawl(category=None):

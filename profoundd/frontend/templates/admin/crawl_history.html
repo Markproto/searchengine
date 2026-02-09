@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Crawl History{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>Crawl History</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+    </div>
+
+    {% if logs %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Trigger</th>
+                <th>Category</th>
+                <th>Found</th>
+                <th>New</th>
+                <th>Duplicates</th>
+                <th>Errors</th>
+                <th>Duration</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td>{{ log.started_at.strftime('%Y-%m-%d %H:%M') if log.started_at else '' }}</td>
+                <td><span class="badge badge-{{ 'info' if log.trigger == 'scheduler' else 'primary' }}">{{ log.trigger }}</span></td>
+                <td>{{ log.category or 'All' }}</td>
+                <td>{{ log.articles_found }}</td>
+                <td>{{ log.articles_new }}</td>
+                <td>{{ log.articles_duplicate }}</td>
+                <td class="{% if log.errors > 0 %}text-danger{% endif %}">{{ log.errors }}</td>
+                <td>{{ '%.1f' % log.duration_seconds if log.duration_seconds else '-' }}s</td>
+                <td>
+                    <span class="badge badge-{{ 'success' if log.status == 'success' else ('warning' if log.status == 'empty' else 'danger') }}">
+                        {{ log.status }}
+                    </span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <h3>No crawl history yet</h3>
+        <p>Trigger a crawl from the dashboard to see history here.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

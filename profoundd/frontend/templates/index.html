@@ -28,7 +28,7 @@
         <h2 class="section-title">Explore Categories</h2>
         <div class="category-grid">
             {% for key, cat in categories.items() %}
-            <a href="/search?category={{ key }}" class="category-card category-{{ key }}">
+            <a href="/category/{{ key }}" class="category-card category-{{ key }}">
                 <div class="category-icon">
                     {% if key == 'news' %}
                     <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 8h16M8 4v16"/></svg>
@@ -42,6 +42,12 @@
                     <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20L7 12l4 4 4-8 6 12"/></svg>
                     {% elif key == 'science' %}
                     <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v7.4l-4 6.6h14l-4-6.6V3"/><path d="M8 3h8"/></svg>
+                    {% elif key == 'education' %}
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10l-10-6L2 10l10 6 10-6z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                    {% elif key == 'environment' %}
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8C8 10 5.9 16.17 3.82 21.34M17 8A5 5 0 1 0 17 8z"/><path d="M2 2s7 3 7 10"/></svg>
+                    {% elif key == 'politics' %}
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg>
                     {% endif %}
                 </div>
                 <h3>{{ cat.label }}</h3>
@@ -64,7 +70,7 @@
                 <p class="trending-meta">
                     <span class="source">{{ article.source_name }}</span>
                     {% if article.published_at %}
-                    <span class="date">{{ article.published_at[:10] }}</span>
+                    <span class="date" data-time="{{ article.published_at }}">{{ article.published_at[:10] }}</span>
                     {% endif %}
                 </p>
             </article>

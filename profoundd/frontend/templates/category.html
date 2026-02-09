@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ category.label }} - Profoundd{% endblock %}
+
+{% block nav_search %}
+<form action="/search" method="GET" class="nav-search-form">
+    <input type="text" name="q" placeholder="Search {{ category.label }}..." class="nav-search-input">
+    <input type="hidden" name="category" value="{{ category_name }}">
+</form>
+{% endblock %}
+
+{% block content %}
+<div class="container category-page">
+    <div class="category-header">
+        <h1>{{ category.label }}</h1>
+        <p>{{ category.description }}</p>
+        <form action="/search" method="GET" class="category-search">
+            <div class="search-input-group">
+                <input type="text" name="q" placeholder="Search {{ category.label }}..." class="search-input" autofocus>
+                <input type="hidden" name="category" value="{{ category_name }}">
+                <button type="submit" class="search-btn">Search</button>
+            </div>
+        </form>
+    </div>
+
+    {% if articles %}
+    <h2 class="section-title">Latest Articles</h2>
+    <div class="articles-grid">
+        {% for article in articles %}
+        <article class="trending-card">
+            <div class="result-header">
+                <span class="result-source">{{ article.source_name }}</span>
+                {% if article.source_credibility %}
+                <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }}">
+                    {{ article.source_credibility }}/10
+                </span>
+                {% endif %}
+            </div>
+            <h3><a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
+            {% if article.summary %}
+            <p class="result-summary">{{ article.summary[:200] }}{% if article.summary|length > 200 %}...{% endif %}</p>
+            {% endif %}
+            <p class="trending-meta">
+                {% if article.published_at %}
+                <span class="date" data-time="{{ article.published_at }}">{{ article.published_at[:10] }}</span>
+                {% endif %}
+            </p>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="no-results">
+        <h2>No articles yet</h2>
+        <p>Articles will appear here after the first crawl runs. Trigger a crawl from the admin panel.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
