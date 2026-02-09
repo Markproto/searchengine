@@ -33,7 +33,7 @@ def login():
         username = request.form.get("username")
         password = request.form.get("password")
 
-        user = AdminUser.query.filter_by(username=username).first()
+        user = db.session.query(AdminUser).filter_by(username=username).first()
         if user and user.check_password(password):
             session["admin_logged_in"] = True
             session["admin_user"] = username
@@ -60,15 +60,15 @@ def dashboard():
     engine = SearchEngine(config.ELASTICSEARCH_URL)
     es_stats = engine.get_stats() if engine.is_available() else {}
 
-    sources_count = Source.query.count()
-    active_sources = Source.query.filter_by(is_active=True).count()
-    articles_count = Article.query.count()
-    recent_searches = SearchLog.query.order_by(SearchLog.searched_at.desc()).limit(20).all()
+    sources_count = db.session.query(Source).count()
+    active_sources = db.session.query(Source).filter_by(is_active=True).count()
+    articles_count = db.session.query(Article).count()
+    recent_searches = db.session.query(SearchLog).order_by(SearchLog.searched_at.desc()).limit(20).all()
 
     # Category breakdown
     category_stats = {}
     for cat_key, cat_info in CATEGORIES.items():
-        count = Source.query.filter_by(category=cat_key, is_active=True).count()
+        count = db.session.query(Source).filter_by(category=cat_key, is_active=True).count()
         category_stats[cat_key] = {"label": cat_info["label"], "count": count, "icon": cat_info["icon"]}
 
     return render_template("admin/dashboard.html",
@@ -87,7 +87,7 @@ def dashboard():
 def sources_list():
     """List all sources with their rankings."""
     category = request.args.get("category", "all")
-    query = Source.query
+    query = db.session.query(Source)
     if category != "all":
         query = query.filter_by(category=category)
     sources = query.order_by(Source.credibility.desc()).all()
@@ -124,7 +124,9 @@ def add_source():
 @login_required
 def edit_source(source_id):
     """Edit an existing source."""
-    source = Source.query.get_or_404(source_id)
+    source = db.session.get(Source, source_id)
+    if not source:
+        return "Not found", 404
 
     if request.method == "POST":
         source.name = request.form["name"]
@@ -148,7 +150,9 @@ def edit_source(source_id):
 @admin_bp.route("/sources/<int:source_id>/delete", methods=["POST"])
 @login_required
 def delete_source(source_id):
-    source = Source.query.get_or_404(source_id)
+    source = db.session.get(Source, source_id)
+    if not source:
+        return "Not found", 404
     db.session.delete(source)
     db.session.commit()
     flash(f"Source '{source.name}' deleted.", "warning")
@@ -161,7 +165,7 @@ def seed_sources():
     """Populate sources from the default config."""
     added = 0
     for src in ALL_SOURCES:
-        existing = Source.query.filter_by(url=src["url"]).first()
+        existing = db.session.query(Source).filter_by(url=src["url"]).first()
         if not existing:
             source = Source(
                 name=src["name"],
@@ -194,8 +198,8 @@ def trigger_crawl():
     start = time()
 
     # Use database sources if available, otherwise defaults
-    if Source.query.count() > 0:
-        sources = Source.query.filter_by(is_active=True)
+    if db.session.query(Source).count() > 0:
+        sources = db.session.query(Source).filter_by(is_active=True)
         if category and category != "all":
             sources = sources.filter_by(category=category)
         count = crawler.crawl_custom_sources(sources.all())
@@ -238,7 +242,7 @@ def cleanup_old():
 @login_required
 def crawl_history():
     """View crawl history."""
-    logs = CrawlLog.query.order_by(CrawlLog.started_at.desc()).limit(50).all()
+    logs = db.session.query(CrawlLog).order_by(CrawlLog.started_at.desc()).limit(50).all()
     return render_template("admin/crawl_history.html", logs=logs, categories=CATEGORIES)
 
 
@@ -251,6 +255,6 @@ def api_stats():
     engine = SearchEngine(config.ELASTICSEARCH_URL)
     return jsonify({
         "elasticsearch": engine.get_stats() if engine.is_available() else {},
-        "sources": Source.query.count(),
-        "active_sources": Source.query.filter_by(is_active=True).count(),
+        "sources": db.session.query(Source).count(),
+        "active_sources": db.session.query(Source).filter_by(is_active=True).count(),
     })

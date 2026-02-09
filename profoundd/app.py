@@ -170,7 +170,7 @@ def create_app(config_override=None):
         from profoundd.utils.models import Source
         cat_data = {}
         for key, cat in CATEGORIES.items():
-            count = Source.query.filter_by(category=key, is_active=True).count()
+            count = db.session.query(Source).filter_by(category=key, is_active=True).count()
             cat_data[key] = {"label": cat["label"], "sources": count}
         return jsonify({"categories": cat_data})
 
@@ -209,7 +209,7 @@ def create_app(config_override=None):
 
 def _ensure_admin(config):
     """Create default admin user if none exists."""
-    if AdminUser.query.count() == 0:
+    if db.session.query(AdminUser).count() == 0:
         admin = AdminUser(username=config.get("ADMIN_USERNAME", "admin"))
         admin.set_password(config.get("ADMIN_PASSWORD", "changeme"))
         db.session.add(admin)
