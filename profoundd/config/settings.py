@@ -7,14 +7,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Project root directory (parent of profoundd/ package)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 class Config:
     """Base configuration."""
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-in-production")
     DOMAIN = os.getenv("DOMAIN", "profoundd.com")
 
-    # Database
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///data/profoundd.db")
+    # Database - use absolute path
+    _default_db = "sqlite:///" + os.path.join(BASE_DIR, "data", "profoundd.db")
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", _default_db)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Elasticsearch

@@ -52,7 +52,8 @@ def create_app(config_override=None):
 
     # Create tables and default admin
     with app.app_context():
-        os.makedirs("data", exist_ok=True)
+        from profoundd.config.settings import BASE_DIR
+        os.makedirs(os.path.join(BASE_DIR, "data"), exist_ok=True)
         db.create_all()
         _ensure_admin(app.config)
 
