@@ -15,6 +15,8 @@ with app.app_context():
         "MIT Technology Review", "IEEE Spectrum", "Nature",
         "Science Magazine", "Scientific American", "EPA Newsroom",
         "The Guardian - Environment", "CNN", "MSNBC", "NY Times",
+        "Reuters", "BBC News", "BBC World", "NPR News",
+        "Reuters (X)", "BBC Breaking (X)",
     ]
     deleted = 0
     for n in names:

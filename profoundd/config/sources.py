@@ -5,17 +5,11 @@ Expand this list as needed via the admin panel.
 """
 
 NEWS_SOURCES = [
-    # --- Wire Services ---
-    {"name": "Reuters", "url": "https://feeds.reuters.com/reuters/topNews", "category": "news", "credibility": 9, "feed_type": "rss"},
-
     # --- US News ---
-    {"name": "NPR News", "url": "https://feeds.npr.org/1001/rss.xml", "category": "news", "credibility": 8, "feed_type": "rss"},
     {"name": "Washington Post", "url": "https://feeds.washingtonpost.com/rss/national", "category": "news", "credibility": 8, "feed_type": "rss"},
     {"name": "ABC News", "url": "https://abcnews.go.com/abcnews/topstories", "category": "news", "credibility": 7, "feed_type": "rss"},
 
     # --- International ---
-    {"name": "BBC News", "url": "http://feeds.bbci.co.uk/news/rss.xml", "category": "news", "credibility": 9, "feed_type": "rss"},
-    {"name": "BBC World", "url": "http://feeds.bbci.co.uk/news/world/rss.xml", "category": "news", "credibility": 9, "feed_type": "rss"},
     {"name": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml", "category": "news", "credibility": 7, "feed_type": "rss"},
     {"name": "France24", "url": "https://www.france24.com/en/rss", "category": "news", "credibility": 8, "feed_type": "rss"},
     {"name": "Japan Times", "url": "https://www.japantimes.co.jp/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
@@ -131,8 +125,6 @@ POLITICS_SOURCES = [
 
 TWITTER_SOURCES = [
     # --- News Twitter/X accounts (via RSSHub) ---
-    {"name": "Reuters (X)", "url": "https://rsshub.app/twitter/user/Reuters", "category": "news", "credibility": 9, "feed_type": "rss"},
-    {"name": "BBC Breaking (X)", "url": "https://rsshub.app/twitter/user/BBCBreaking", "category": "news", "credibility": 9, "feed_type": "rss"},
     {"name": "Al Jazeera (X)", "url": "https://rsshub.app/twitter/user/AJEnglish", "category": "news", "credibility": 7, "feed_type": "rss"},
 
     # --- Medical Twitter/X ---
