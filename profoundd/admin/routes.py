@@ -202,8 +202,10 @@ def seed_sources():
 @admin_bp.route("/crawl", methods=["POST"])
 @login_required
 def trigger_crawl():
-    """Trigger a manual crawl with logging."""
-    from time import time
+    """Trigger a manual crawl in a background thread."""
+    import threading
+    from flask import current_app
+
     category = request.form.get("category", None)
     engine = SearchEngine(config.ELASTICSEARCH_URL)
 
@@ -212,36 +214,47 @@ def trigger_crawl():
         return redirect(url_for("admin.dashboard"))
 
     engine.create_index()
-    crawler = FeedCrawler(search_engine=engine)
-    start = time()
 
-    # Use database sources if available, otherwise defaults
-    if db.session.query(Source).count() > 0:
-        sources = db.session.query(Source).filter_by(is_active=True)
+    # Snapshot source data while we have app context
+    has_db_sources = db.session.query(Source).count() > 0
+    source_ids = None
+    if has_db_sources:
+        query = db.session.query(Source).filter_by(is_active=True)
         if category and category != "all":
-            sources = sources.filter_by(category=category)
-        count = crawler.crawl_custom_sources(sources.all())
-    else:
-        count = crawler.crawl_all() if not category else len(crawler.crawl_category(category))
+            query = query.filter_by(category=category)
+        source_ids = [s.id for s in query.all()]
 
-    duration = time() - start
-    stats = crawler.get_stats()
+    app = current_app._get_current_object()
+    cat = category
 
-    # Log the crawl
-    crawl_log = CrawlLog(
-        articles_found=stats["found"],
-        articles_new=stats["new"],
-        articles_duplicate=stats["duplicate"],
-        errors=stats["errors"],
-        status="success" if count > 0 else "empty",
-        trigger="manual",
-        category=category if category and category != "all" else None,
-        duration_seconds=round(duration, 1),
-    )
-    db.session.add(crawl_log)
-    db.session.commit()
+    def run_crawl():
+        from time import time
+        with app.app_context():
+            crawler = FeedCrawler(search_engine=engine)
+            start = time()
+            if source_ids:
+                sources = db.session.query(Source).filter(Source.id.in_(source_ids)).all()
+                count = crawler.crawl_custom_sources(sources)
+            else:
+                count = crawler.crawl_all() if not cat else len(crawler.crawl_category(cat))
+            duration = time() - start
+            stats = crawler.get_stats()
+            crawl_log = CrawlLog(
+                articles_found=stats["found"],
+                articles_new=stats["new"],
+                articles_duplicate=stats["duplicate"],
+                errors=stats["errors"],
+                status="success" if count > 0 else "empty",
+                trigger="manual",
+                category=cat if cat and cat != "all" else None,
+                duration_seconds=round(duration, 1),
+            )
+            db.session.add(crawl_log)
+            db.session.commit()
+            app.logger.info(f"Background crawl done: {count} articles in {duration:.0f}s")
 
-    flash(f"Crawl complete in {duration:.0f}s: {count} articles ({stats['duplicate']} duplicates, {stats['errors']} errors).", "success")
+    threading.Thread(target=run_crawl, daemon=True).start()
+    flash("Crawl started in background. Check Crawl Logs for results.", "success")
     return redirect(url_for("admin.dashboard"))
 
 
