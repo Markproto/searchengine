@@ -47,6 +47,11 @@ def create_app(config_override=None):
     # Register blueprints
     app.register_blueprint(admin_bp)
 
+    # Make categories available to all templates
+    @app.context_processor
+    def inject_categories():
+        return {"categories": CATEGORIES}
+
     # Initialize search engine
     search_engine = SearchEngine(app.config.get("ELASTICSEARCH_URL", "http://localhost:9200"))
 
