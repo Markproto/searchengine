@@ -868,6 +868,10 @@ main { flex: 1; }
     outline: none;
 }
 .submit-page textarea:focus { border-color: var(--accent); }
+.submit-url-input {
+    font-size: 1.1rem !important;
+    padding: 14px 18px !important;
+}
 
 /* --- Vote Controls --- */
 .vote-controls {

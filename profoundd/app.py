@@ -194,26 +194,28 @@ def create_app(config_override=None):
 
     @app.route("/submit", methods=["GET", "POST"])
     def submit_source():
-        """Public source submission form."""
+        """Public source submission form — just a URL is enough."""
         if request.method == "POST":
-            name = request.form.get("name", "").strip()
+            from urllib.parse import urlparse
             url = request.form.get("url", "").strip()
-            category = request.form.get("category", "").strip()
-            if not name or not url or not category:
-                flash("Name, URL, and category are required.", "error")
+            if not url:
+                flash("Please enter a URL.", "error")
                 return redirect("/submit")
+            # Auto-extract site name from domain
+            parsed = urlparse(url)
+            domain = parsed.netloc or parsed.path
+            name = domain.replace("www.", "").split(".")[0].title()
             submission = SourceSubmission(
                 name=name,
                 url=url,
-                category=category,
-                feed_type=request.form.get("feed_type", "rss"),
+                category="news",  # admin assigns the real category on review
                 reason=request.form.get("reason", "").strip(),
                 submitted_by=request.form.get("submitted_by", "").strip() or "Anonymous",
                 ip_address=request.remote_addr,
             )
             db.session.add(submission)
             db.session.commit()
-            flash("Thanks! Your source suggestion has been submitted for review.", "success")
+            flash("Thanks! Your suggestion has been submitted for review.", "success")
             return redirect("/submit")
         return render_template("submit.html", categories=CATEGORIES)
 
