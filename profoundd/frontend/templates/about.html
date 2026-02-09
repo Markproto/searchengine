@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}About - Profoundd{% endblock %}
+
+{% block content %}
+<div class="container about-page">
+    <h1>About Profoundd</h1>
+
+    <section class="about-section">
+        <h2>What is Profoundd?</h2>
+        <p>Profoundd is an open-source, multi-domain search engine that aggregates content from verified, credible sources across six key areas:</p>
+        <ul>
+            {% for key, cat in categories.items() %}
+            <li><strong>{{ cat.label }}</strong> - {{ cat.description }}</li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <section class="about-section">
+        <h2>How It Works</h2>
+        <ol>
+            <li><strong>Curated Sources</strong> - We crawl RSS/Atom feeds from vetted, verifiable sources (e.g., Reuters, PubMed, Nature, SCOTUSblog).</li>
+            <li><strong>Credibility Scoring</strong> - Each source is assigned a credibility score (1-10) that influences search rankings.</li>
+            <li><strong>Smart Ranking</strong> - Results are ranked by a combination of text relevance, source credibility, and recency.</li>
+            <li><strong>Transparent</strong> - Every result links directly to the original source. We don't host content; we help you find it.</li>
+        </ol>
+    </section>
+
+    <section class="about-section">
+        <h2>Ranking Algorithm</h2>
+        <p>Our search ranking considers:</p>
+        <ul>
+            <li><strong>Text Relevance</strong> (BM25) - How well the article matches your query</li>
+            <li><strong>Source Credibility</strong> - Higher-credibility sources get a ranking boost</li>
+            <li><strong>Recency</strong> - Recent articles (last 24h-7d) are boosted</li>
+        </ul>
+        <p>Admins can adjust per-source weights through the admin panel.</p>
+    </section>
+
+    <section class="about-section">
+        <h2>API Access</h2>
+        <p>Profoundd provides a free JSON API:</p>
+        <code>GET /api/search?q=your+query&category=news&page=1</code>
+        <p>Returns JSON with articles, total count, and pagination info.</p>
+    </section>
+
+    <section class="about-section">
+        <h2>Open Source</h2>
+        <p>Profoundd is built with Python, Flask, Elasticsearch, and Scrapy. Designed to run on a single $6/month server.</p>
+    </section>
+</div>
+{% endblock %}

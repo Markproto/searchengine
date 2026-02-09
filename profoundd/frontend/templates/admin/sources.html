@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Manage Sources{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>Manage Sources</h1>
+        <div>
+            <a href="{{ url_for('admin.add_source') }}" class="btn btn-primary">Add Source</a>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Category Filter -->
+    <div class="filter-bar">
+        <a href="{{ url_for('admin.sources_list') }}" class="filter-tag {% if current_category == 'all' %}active{% endif %}">All</a>
+        {% for key, cat in categories.items() %}
+        <a href="{{ url_for('admin.sources_list', category=key) }}"
+           class="filter-tag category-tag-{{ key }} {% if current_category == key %}active{% endif %}">{{ cat.label }}</a>
+        {% endfor %}
+    </div>
+
+    {% if sources %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Credibility</th>
+                <th>Bias</th>
+                <th>Active</th>
+                <th>Last Crawled</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for source in sources %}
+            <tr>
+                <td>
+                    <strong>{{ source.name }}</strong>
+                    <br><small class="text-muted">{{ source.url[:60] }}...</small>
+                </td>
+                <td><span class="category-tag-{{ source.category }}">{{ source.category | title }}</span></td>
+                <td>
+                    <span class="credibility-badge credibility-{{ 'high' if source.credibility >= 8 else ('medium' if source.credibility >= 5 else 'low') }}">
+                        {{ source.credibility }}/10
+                    </span>
+                </td>
+                <td>{{ source.bias_score }}/10</td>
+                <td>{{ 'Yes' if source.is_active else 'No' }}</td>
+                <td>{{ source.last_crawled.strftime('%m/%d %H:%M') if source.last_crawled else 'Never' }}</td>
+                <td class="action-buttons">
+                    <a href="{{ url_for('admin.edit_source', source_id=source.id) }}" class="btn btn-sm btn-secondary">Edit</a>
+                    <form method="POST" action="{{ url_for('admin.delete_source', source_id=source.id) }}" style="display:inline"
+                          onsubmit="return confirm('Delete {{ source.name }}?')">
+                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <h3>No sources found</h3>
+        <p>Seed default sources from the dashboard or add them manually.</p>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

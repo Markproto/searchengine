@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if source else 'Add' }} Source{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>{{ 'Edit' if source else 'Add New' }} Source</h1>
+        <a href="{{ url_for('admin.sources_list') }}" class="btn btn-secondary">Back to Sources</a>
+    </div>
+
+    <form method="POST" class="source-form">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="name">Source Name *</label>
+                <input type="text" id="name" name="name" value="{{ source.name if source else '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="url">Feed URL *</label>
+                <input type="url" id="url" name="url" value="{{ source.url if source else '' }}" required
+                       placeholder="https://example.com/feed/rss">
+            </div>
+
+            <div class="form-group">
+                <label for="category">Category *</label>
+                <select id="category" name="category" required>
+                    {% for key, cat in categories.items() %}
+                    <option value="{{ key }}" {% if source and source.category == key %}selected{% endif %}>{{ cat.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="feed_type">Feed Type</label>
+                <select id="feed_type" name="feed_type">
+                    <option value="rss" {% if source and source.feed_type == 'rss' %}selected{% endif %}>RSS</option>
+                    <option value="atom" {% if source and source.feed_type == 'atom' %}selected{% endif %}>Atom</option>
+                </select>
+            </div>
+        </div>
+
+        <h3>Ranking Criteria</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="credibility">Credibility Score (1-10)</label>
+                <input type="range" id="credibility" name="credibility" min="1" max="10"
+                       value="{{ source.credibility if source else 5 }}"
+                       oninput="this.nextElementSibling.textContent=this.value">
+                <output>{{ source.credibility if source else 5 }}</output>
+                <small>How trustworthy/factual is this source?</small>
+            </div>
+
+            <div class="form-group">
+                <label for="bias_score">Bias Score (1=Far Left, 5=Center, 10=Far Right)</label>
+                <input type="range" id="bias_score" name="bias_score" min="1" max="10"
+                       value="{{ source.bias_score if source else 5 }}"
+                       oninput="this.nextElementSibling.textContent=this.value">
+                <output>{{ source.bias_score if source else 5 }}</output>
+            </div>
+
+            <div class="form-group">
+                <label for="update_frequency">Update Frequency (1=Rare, 10=Constant)</label>
+                <input type="range" id="update_frequency" name="update_frequency" min="1" max="10"
+                       value="{{ source.update_frequency if source else 5 }}"
+                       oninput="this.nextElementSibling.textContent=this.value">
+                <output>{{ source.update_frequency if source else 5 }}</output>
+            </div>
+        </div>
+
+        <h3>Ranking Weights</h3>
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="credibility_weight">Credibility Weight</label>
+                <input type="number" id="credibility_weight" name="credibility_weight" step="0.1" min="0" max="1"
+                       value="{{ source.credibility_weight if source else 0.4 }}">
+            </div>
+            <div class="form-group">
+                <label for="recency_weight">Recency Weight</label>
+                <input type="number" id="recency_weight" name="recency_weight" step="0.1" min="0" max="1"
+                       value="{{ source.recency_weight if source else 0.3 }}">
+            </div>
+            <div class="form-group">
+                <label for="relevance_weight">Relevance Weight</label>
+                <input type="number" id="relevance_weight" name="relevance_weight" step="0.1" min="0" max="1"
+                       value="{{ source.relevance_weight if source else 0.3 }}">
+            </div>
+        </div>
+
+        {% if source %}
+        <div class="form-group checkbox-group">
+            <label>
+                <input type="checkbox" name="is_active" {% if source.is_active %}checked{% endif %}>
+                Active (include in crawls)
+            </label>
+        </div>
+        {% endif %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{{ 'Update' if source else 'Add' }} Source</button>
+            <a href="{{ url_for('admin.sources_list') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>Admin Dashboard</h1>
+        <a href="{{ url_for('admin.logout') }}" class="btn btn-secondary">Logout</a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Elasticsearch</h3>
+            <p class="stat-value {% if es_available %}stat-ok{% else %}stat-error{% endif %}">
+                {{ 'Online' if es_available else 'Offline' }}
+            </p>
+            {% if es_stats %}
+            <p class="stat-detail">{{ es_stats.get('total_articles', 0) }} articles indexed</p>
+            {% endif %}
+        </div>
+        <div class="stat-card">
+            <h3>Sources</h3>
+            <p class="stat-value">{{ sources_count }}</p>
+            <p class="stat-detail">{{ active_sources }} active</p>
+        </div>
+        <div class="stat-card">
+            <h3>Articles (DB)</h3>
+            <p class="stat-value">{{ articles_count }}</p>
+        </div>
+    </div>
+
+    <!-- Category Breakdown -->
+    <div class="admin-section">
+        <h2>Categories</h2>
+        <div class="category-stats-grid">
+            {% for key, stat in category_stats.items() %}
+            <div class="category-stat">
+                <span class="category-tag-{{ key }}">{{ stat.label }}</span>
+                <span>{{ stat.count }} sources</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="admin-section">
+        <h2>Actions</h2>
+        <div class="action-grid">
+            <form method="POST" action="{{ url_for('admin.seed_sources') }}">
+                <button type="submit" class="btn btn-primary">Seed Default Sources</button>
+                <p class="action-desc">Load all built-in sources into database</p>
+            </form>
+
+            <form method="POST" action="{{ url_for('admin.trigger_crawl') }}">
+                <select name="category" class="action-select">
+                    <option value="">All Categories</option>
+                    {% for key, cat in categories.items() %}
+                    <option value="{{ key }}">{{ cat.label }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary">Run Crawl</button>
+                <p class="action-desc">Fetch articles from active sources</p>
+            </form>
+
+            <form method="POST" action="{{ url_for('admin.cleanup_old') }}">
+                <input type="number" name="days" value="30" min="1" max="365" class="action-input">
+                <button type="submit" class="btn btn-warning">Cleanup Old</button>
+                <p class="action-desc">Delete articles older than N days</p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="admin-section">
+        <h2>Manage</h2>
+        <div class="admin-links">
+            <a href="{{ url_for('admin.sources_list') }}" class="btn btn-secondary">Manage Sources</a>
+            <a href="{{ url_for('admin.add_source') }}" class="btn btn-secondary">Add New Source</a>
+        </div>
+    </div>
+
+    <!-- Recent Searches -->
+    {% if recent_searches %}
+    <div class="admin-section">
+        <h2>Recent Searches</h2>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Query</th>
+                    <th>Category</th>
+                    <th>Results</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in recent_searches %}
+                <tr>
+                    <td>{{ log.query }}</td>
+                    <td>{{ log.category or 'all' }}</td>
+                    <td>{{ log.results_count }}</td>
+                    <td>{{ log.searched_at.strftime('%Y-%m-%d %H:%M') if log.searched_at else '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

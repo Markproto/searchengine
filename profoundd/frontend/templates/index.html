@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Profoundd - Search What Matters{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="container">
+        <h1 class="hero-title">Search What Matters</h1>
+        <p class="hero-subtitle">Verified sources across News, Medical, Legal, Technology, Finance & Science</p>
+
+        <form action="/search" method="GET" class="search-form hero-search">
+            <div class="search-input-group">
+                <input type="text" name="q" placeholder="Search across all domains..." autofocus
+                       class="search-input" autocomplete="off">
+                <select name="category" class="category-select">
+                    <option value="all">All Categories</option>
+                    {% for key, cat in categories.items() %}
+                    <option value="{{ key }}">{{ cat.label }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="search-btn">Search</button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="categories-section">
+    <div class="container">
+        <h2 class="section-title">Explore Categories</h2>
+        <div class="category-grid">
+            {% for key, cat in categories.items() %}
+            <a href="/search?category={{ key }}" class="category-card category-{{ key }}">
+                <div class="category-icon">
+                    {% if key == 'news' %}
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 8h16M8 4v16"/></svg>
+                    {% elif key == 'medical' %}
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M4 12h16"/><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                    {% elif key == 'legal' %}
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7h20L12 2zM4 7v10h16V7M2 22h20M8 17v5M16 17v5"/></svg>
+                    {% elif key == 'tech' %}
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                    {% elif key == 'finance' %}
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20L7 12l4 4 4-8 6 12"/></svg>
+                    {% elif key == 'science' %}
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v7.4l-4 6.6h14l-4-6.6V3"/><path d="M8 3h8"/></svg>
+                    {% endif %}
+                </div>
+                <h3>{{ cat.label }}</h3>
+                <p>{{ cat.description }}</p>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+{% if trending %}
+<section class="trending-section">
+    <div class="container">
+        <h2 class="section-title">Trending Now</h2>
+        <div class="trending-grid">
+            {% for article in trending %}
+            <article class="trending-card">
+                <span class="trending-category category-tag-{{ article.category }}">{{ article.category | title }}</span>
+                <h3><a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
+                <p class="trending-meta">
+                    <span class="source">{{ article.source_name }}</span>
+                    {% if article.published_at %}
+                    <span class="date">{{ article.published_at[:10] }}</span>
+                    {% endif %}
+                </p>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
