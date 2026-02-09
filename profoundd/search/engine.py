@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 ARTICLE_MAPPING = {
     "mappings": {
         "properties": {
-            "title": {"type": "text", "analyzer": "english", "boost": 2.0},
-            "summary": {"type": "text", "analyzer": "english", "boost": 1.5},
+            "title": {"type": "text", "analyzer": "english"},
+            "summary": {"type": "text", "analyzer": "english"},
             "content": {"type": "text", "analyzer": "english"},
             "author": {"type": "keyword"},
             "category": {"type": "keyword"},
