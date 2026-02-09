@@ -126,6 +126,12 @@ POLITICS_SOURCES = [
     {"name": "Candace Owens (Podcast)", "url": "https://feeds.megaphone.fm/candace", "category": "politics", "credibility": 5, "feed_type": "rss"},
     {"name": "Candace Owens (Soundcloud)", "url": "https://feeds.soundcloud.com/users/soundcloud:users:593344158/sounds.rss", "category": "politics", "credibility": 5, "feed_type": "rss"},
     {"name": "Tucker Carlson (Podcast)", "url": "https://feeds.megaphone.fm/RSV1597324942", "category": "politics", "credibility": 5, "feed_type": "rss"},
+    {"name": "Tim Pool - Timcast IRL", "url": "https://feeds.libsyn.com/574450/rss", "category": "politics", "credibility": 5, "feed_type": "rss"},
+    {"name": "Tim Pool - Culture War", "url": "https://feeds.libsyn.com/552267/rss", "category": "politics", "credibility": 5, "feed_type": "rss"},
+    {"name": "Ben Shapiro Show", "url": "https://feeds.megaphone.fm/BVDWV5370667266", "category": "politics", "credibility": 5, "feed_type": "rss"},
+    {"name": "Louder with Crowder", "url": "https://feeds.libsyn.com/576250/rss", "category": "politics", "credibility": 5, "feed_type": "rss"},
+    {"name": "Russell Brand - Stay Free", "url": "https://feeds.libsyn.com/576255/rss", "category": "politics", "credibility": 5, "feed_type": "rss"},
+    {"name": "Joe Rogan Experience", "url": "https://feeds.megaphone.fm/GLT1412515089", "category": "politics", "credibility": 5, "feed_type": "rss"},
 ]
 
 TWITTER_SOURCES = [
