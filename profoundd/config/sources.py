@@ -123,8 +123,7 @@ POLITICS_SOURCES = [
     {"name": "CRS Reports", "url": "https://crsreports.congress.gov/rss/reports", "category": "politics", "credibility": 7, "feed_type": "rss"},
 
     # --- Independent Commentary / Podcasts ---
-    {"name": "Candace Owens (Podcast)", "url": "https://feeds.megaphone.fm/candace", "category": "politics", "credibility": 8, "feed_type": "rss"},
-    {"name": "Candace Owens (Soundcloud)", "url": "https://feeds.soundcloud.com/users/soundcloud:users:593344158/sounds.rss", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Candace (Podcast)", "url": "https://feeds.megaphone.fm/candace", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Tucker Carlson (Podcast)", "url": "https://feeds.megaphone.fm/RSV1597324942", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Tim Pool - Timcast IRL", "url": "https://feeds.libsyn.com/574450/rss", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Tim Pool - Culture War", "url": "https://feeds.libsyn.com/552267/rss", "category": "politics", "credibility": 8, "feed_type": "rss"},
