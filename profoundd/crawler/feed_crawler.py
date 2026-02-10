@@ -37,11 +37,14 @@ class FeedCrawler:
         self.stats = {"found": 0, "new": 0, "duplicate": 0, "errors": 0}
 
     def _is_duplicate(self, url):
-        """Check if URL has already been seen in this crawl run."""
+        """Check if URL has already been seen in this crawl run or exists in ES."""
         url_hash = hashlib.md5(url.encode()).hexdigest()
         if url_hash in self._seen_urls:
             return True
         self._seen_urls.add(url_hash)
+        # Also check Elasticsearch — skip articles already indexed
+        if self.search_engine.article_exists(url):
+            return True
         return False
 
     def fetch_feed(self, source):
@@ -195,8 +198,13 @@ class FeedCrawler:
 
     def crawl_custom_sources(self, sources):
         """Crawl a custom list of sources (from database)."""
+        source_list = list(sources)
+        logger.info("crawl_custom_sources called with %d sources", len(source_list))
+        if not source_list:
+            logger.warning("No sources to crawl — check that sources are seeded and active")
+            return 0
         all_articles = []
-        for source in sources:
+        for source in source_list:
             source_dict = {
                 "name": source.name,
                 "url": source.url,
@@ -209,7 +217,12 @@ class FeedCrawler:
             sleep(self.delay)
 
         if all_articles:
-            self.search_engine.bulk_index(all_articles)
+            indexed = self.search_engine.bulk_index(all_articles)
+            logger.info("Custom crawl: indexed %d new articles (found %d, dupes %d, errors %d)",
+                        indexed, self.stats["found"], self.stats["duplicate"], self.stats["errors"])
+        else:
+            logger.info("Custom crawl: no new articles (found %d, dupes %d, errors %d)",
+                        self.stats["found"], self.stats["duplicate"], self.stats["errors"])
 
         return len(all_articles)
 

@@ -2,6 +2,7 @@
 Elasticsearch integration for Profoundd.
 Handles indexing articles and executing search queries with custom ranking.
 """
+import hashlib
 import logging
 from datetime import datetime, timezone
 from elasticsearch import Elasticsearch, NotFoundError
@@ -73,7 +74,7 @@ class SearchEngine:
         try:
             result = self.es.index(
                 index=self.index_name,
-                id=hash(doc_id),
+                id=hashlib.md5(doc_id.encode()).hexdigest(),
                 document=article_data,
             )
             return result.get("_id")
@@ -88,7 +89,7 @@ class SearchEngine:
 
         actions = []
         for article in articles:
-            doc_id = hash(article.get("url", ""))
+            doc_id = hashlib.md5(article.get("url", "").encode()).hexdigest()
             actions.append({"index": {"_index": self.index_name, "_id": doc_id}})
             actions.append(article)
 
@@ -100,6 +101,14 @@ class SearchEngine:
         except Exception as e:
             logger.error("Bulk index failed: %s", e)
             return 0
+
+    def article_exists(self, url):
+        """Check if an article with this URL already exists in the index."""
+        doc_id = hashlib.md5(url.encode()).hexdigest()
+        try:
+            return self.es.exists(index=self.index_name, id=doc_id)
+        except Exception:
+            return False
 
     def search(self, query, category=None, page=1, per_page=20, sort_by="relevance",
                source_filter=None, date_from=None, date_to=None):
