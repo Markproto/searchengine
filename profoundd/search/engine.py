@@ -12,7 +12,13 @@ logger = logging.getLogger(__name__)
 ARTICLE_MAPPING = {
     "mappings": {
         "properties": {
-            "title": {"type": "text", "analyzer": "english"},
+            "title": {
+                "type": "text",
+                "analyzer": "english",
+                "fields": {
+                    "raw": {"type": "keyword", "ignore_above": 512}
+                }
+            },
             "summary": {"type": "text", "analyzer": "english"},
             "content": {"type": "text", "analyzer": "english"},
             "author": {"type": "keyword"},
@@ -100,10 +106,9 @@ class SearchEngine:
         """
         Search articles with custom ranking.
 
-        Ranking formula:
-        - Text relevance (Elasticsearch BM25) * relevance_weight
-        - Source credibility boost
-        - Recency boost (newer = higher)
+        Ranking formula: (BM25 relevance + recency boost) * source_credibility
+        Credibility is the dominant factor — it multiplies the entire score.
+        Duplicate titles are collapsed to show only the best-scoring version.
         """
         must_clauses = []
         filter_clauses = []
@@ -136,14 +141,41 @@ class SearchEngine:
                 date_range["lte"] = date_to
             filter_clauses.append({"range": {"published_at": date_range}})
 
-        # Build the query
+        # Build the inner bool query
+        bool_query = {
+            "bool": {
+                "must": must_clauses if must_clauses else [{"match_all": {}}],
+                "filter": filter_clauses,
+            }
+        }
+
+        # Wrap in function_score: credibility multiplies the relevance score
+        # A credibility-8 source scores 8x, credibility-7 scores 7x, etc.
+        scored_query = {
+            "function_score": {
+                "query": bool_query,
+                "functions": [
+                    {
+                        "field_value_factor": {
+                            "field": "source_credibility",
+                            "factor": 1,
+                            "modifier": "none",
+                            "missing": 5,
+                        }
+                    }
+                ],
+                "boost_mode": "multiply",
+            }
+        }
+
+        # Add recency boosts inside the bool query
+        bool_query["bool"]["should"] = [
+            {"range": {"published_at": {"gte": "now-24h", "boost": 3}}},
+            {"range": {"published_at": {"gte": "now-7d", "boost": 1}}},
+        ]
+
         search_body = {
-            "query": {
-                "bool": {
-                    "must": must_clauses if must_clauses else [{"match_all": {}}],
-                    "filter": filter_clauses,
-                }
-            },
+            "query": scored_query,
             "highlight": {
                 "fields": {
                     "title": {"number_of_fragments": 0},
@@ -153,55 +185,37 @@ class SearchEngine:
                 "pre_tags": ["<mark>"],
                 "post_tags": ["</mark>"],
             },
+            # Collapse on title to deduplicate the same story from multiple sources
+            # Keeps the highest-scoring version (highest credibility * relevance)
+            "collapse": {
+                "field": "title.raw",
+            },
             "from": (page - 1) * per_page,
             "size": per_page,
         }
 
-        # Sorting
+        # Sorting overrides
         if sort_by == "date":
             search_body["sort"] = [{"published_at": {"order": "desc"}}, "_score"]
         elif sort_by == "credibility":
             search_body["sort"] = [{"source_credibility": {"order": "desc"}}, "_score"]
-        else:
-            # Default: relevance with recency boost
-            search_body["query"]["bool"]["should"] = [
-                {
-                    "range": {
-                        "published_at": {
-                            "gte": "now-24h",
-                            "boost": 5,
-                        }
-                    }
-                },
-                {
-                    "range": {
-                        "published_at": {
-                            "gte": "now-7d",
-                            "boost": 2,
-                        }
-                    }
-                },
-                {
-                    "range": {
-                        "source_credibility": {
-                            "gte": 8,
-                            "boost": 3,
-                        }
-                    }
-                },
-            ]
 
         try:
+            # Fetch extra results so we can diversify sources across credibility tiers
+            search_body["size"] = per_page * 2
             result = self.es.search(index=self.index_name, body=search_body)
             hits = result["hits"]
             total = hits["total"]["value"]
 
-            articles = []
+            raw_articles = []
             for hit in hits["hits"]:
                 article = hit["_source"]
                 article["_score"] = hit["_score"]
                 article["_highlights"] = hit.get("highlight", {})
-                articles.append(article)
+                raw_articles.append(article)
+
+            # Diversify: group by credibility tier, interleave 3 high then 1 lower
+            articles = self._diversify_results(raw_articles, per_page)
 
             return {
                 "articles": articles,
@@ -224,6 +238,71 @@ class SearchEngine:
                 "category": category,
                 "error": str(e),
             }
+
+    @staticmethod
+    def _diversify_results(articles, limit):
+        """
+        Interleave results so credibility tiers are mixed naturally.
+        Shows 3 from the top credibility tier, then 1 from the next tier, repeat.
+        Prevents results from looking uniform (all 8s then all 7s).
+        """
+        if not articles:
+            return []
+
+        # Group articles by credibility score, preserving order within each group
+        tiers = {}
+        for a in articles:
+            cred = a.get("source_credibility", 5)
+            tiers.setdefault(cred, []).append(a)
+
+        # Sort tiers by credibility descending
+        sorted_tiers = sorted(tiers.keys(), reverse=True)
+        if len(sorted_tiers) <= 1:
+            return articles[:limit]
+
+        top_tier = sorted_tiers[0]
+        other_tiers = sorted_tiers[1:]
+
+        result = []
+        top_idx = 0
+        other_positions = {t: 0 for t in other_tiers}
+        current_other = 0
+
+        while len(result) < limit:
+            # Add up to 3 from the top tier
+            added = 0
+            while added < 3 and top_idx < len(tiers[top_tier]) and len(result) < limit:
+                result.append(tiers[top_tier][top_idx])
+                top_idx += 1
+                added += 1
+
+            # Add 1 from the next lower tier (round-robin across lower tiers)
+            if len(result) < limit and other_tiers:
+                placed = False
+                for _ in range(len(other_tiers)):
+                    tier = other_tiers[current_other % len(other_tiers)]
+                    pos = other_positions[tier]
+                    if pos < len(tiers[tier]):
+                        result.append(tiers[tier][pos])
+                        other_positions[tier] = pos + 1
+                        current_other += 1
+                        placed = True
+                        break
+                    current_other += 1
+                if not placed and top_idx >= len(tiers[top_tier]):
+                    break
+
+            # If top tier exhausted, fill remaining from other tiers in order
+            if top_idx >= len(tiers[top_tier]):
+                for tier in other_tiers:
+                    pos = other_positions[tier]
+                    while pos < len(tiers[tier]) and len(result) < limit:
+                        result.append(tiers[tier][pos])
+                        pos += 1
+                    other_positions[tier] = pos
+                break
+
+        return result[:limit]
 
     def get_stats(self):
         """Get index statistics."""
@@ -287,6 +366,9 @@ class SearchEngine:
                     ],
                     "boost_mode": "multiply",
                 }
+            },
+            "collapse": {
+                "field": "title.raw",
             },
             "sort": [
                 {"source_credibility": {"order": "desc"}},
