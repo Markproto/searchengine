@@ -405,3 +405,58 @@ def edit_seo():
     seo["global_keywords"] = SiteSetting.get("seo_global_keywords", "")
 
     return render_template("admin/edit_seo.html", seo=seo, categories=CATEGORIES)
+
+
+@admin_bp.route("/research", methods=["GET", "POST"])
+@login_required
+def research_library():
+    """Add research documents directly to the search index."""
+    engine = SearchEngine(config.ELASTICSEARCH_URL)
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        content = request.form.get("content", "").strip()
+        category = request.form.get("category", "news")
+        source_name = request.form.get("source_name", "").strip() or "Profoundd Research"
+
+        if not title or not content:
+            flash("Title and content are required.", "error")
+            return redirect(url_for("admin.research_library"))
+
+        if not engine.is_available():
+            flash("Elasticsearch is not available.", "error")
+            return redirect(url_for("admin.research_library"))
+
+        engine.create_index()
+
+        # Build a unique URL for this document
+        import hashlib
+        doc_hash = hashlib.md5(f"{title}{content[:200]}".encode()).hexdigest()[:12]
+        doc_url = f"profoundd://research/{doc_hash}"
+
+        # Extract first paragraph or 300 chars as summary
+        lines = [l.strip() for l in content.split("\n") if l.strip()]
+        summary = lines[0][:500] if lines else title
+
+        article_data = {
+            "title": title,
+            "summary": summary,
+            "content": content,
+            "author": "Admin",
+            "category": category,
+            "source_name": source_name,
+            "source_credibility": 9,  # Admin-curated gets top credibility
+            "url": doc_url,
+            "published_at": datetime.now(timezone.utc).isoformat(),
+            "crawled_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        result = engine.index_article(article_data)
+        if result:
+            flash(f"Research document '{title}' indexed successfully.", "success")
+        else:
+            flash("Failed to index document.", "error")
+
+        return redirect(url_for("admin.research_library"))
+
+    return render_template("admin/research.html", categories=CATEGORIES)
