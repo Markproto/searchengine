@@ -779,28 +779,23 @@ main { flex: 1; }
     .hero { padding: 50px 0 40px; }
     .search-input-group { flex-direction: column; }
     .category-select { border-left: none; border-top: 1px solid var(--border); }
-    .footer-content { grid-template-columns: 1fr; gap: 20px; }
+    .footer-content { grid-template-columns: 1fr; gap: 16px; }
+    .footer-brand p { font-size: 0.8rem; }
+    .footer { margin-top: 30px; padding: 24px 0 16px; }
     .admin-header { flex-direction: column; gap: 12px; }
     .stats-grid { grid-template-columns: 1fr; }
     .admin-table { font-size: 0.8rem; }
     .admin-table th, .admin-table td { padding: 8px; }
 
-    /* Mobile nav: wrap to two rows */
+    /* Mobile nav: clean single row — hide links (available in footer) */
     .nav-content {
-        flex-wrap: wrap;
-        gap: 8px;
+        flex-wrap: nowrap;
+        gap: 12px;
     }
     .nav-links {
-        gap: 12px;
-        font-size: 0.8rem;
-        order: 3;
-        width: 100%;
-        justify-content: center;
-        border-top: 1px solid var(--border);
-        padding-top: 8px;
+        display: none; /* links live in footer on mobile */
     }
     .nav-search-form {
-        order: 2;
         flex: 1;
         min-width: 0;
         max-width: none;
@@ -808,6 +803,53 @@ main { flex: 1; }
     .nav-search-input {
         font-size: 16px; /* prevents iOS zoom on focus */
         padding: 10px 14px;
+    }
+
+    /* Homepage: Google-like clean layout */
+    .hero {
+        padding: 60px 0 30px;
+        background: none;
+    }
+    .hero-subtitle {
+        font-size: 0.9rem;
+        margin-bottom: 24px;
+    }
+    .categories-section {
+        padding: 30px 0;
+    }
+    .section-title {
+        font-size: 1.2rem;
+        margin-bottom: 16px;
+    }
+    .category-grid {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 10px;
+    }
+    .category-card {
+        padding: 16px 10px;
+    }
+    .category-card p {
+        display: none; /* hide descriptions on mobile — just icon + name */
+    }
+    .category-card h3 {
+        font-size: 0.85rem;
+        margin: 8px 0 0;
+    }
+    .category-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    /* Trending: tighter on mobile */
+    .trending-section {
+        padding: 20px 0;
+    }
+    .trending-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    .trending-card {
+        padding: 14px;
     }
 
     /* Search page mobile */
