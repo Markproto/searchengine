@@ -1,21 +1,40 @@
 """
 Background scheduler for automated crawling.
 Uses APScheduler to run crawls at configured intervals.
+Only one gunicorn worker starts the scheduler (file-lock guard).
 """
 import logging
+import os
+import fcntl
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 logger = logging.getLogger(__name__)
 _scheduler = None
+_lock_file = None
 
 
 def init_scheduler(app):
-    """Initialize the background scheduler with the Flask app context."""
-    global _scheduler
+    """Initialize the background scheduler with the Flask app context.
+
+    Uses a file lock so only one gunicorn worker runs the scheduler.
+    """
+    global _scheduler, _lock_file
 
     if _scheduler is not None:
         return _scheduler
+
+    # Only one worker should run the scheduler
+    lock_path = os.path.join(app.instance_path, ".scheduler.lock")
+    os.makedirs(app.instance_path, exist_ok=True)
+    _lock_file = open(lock_path, "w")
+    try:
+        fcntl.flock(_lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        logger.info("Scheduler already running in another worker, skipping")
+        _lock_file.close()
+        _lock_file = None
+        return None
 
     _scheduler = BackgroundScheduler(daemon=True)
 
@@ -102,8 +121,12 @@ def _run_cleanup(app):
 
 
 def shutdown_scheduler():
-    """Shut down the scheduler."""
-    global _scheduler
+    """Shut down the scheduler and release the file lock."""
+    global _scheduler, _lock_file
     if _scheduler and _scheduler.running:
         _scheduler.shutdown(wait=False)
         _scheduler = None
+    if _lock_file:
+        fcntl.flock(_lock_file, fcntl.LOCK_UN)
+        _lock_file.close()
+        _lock_file = None
