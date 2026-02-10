@@ -103,7 +103,9 @@ def create_app(config_override=None):
     @app.route("/search")
     def search():
         """Main search endpoint."""
-        from profoundd.search.external_providers import fetch_all_enhanced, fetch_searxng
+        from profoundd.search.external_providers import (
+            fetch_all_enhanced, fetch_searxng, fetch_brave_web, boost_known_domains,
+        )
 
         query = request.args.get("q", "").strip()
         category = request.args.get("category", "all")
@@ -141,20 +143,26 @@ def create_app(config_override=None):
                         insert_pos += 1
                 results["enhanced_providers"] = list(enhanced_providers)
 
-            # SearXNG fallback: when local index has few relevant results, search the web
-            # Use actual article count (post-filtering), not ES total which counts weak matches
+            # Web fallback: when local index has few relevant results, search the web
+            # Try SearXNG first, fall back to Brave web search if SearXNG fails
             local_count = len(results.get("articles", []))
             if local_count < 5:
+                web_results = []
                 searxng_url = SiteSetting.get("searxng_url", "")
                 if searxng_url:
                     web_results = fetch_searxng(query, searxng_url, max_results=10)
-                    if web_results:
-                        web_fallback = True
-                        existing_urls = {a.get("url") for a in results.get("articles", [])}
-                        for wr in web_results:
-                            if wr.get("url") not in existing_urls:
-                                results["articles"].append(wr)
-                                existing_urls.add(wr.get("url"))
+                if not web_results:
+                    # Brave backup when SearXNG is down or returns nothing
+                    web_results = fetch_brave_web(query, max_results=10)
+                if web_results:
+                    # Boost results from domains in Profoundd's source list
+                    web_results = boost_known_domains(web_results)
+                    web_fallback = True
+                    existing_urls = {a.get("url") for a in results.get("articles", [])}
+                    for wr in web_results:
+                        if wr.get("url") not in existing_urls:
+                            results["articles"].append(wr)
+                            existing_urls.add(wr.get("url"))
 
         # Log the search
         log = SearchLog(

@@ -303,6 +303,111 @@ def fetch_searxng(query, searxng_url, max_results=10):
         return []
 
 
+def fetch_brave_web(query, max_results=10):
+    """
+    Query Brave Search directly (no API key required).
+    Used as a backup when SearXNG is unavailable.
+    Parses Brave's JSON-LD response from their web search.
+    """
+    try:
+        resp = requests.get(
+            "https://search.brave.com/api/suggest",
+            params={"q": query, "rich": "true"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0",
+                "Accept": "application/json",
+            },
+            timeout=API_TIMEOUT + 2,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        # Brave suggest API returns [query, [suggestions], [urls], [descriptions]]
+        articles = []
+        if len(data) >= 4:
+            titles = data[1] or []
+            urls = data[2] or []
+            descriptions = data[3] if len(data) > 3 else []
+
+            for i in range(min(len(titles), len(urls), max_results)):
+                url = urls[i] if i < len(urls) else ""
+                if not url:
+                    continue
+
+                from urllib.parse import urlparse
+                parsed = urlparse(url)
+                domain = parsed.netloc.replace("www.", "")
+
+                articles.append({
+                    "title": titles[i] if i < len(titles) else "",
+                    "summary": descriptions[i] if i < len(descriptions) else "",
+                    "content": "",
+                    "source_name": domain,
+                    "source_credibility": 5,
+                    "category": "news",
+                    "url": url,
+                    "published_at": "",
+                    "tags": ["web-search"],
+                    "_enhanced": True,
+                    "_provider": "searxng",  # Same provider tag — same display treatment
+                    "_score": 0,
+                    "_highlights": {},
+                })
+
+        logger.info("Brave web returned %d results for '%s'", len(articles), query)
+        return articles
+
+    except Exception as e:
+        logger.warning("Brave web search error: %s", e)
+        return []
+
+
+def boost_known_domains(articles):
+    """
+    Re-rank web results to prioritize domains from Profoundd's source list.
+    Known domains get boosted to the top, maintaining their relative order.
+    """
+    from profoundd.config.sources import ALL_SOURCES
+    from urllib.parse import urlparse
+
+    # Build set of known domains from source URLs
+    known_domains = set()
+    for src in ALL_SOURCES:
+        try:
+            parsed = urlparse(src["url"])
+            domain = parsed.netloc.replace("www.", "").replace("feeds.", "").replace("rss.", "")
+            # Also extract the base domain (e.g. "zerohedge.com" from "feeds.feedburner.com")
+            if "feedburner" not in domain and "megaphone" not in domain and "libsyn" not in domain:
+                known_domains.add(domain)
+            # Use source name to match domains loosely
+            name_slug = src["name"].lower().replace(" ", "").replace("-", "")
+            known_domains.add(name_slug)
+        except Exception:
+            continue
+
+    # Also add common domain forms from source names
+    for src in ALL_SOURCES:
+        name = src["name"].lower()
+        for variant in [
+            name.replace(" ", "").replace("(", "").replace(")", ""),
+            name.split("(")[0].strip().replace(" ", ""),
+        ]:
+            known_domains.add(variant)
+
+    # Split articles into known and unknown
+    known = []
+    unknown = []
+    for article in articles:
+        domain = article.get("source_name", "").lower()
+        domain_base = domain.split(".")[0] if "." in domain else domain
+        if domain in known_domains or domain_base in known_domains:
+            known.append(article)
+        else:
+            unknown.append(article)
+
+    return known + unknown
+
+
 def _normalize_pubmed_date(date_str):
     """Convert PubMed date format (e.g., '2024 Jan 15') to ISO format."""
     if not date_str:
