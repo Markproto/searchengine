@@ -122,9 +122,10 @@ class SearchEngine:
             }
             query_terms = query.split()
             if len(query_terms) >= 3:
-                # For multi-word queries: no fuzziness (prevents "heater"→"weaker",
-                # "watt"→"want" false matches) and require 50% of terms to match.
-                multi_match_query["minimum_should_match"] = "50%"
+                # For multi-word queries: no fuzziness and require 75% of terms
+                # to match. Stemming still causes false positives at 50%
+                # (e.g. "electric"→"electr" matches "electricity" in energy articles).
+                multi_match_query["minimum_should_match"] = "75%"
             else:
                 # Short queries: allow fuzziness for typo correction
                 multi_match_query["fuzziness"] = "AUTO"
@@ -219,6 +220,15 @@ class SearchEngine:
                 article["_score"] = hit["_score"]
                 article["_highlights"] = hit.get("highlight", {})
                 raw_articles.append(article)
+
+            # Score-based filtering: drop articles scoring far below the top result.
+            # Catches remaining noise from stemming false positives
+            # (e.g. "electr" matching both "electric" and "electricity").
+            if query and raw_articles:
+                top_score = raw_articles[0]["_score"]
+                min_score = top_score * 0.3
+                raw_articles = [a for a in raw_articles if a["_score"] >= min_score]
+                total = len(raw_articles)
 
             # Diversify: group by credibility tier, interleave 3 high then 1 lower
             articles = self._diversify_results(raw_articles, per_page)
