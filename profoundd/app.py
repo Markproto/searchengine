@@ -103,7 +103,7 @@ def create_app(config_override=None):
     @app.route("/search")
     def search():
         """Main search endpoint."""
-        from profoundd.search.external_providers import fetch_all_enhanced
+        from profoundd.search.external_providers import fetch_all_enhanced, fetch_searxng
 
         query = request.args.get("q", "").strip()
         category = request.args.get("category", "all")
@@ -114,7 +114,8 @@ def create_app(config_override=None):
 
         if not query:
             return render_template("search.html", results=None, categories=CATEGORIES,
-                                   query="", category=category, enhanced_providers=set())
+                                   query="", category=category, enhanced_providers=set(),
+                                   web_fallback=False)
 
         results = search_engine.search(
             query=query,
@@ -127,6 +128,7 @@ def create_app(config_override=None):
 
         # Fetch enhanced results from external providers (page 1 only)
         enhanced_providers = set()
+        web_fallback = False
         if page == 1:
             enhanced_articles, enhanced_providers = fetch_all_enhanced(query, category)
             if enhanced_articles:
@@ -138,6 +140,20 @@ def create_app(config_override=None):
                         results["articles"].insert(insert_pos, ea)
                         insert_pos += 1
                 results["enhanced_providers"] = list(enhanced_providers)
+
+            # SearXNG fallback: when local index has < 5 results, search the web
+            local_count = results.get("total", 0)
+            if local_count < 5:
+                searxng_url = SiteSetting.get("searxng_url", "")
+                if searxng_url:
+                    web_results = fetch_searxng(query, searxng_url, max_results=10)
+                    if web_results:
+                        web_fallback = True
+                        existing_urls = {a.get("url") for a in results.get("articles", [])}
+                        for wr in web_results:
+                            if wr.get("url") not in existing_urls:
+                                results["articles"].append(wr)
+                                existing_urls.add(wr.get("url"))
 
         # Log the search
         log = SearchLog(
@@ -151,7 +167,8 @@ def create_app(config_override=None):
 
         return render_template("search.html", results=results, categories=CATEGORIES,
                                query=query, category=category, sort_by=sort_by,
-                               enhanced_providers=enhanced_providers)
+                               enhanced_providers=enhanced_providers,
+                               web_fallback=web_fallback)
 
     @app.route("/category/<category_name>")
     def category_page(category_name):

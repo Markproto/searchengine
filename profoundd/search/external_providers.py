@@ -226,6 +226,83 @@ def fetch_all_enhanced(query, category, max_per_provider=5):
     return all_articles, active
 
 
+def fetch_searxng(query, searxng_url, max_results=10):
+    """
+    Query a SearXNG instance for web search results.
+    Used as a fallback when the local ES index returns few/no results.
+    SearXNG aggregates results from 70+ search engines (Google, Bing, DDG, etc.).
+    """
+    if not searxng_url:
+        return []
+
+    # Strip trailing slash
+    base_url = searxng_url.rstrip("/")
+
+    try:
+        resp = requests.get(
+            f"{base_url}/search",
+            params={
+                "q": query,
+                "format": "json",
+                "categories": "general",
+                "language": "en",
+                "pageno": 1,
+            },
+            headers={"User-Agent": "Profoundd/1.0 (search engine)"},
+            timeout=API_TIMEOUT + 3,  # SearXNG aggregates, give it extra time
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        articles = []
+        for result in data.get("results", [])[:max_results]:
+            title = result.get("title", "")
+            url = result.get("url", "")
+            snippet = result.get("content", "")
+            engine = result.get("engine", "web")
+            pub_date = result.get("publishedDate", "")
+
+            # Normalize date if present
+            date_str = ""
+            if pub_date:
+                try:
+                    dt = datetime.fromisoformat(pub_date.replace("Z", "+00:00"))
+                    date_str = dt.strftime("%Y-%m-%d")
+                except (ValueError, TypeError):
+                    date_str = pub_date[:10] if len(pub_date) >= 10 else ""
+
+            # Extract domain as source name
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            domain = parsed.netloc.replace("www.", "")
+
+            articles.append({
+                "title": title,
+                "summary": snippet,
+                "content": "",
+                "source_name": domain,
+                "source_credibility": 5,  # Unknown credibility for web results
+                "category": "news",
+                "url": url,
+                "published_at": date_str,
+                "tags": ["web-search"],
+                "_enhanced": True,
+                "_provider": "searxng",
+                "_score": 0,
+                "_highlights": {"summary": [snippet]} if snippet else {},
+            })
+
+        logger.info("SearXNG returned %d results for '%s'", len(articles), query)
+        return articles
+
+    except requests.Timeout:
+        logger.warning("SearXNG timed out for '%s'", query)
+        return []
+    except Exception as e:
+        logger.warning("SearXNG error: %s", e)
+        return []
+
+
 def _normalize_pubmed_date(date_str):
     """Convert PubMed date format (e.g., '2024 Jan 15') to ISO format."""
     if not date_str:

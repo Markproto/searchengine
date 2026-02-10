@@ -472,7 +472,8 @@ def ai_settings():
         SiteSetting.set("ai_xai_key", request.form.get("xai_api_key", "").strip())
         SiteSetting.set("ai_xai_model", request.form.get("xai_model", "grok-2-latest"))
         SiteSetting.set("ai_default_provider", request.form.get("default_ai_provider", "anthropic"))
-        flash("AI settings saved.", "success")
+        SiteSetting.set("searxng_url", request.form.get("searxng_url", "").strip().rstrip("/"))
+        flash("Settings saved.", "success")
         return redirect(url_for("admin.ai_settings"))
 
     return render_template("admin/ai_settings.html",
@@ -481,6 +482,7 @@ def ai_settings():
                            xai_key=SiteSetting.get("ai_xai_key", ""),
                            xai_model=SiteSetting.get("ai_xai_model", "grok-2-latest"),
                            default_provider=SiteSetting.get("ai_default_provider", "anthropic"),
+                           searxng_url=SiteSetting.get("searxng_url", ""),
                            categories=CATEGORIES)
 
 
