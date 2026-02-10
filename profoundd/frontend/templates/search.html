@@ -79,7 +79,7 @@
             <div class="result-header">
                 <span class="result-source">{{ article.source_name }}</span>
                 <span class="result-category category-tag-{{ article.category }}">{{ article.category | title }}</span>
-                {% if article.source_credibility %}
+                {% if article.source_credibility and article._provider != 'searxng' %}
                 <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }}">
                     {{ article.source_credibility }}/10 <span class="credibility-help" title="This credibility rating is an opinion">?</span>
                 </span>
