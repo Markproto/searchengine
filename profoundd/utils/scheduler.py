@@ -47,6 +47,8 @@ def init_scheduler(app):
 
 def _run_scheduled_crawl(app):
     """Run a full crawl within the app context."""
+    from time import time
+
     with app.app_context():
         from profoundd.search.engine import SearchEngine
         from profoundd.crawler.feed_crawler import FeedCrawler
@@ -60,6 +62,8 @@ def _run_scheduled_crawl(app):
         engine.create_index()
         crawler = FeedCrawler(search_engine=engine)
 
+        start = time()
+
         # Use DB sources if seeded, otherwise defaults
         if Source.query.count() > 0:
             sources = Source.query.filter_by(is_active=True).all()
@@ -67,15 +71,24 @@ def _run_scheduled_crawl(app):
         else:
             count = crawler.crawl_all()
 
-        # Log the crawl
+        duration = time() - start
+        stats = crawler.get_stats()
+
+        # Log the crawl with full stats
         log = CrawlLog(
-            articles_found=count,
+            articles_found=stats.get("found", count),
+            articles_new=stats.get("new", 0),
+            articles_duplicate=stats.get("duplicate", 0),
+            errors=stats.get("errors", 0),
             status="success" if count > 0 else "empty",
             trigger="scheduler",
+            duration_seconds=round(duration, 1),
         )
         db.session.add(log)
         db.session.commit()
-        logger.info("Scheduled crawl complete: %d articles", count)
+        logger.info("Scheduled crawl complete: %d found, %d new, %d errors in %.1fs",
+                     stats.get("found", 0), stats.get("new", 0),
+                     stats.get("errors", 0), duration)
 
 
 def _run_cleanup(app):
