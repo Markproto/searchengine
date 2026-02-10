@@ -930,3 +930,80 @@ main { flex: 1; }
 }
 .about-editor:focus { border-color: var(--accent); }
 
+/* --- Enhanced Search Glow --- */
+@keyframes enhanced-glow {
+    0%, 100% { box-shadow: 0 0 8px rgba(34, 197, 94, 0.4), 0 0 20px rgba(34, 197, 94, 0.15); }
+    50% { box-shadow: 0 0 14px rgba(34, 197, 94, 0.6), 0 0 30px rgba(34, 197, 94, 0.25); }
+}
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.3); }
+}
+.enhanced-glow {
+    border-color: var(--success) !important;
+    animation: enhanced-glow 2.5s ease-in-out infinite;
+}
+.enhanced-active {
+    position: relative;
+}
+.enhanced-indicator {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--success);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    pointer-events: none;
+}
+.enhanced-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    color: var(--success);
+    font-weight: 500;
+}
+.enhanced-pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    animation: pulse-dot 2s ease-in-out infinite;
+    flex-shrink: 0;
+}
+.enhanced-sources {
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-left: auto;
+    font-size: 0.8rem;
+}
+.enhanced-result {
+    border-left: 3px solid var(--success) !important;
+}
+.enhanced-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--success);
+    background: rgba(34, 197, 94, 0.12);
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+/* Hide enhanced indicator on small screens, show banner instead */
+@media (max-width: 768px) {
+    .enhanced-indicator { display: none; }
+    .enhanced-banner { font-size: 0.78rem; flex-wrap: wrap; }
+    .enhanced-sources { margin-left: 0; width: 100%; }
+}
+

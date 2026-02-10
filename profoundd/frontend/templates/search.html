@@ -2,9 +2,20 @@
 {% block title %}{{ query or 'Search' }} - Profoundd{% endblock %}
 
 {% block nav_search %}
-<form action="/search" method="GET" class="nav-search-form">
-    <input type="text" name="q" value="{{ query }}" placeholder="Search..." class="nav-search-input">
+<form action="/search" method="GET" class="nav-search-form {% if enhanced_providers %}enhanced-active{% endif %}">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search..." class="nav-search-input {% if enhanced_providers %}enhanced-glow{% endif %}">
     <input type="hidden" name="category" value="{{ category }}">
+    {% if enhanced_providers %}
+    <span class="enhanced-indicator" title="Enhanced results from {% for p in enhanced_providers %}{{ p }}{% if not loop.last %}, {% endif %}{% endfor %}">
+        {% if 'courtlistener' in enhanced_providers and 'pubmed' in enhanced_providers %}
+        Court Opinions + Research Papers
+        {% elif 'courtlistener' in enhanced_providers %}
+        Court Opinions
+        {% elif 'pubmed' in enhanced_providers %}
+        Research Papers
+        {% endif %}
+    </span>
+    {% endif %}
 </form>
 {% endblock %}
 
@@ -38,6 +49,17 @@
     </div>
 
     {% if results %}
+    {% if enhanced_providers %}
+    <div class="enhanced-banner">
+        <span class="enhanced-pulse"></span>
+        <span>Enhanced Search Active</span>
+        <span class="enhanced-sources">
+            {% if 'courtlistener' in enhanced_providers %}US Court Opinions{% endif %}
+            {% if 'courtlistener' in enhanced_providers and 'pubmed' in enhanced_providers %} + {% endif %}
+            {% if 'pubmed' in enhanced_providers %}PubMed Research Papers{% endif %}
+        </span>
+    </div>
+    {% endif %}
     <div class="search-meta">
         <p>Found <strong>{{ results.total }}</strong> results for "<strong>{{ results.query }}</strong>"
         {% if category != 'all' %} in <span class="category-tag-{{ category }}">{{ category | title }}</span>{% endif %}
@@ -46,7 +68,7 @@
 
     <div class="search-results">
         {% for article in results.articles %}
-        <article class="result-card">
+        <article class="result-card {% if article._enhanced %}enhanced-result{% endif %}">
             <div class="result-header">
                 <span class="result-source">{{ article.source_name }}</span>
                 <span class="result-category category-tag-{{ article.category }}">{{ article.category | title }}</span>
@@ -54,6 +76,9 @@
                 <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }}">
                     Credibility: {{ article.source_credibility }}/10
                 </span>
+                {% endif %}
+                {% if article._enhanced %}
+                <span class="enhanced-badge">{% if article._provider == 'courtlistener' %}Court Opinion{% elif article._provider == 'pubmed' %}Research Paper{% else %}Enhanced{% endif %}</span>
                 {% endif %}
             </div>
             <h3 class="result-title">

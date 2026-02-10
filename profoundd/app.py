@@ -103,6 +103,8 @@ def create_app(config_override=None):
     @app.route("/search")
     def search():
         """Main search endpoint."""
+        from profoundd.search.external_providers import fetch_all_enhanced
+
         query = request.args.get("q", "").strip()
         category = request.args.get("category", "all")
         page = request.args.get("page", 1, type=int)
@@ -112,7 +114,7 @@ def create_app(config_override=None):
 
         if not query:
             return render_template("search.html", results=None, categories=CATEGORIES,
-                                   query="", category=category)
+                                   query="", category=category, enhanced_providers=set())
 
         results = search_engine.search(
             query=query,
@@ -122,6 +124,20 @@ def create_app(config_override=None):
             date_from=date_from,
             date_to=date_to,
         )
+
+        # Fetch enhanced results from external providers (page 1 only)
+        enhanced_providers = set()
+        if page == 1:
+            enhanced_articles, enhanced_providers = fetch_all_enhanced(query, category)
+            if enhanced_articles:
+                # Insert enhanced results among the top results
+                existing_urls = {a.get("url") for a in results.get("articles", [])}
+                insert_pos = min(3, len(results.get("articles", [])))
+                for ea in enhanced_articles:
+                    if ea.get("url") not in existing_urls:
+                        results["articles"].insert(insert_pos, ea)
+                        insert_pos += 1
+                results["enhanced_providers"] = list(enhanced_providers)
 
         # Log the search
         log = SearchLog(
@@ -134,7 +150,8 @@ def create_app(config_override=None):
         db.session.commit()
 
         return render_template("search.html", results=results, categories=CATEGORIES,
-                               query=query, category=category, sort_by=sort_by)
+                               query=query, category=category, sort_by=sort_by,
+                               enhanced_providers=enhanced_providers)
 
     @app.route("/category/<category_name>")
     def category_page(category_name):
