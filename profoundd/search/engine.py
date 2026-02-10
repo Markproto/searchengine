@@ -61,11 +61,23 @@ class SearchEngine:
             return False
 
     def create_index(self):
-        """Create the articles index if it doesn't exist."""
+        """Create the articles index if it doesn't exist, and ensure mapping is correct."""
         if not self.es.indices.exists(index=self.index_name):
-            self.es.indices.create(index=self.index_name, body=ARTICLE_MAPPING)
+            self.es.indices.create(
+                index=self.index_name,
+                mappings=ARTICLE_MAPPING["mappings"],
+                settings=ARTICLE_MAPPING["settings"],
+            )
             logger.info("Created index: %s", self.index_name)
         else:
+            # Ensure title.raw mapping exists (may be missing if index was auto-created)
+            try:
+                self.es.indices.put_mapping(
+                    index=self.index_name,
+                    properties=ARTICLE_MAPPING["mappings"]["properties"],
+                )
+            except Exception as e:
+                logger.warning("Could not update mapping: %s", e)
             logger.info("Index already exists: %s", self.index_name)
 
     def index_article(self, article_data):
