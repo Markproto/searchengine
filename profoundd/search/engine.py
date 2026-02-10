@@ -338,6 +338,16 @@ class SearchEngine:
             logger.error("Failed to delete old articles: %s", e)
             return 0
 
+    # Sub-topic guarantees: ensure minimum representation of specific topics
+    # within a category.  Keys = category name, values = list of
+    # (min_count, keywords_list) tuples.
+    CATEGORY_SUBTOPIC_GUARANTEES = {
+        "markets": [
+            (2, ["gold", "silver", "platinum", "palladium", "precious metals",
+                  "bullion", "mining", "gold price", "silver price"]),
+        ],
+    }
+
     def get_trending(self, category=None, hours=24, size=10):
         """Get trending/recent articles."""
         filter_clauses = [
@@ -379,9 +389,94 @@ class SearchEngine:
 
         try:
             result = self.es.search(index=self.index_name, body=body)
-            return [hit["_source"] for hit in result["hits"]["hits"]]
+            articles = [hit["_source"] for hit in result["hits"]["hits"]]
+
+            # Enforce sub-topic guarantees for this category
+            if category and category in self.CATEGORY_SUBTOPIC_GUARANTEES:
+                articles = self._enforce_subtopic_guarantees(
+                    articles, category, filter_clauses, size
+                )
+
+            return articles
         except Exception:
             return []
+
+    def _enforce_subtopic_guarantees(self, articles, category, base_filters, size):
+        """
+        Ensure minimum representation of specific sub-topics in results.
+        If the main results don't include enough articles matching the
+        sub-topic keywords, fetch targeted articles and inject them.
+        """
+        guarantees = self.CATEGORY_SUBTOPIC_GUARANTEES.get(category, [])
+        seen_urls = {a.get("url") for a in articles}
+
+        for min_count, keywords in guarantees:
+            # Count how many existing articles match this sub-topic
+            matching = [
+                a for a in articles
+                if self._matches_subtopic(a, keywords)
+            ]
+
+            needed = min_count - len(matching)
+            if needed <= 0:
+                continue
+
+            # Fetch targeted articles for this sub-topic
+            try:
+                subtopic_body = {
+                    "query": {
+                        "bool": {
+                            "must": [
+                                {
+                                    "multi_match": {
+                                        "query": " ".join(keywords[:5]),
+                                        "fields": ["title^3", "summary^2", "content"],
+                                        "type": "best_fields",
+                                    }
+                                }
+                            ],
+                            "filter": base_filters,
+                        }
+                    },
+                    "collapse": {"field": "title.raw"},
+                    "sort": [
+                        {"source_credibility": {"order": "desc"}},
+                        {"published_at": {"order": "desc"}},
+                    ],
+                    "size": needed + 5,
+                }
+
+                result = self.es.search(index=self.index_name, body=subtopic_body)
+                candidates = [hit["_source"] for hit in result["hits"]["hits"]]
+
+                # Insert non-duplicate subtopic articles into the results
+                inserted = 0
+                insert_pos = min(2, len(articles))  # After the first 2 results
+                for candidate in candidates:
+                    if candidate.get("url") in seen_urls:
+                        continue
+                    articles.insert(insert_pos, candidate)
+                    seen_urls.add(candidate.get("url"))
+                    insert_pos += 1
+                    inserted += 1
+                    if inserted >= needed:
+                        break
+
+                # Trim back to requested size
+                articles = articles[:size]
+
+            except Exception as e:
+                logger.warning("Subtopic guarantee fetch failed: %s", e)
+
+        return articles
+
+    @staticmethod
+    def _matches_subtopic(article, keywords):
+        """Check if an article's title or summary mentions any of the sub-topic keywords."""
+        text = (
+            (article.get("title") or "") + " " + (article.get("summary") or "")
+        ).lower()
+        return any(kw in text for kw in keywords)
 
     def get_suggestions(self, query, size=5):
         """Get search suggestions based on article titles."""
