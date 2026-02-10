@@ -100,6 +100,8 @@ def create_app(config_override=None):
             trending = search_engine.get_trending(size=9)
             if not trending:
                 trending = search_engine.get_trending(size=9, hours=720)
+            if not trending:
+                trending = search_engine.get_latest(size=9)
         return render_template("index.html", categories=CATEGORIES, trending=trending)
 
     @app.route("/search")
@@ -191,8 +193,10 @@ def create_app(config_override=None):
         if search_engine.is_available():
             trending = search_engine.get_trending(category=category_name, size=20, hours=72)
             if not trending:
-                # Fallback: widen window after index rebuilds when dates are older
                 trending = search_engine.get_trending(category=category_name, size=20, hours=720)
+            if not trending:
+                # Final fallback: just get latest articles, no time filter
+                trending = search_engine.get_latest(category=category_name, size=20)
 
         cat_info = CATEGORIES[category_name]
         return render_template("category.html", category_name=category_name,
@@ -247,6 +251,7 @@ def create_app(config_override=None):
         """Health check endpoint for monitoring."""
         es_ok = search_engine.is_available()
         es_stats = search_engine.get_stats() if es_ok else {}
+        cat_counts = search_engine.get_category_counts() if es_ok else {}
         status = "healthy" if es_ok else "degraded"
         code = 200 if es_ok else 503
 
@@ -256,6 +261,7 @@ def create_app(config_override=None):
             "elasticsearch": {
                 "available": es_ok,
                 "articles": es_stats.get("total_articles", 0),
+                "by_category": cat_counts,
             },
             "categories": len(CATEGORIES),
         }), code

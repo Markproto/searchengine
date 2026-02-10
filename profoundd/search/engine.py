@@ -329,6 +329,32 @@ class SearchEngine:
 
         return result[:limit]
 
+    def get_latest(self, category=None, size=20):
+        """Get latest articles with no time filter — reliable fallback."""
+        filter_clauses = []
+        if category and category != "all":
+            filter_clauses.append({"term": {"category": category}})
+
+        body = {
+            "query": {
+                "bool": {
+                    "filter": filter_clauses,
+                }
+            } if filter_clauses else {"match_all": {}},
+            "sort": [
+                {"published_at": {"order": "desc"}},
+            ],
+            "size": size,
+        }
+
+        try:
+            result = self.es.search(index=self.index_name, body=body)
+            articles = [hit["_source"] for hit in result["hits"]["hits"]]
+            return articles
+        except Exception as e:
+            logger.error("get_latest failed (category=%s): %s", category, e)
+            return []
+
     def get_stats(self):
         """Get index statistics."""
         try:
@@ -423,8 +449,18 @@ class SearchEngine:
                 )
 
             return articles
-        except Exception:
-            return []
+        except Exception as e:
+            logger.error("get_trending failed (category=%s, hours=%d): %s", category, hours, e)
+            # Fallback: try without collapse in case title.raw has issues
+            try:
+                del body["collapse"]
+                result = self.es.search(index=self.index_name, body=body)
+                articles = [hit["_source"] for hit in result["hits"]["hits"]]
+                logger.info("get_trending fallback (no collapse) returned %d articles", len(articles))
+                return articles
+            except Exception as e2:
+                logger.error("get_trending fallback also failed: %s", e2)
+                return []
 
     def _enforce_subtopic_guarantees(self, articles, category, base_filters, size):
         """
