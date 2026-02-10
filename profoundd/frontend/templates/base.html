@@ -16,7 +16,11 @@
             <a href="/" class="logo">
                 <span class="logo-text">Profoundd</span>
             </a>
-            {% block nav_search %}{% endblock %}
+            {% block nav_search %}
+            <form action="/search" method="GET" class="nav-search-form">
+                <input type="text" name="q" placeholder="Search..." class="nav-search-input">
+            </form>
+            {% endblock %}
             <div class="nav-links">
                 <a href="/submit">Suggest Source</a>
                 <a href="/about">About</a>

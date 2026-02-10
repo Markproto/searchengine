@@ -11,7 +11,7 @@ from flask_login import LoginManager
 
 from profoundd.config.settings import get_config
 from profoundd.config.sources import CATEGORIES
-from profoundd.utils.models import db, AdminUser, SearchLog, SourceSubmission
+from profoundd.utils.models import db, AdminUser, SearchLog, SourceSubmission, SiteSetting
 from profoundd.search.engine import SearchEngine
 from profoundd.admin.routes import admin_bp
 from profoundd.utils.logging_config import setup_logging
@@ -221,7 +221,13 @@ def create_app(config_override=None):
 
     @app.route("/about")
     def about():
-        return render_template("about.html", categories=CATEGORIES)
+        about_content = {}
+        keys = ["about_intro_title", "about_intro_text", "about_what_title", "about_what_text",
+                "about_how_title", "about_how_text", "about_ranking_title", "about_ranking_text",
+                "about_api_title", "about_api_text"]
+        for key in keys:
+            about_content[key] = SiteSetting.get(key, "")
+        return render_template("about.html", categories=CATEGORIES, about=about_content)
 
     @app.errorhandler(404)
     def not_found(e):

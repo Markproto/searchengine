@@ -8,7 +8,7 @@ from functools import wraps
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting
 from profoundd.config.settings import get_config
 from profoundd.config.sources import ALL_SOURCES, CATEGORIES
 from profoundd.search.engine import SearchEngine
@@ -365,3 +365,37 @@ def api_stats():
         "sources": db.session.query(Source).count(),
         "active_sources": db.session.query(Source).filter_by(is_active=True).count(),
     })
+
+
+@admin_bp.route("/about", methods=["GET", "POST"])
+@login_required
+def edit_about():
+    """Edit the public About page content."""
+    # Define editable sections with their keys and labels
+    sections = [
+        ("about_intro_title", "Intro Section Title"),
+        ("about_intro_text", "Intro Section Text"),
+        ("about_what_title", "What is Profoundd? Title"),
+        ("about_what_text", "What is Profoundd? Text"),
+        ("about_how_title", "How It Works Title"),
+        ("about_how_text", "How It Works Text"),
+        ("about_ranking_title", "Ranking Algorithm Title"),
+        ("about_ranking_text", "Ranking Algorithm Text"),
+        ("about_api_title", "API Access Title"),
+        ("about_api_text", "API Access Text"),
+    ]
+
+    if request.method == "POST":
+        for key, _ in sections:
+            val = request.form.get(key, "").strip()
+            if val:
+                SiteSetting.set(key, val)
+        flash("About page updated.", "success")
+        return redirect(url_for("admin.edit_about"))
+
+    # Load current values
+    content = {}
+    for key, label in sections:
+        content[key] = {"label": label, "value": SiteSetting.get(key, "")}
+
+    return render_template("admin/edit_about.html", content=content, categories=CATEGORIES)

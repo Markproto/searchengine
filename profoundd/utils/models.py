@@ -151,6 +151,32 @@ class SourceSubmission(db.Model):
     reviewed_at = db.Column(db.DateTime)
 
 
+class SiteSetting(db.Model):
+    """Key-value store for admin-editable site content."""
+    __tablename__ = "site_settings"
+
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(100), unique=True, nullable=False)
+    value = db.Column(db.Text, default="")
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                           onupdate=lambda: datetime.now(timezone.utc))
+
+    @staticmethod
+    def get(key, default=""):
+        setting = db.session.query(SiteSetting).filter_by(key=key).first()
+        return setting.value if setting else default
+
+    @staticmethod
+    def set(key, value):
+        setting = db.session.query(SiteSetting).filter_by(key=key).first()
+        if setting:
+            setting.value = value
+        else:
+            setting = SiteSetting(key=key, value=value)
+            db.session.add(setting)
+        db.session.commit()
+
+
 class ArticleVote(db.Model):
     """Public thumbs up/down votes on search results."""
     __tablename__ = "article_votes"

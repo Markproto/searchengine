@@ -912,3 +912,19 @@ main { flex: 1; }
 .btn-success:hover { background: rgba(34,197,94,0.35); }
 .actions-cell { white-space: nowrap; }
 
+/* --- About Editor --- */
+.about-editor {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+    line-height: 1.6;
+}
+.about-editor:focus { border-color: var(--accent); }
+
