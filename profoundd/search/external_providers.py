@@ -226,17 +226,39 @@ def fetch_all_enhanced(query, category, max_per_provider=5):
     return all_articles, active
 
 
+# Keywords that indicate a product/business/shopping query → use Google
+PRODUCT_KEYWORDS = [
+    "buy", "price", "for sale", "cheap", "best", "review", "reviews",
+    "amazon", "walmart", "store", "shop", "deal", "deals", "discount",
+    "coupon", "order", "shipping", "delivery", "watt", "watts", "inch",
+    "model", "brand", "product", "compare", "vs", "refurbished", "used",
+    "new", "how much", "where to buy", "cost", "affordable",
+]
+
+
+def _is_product_query(query):
+    """Detect if a query is about products/shopping vs news/politics/medical."""
+    q_lower = query.lower()
+    return any(kw in q_lower for kw in PRODUCT_KEYWORDS)
+
+
 def fetch_searxng(query, searxng_url, max_results=10):
     """
     Query a SearXNG instance for web search results.
-    Used as a fallback when the local ES index returns few/no results.
-    SearXNG aggregates results from 70+ search engines (Google, Bing, DDG, etc.).
+    Uses Brave+DDG for political/medical/news queries (less filtered).
+    Uses Google for product/business queries (better shopping results).
     """
     if not searxng_url:
         return []
 
     # Strip trailing slash
     base_url = searxng_url.rstrip("/")
+
+    # Route to different engines based on query type
+    if _is_product_query(query):
+        engines = "google,duckduckgo"
+    else:
+        engines = "brave,duckduckgo"
 
     try:
         resp = requests.get(
@@ -245,6 +267,7 @@ def fetch_searxng(query, searxng_url, max_results=10):
                 "q": query,
                 "format": "json",
                 "categories": "general",
+                "engines": engines,
                 "language": "en",
                 "pageno": 1,
             },
