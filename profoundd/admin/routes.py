@@ -8,7 +8,7 @@ from functools import wraps
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument
 from profoundd.config.settings import get_config
 from profoundd.config.sources import ALL_SOURCES, CATEGORIES
 from profoundd.search.engine import SearchEngine
@@ -414,6 +414,40 @@ def research_library():
     engine = SearchEngine(config.ELASTICSEARCH_URL)
 
     if request.method == "POST":
+        action = request.form.get("action", "add")
+
+        if action == "delete":
+            doc_id = request.form.get("doc_id", type=int)
+            doc = db.session.query(ResearchDocument).get(doc_id)
+            if doc:
+                # Remove from ES
+                if engine.is_available():
+                    import hashlib
+                    es_id = hashlib.md5(doc.doc_url.encode()).hexdigest()
+                    try:
+                        engine.es.delete(index=engine.index_name, id=es_id, ignore=[404])
+                    except Exception:
+                        pass
+                db.session.delete(doc)
+                db.session.commit()
+                flash(f"Deleted '{doc.title}'.", "success")
+            return redirect(url_for("admin.research_library"))
+
+        if action == "reindex":
+            # Re-index all research docs from DB into ES
+            if engine.is_available():
+                engine.create_index()
+                docs = db.session.query(ResearchDocument).all()
+                count = 0
+                for doc in docs:
+                    if engine.index_article(doc.to_es_doc()):
+                        count += 1
+                flash(f"Re-indexed {count}/{len(docs)} research documents.", "success")
+            else:
+                flash("Elasticsearch is not available.", "error")
+            return redirect(url_for("admin.research_library"))
+
+        # Default: add new document
         title = request.form.get("title", "").strip()
         content = request.form.get("content", "").strip()
         category = request.form.get("category", "news")
@@ -438,28 +472,33 @@ def research_library():
         lines = [l.strip() for l in content.split("\n") if l.strip()]
         summary = lines[0][:500] if lines else title
 
-        article_data = {
-            "title": title,
-            "summary": summary,
-            "content": content,
-            "author": "Admin",
-            "category": category,
-            "source_name": source_name,
-            "source_credibility": 9,  # Admin-curated gets top credibility
-            "url": doc_url,
-            "published_at": datetime.now(timezone.utc).isoformat(),
-            "crawled_at": datetime.now(timezone.utc).isoformat(),
-        }
+        # Save to database first
+        existing = db.session.query(ResearchDocument).filter_by(doc_url=doc_url).first()
+        if not existing:
+            doc = ResearchDocument(
+                title=title,
+                content=content,
+                summary=summary,
+                category=category,
+                source_name=source_name,
+                doc_url=doc_url,
+            )
+            db.session.add(doc)
+            db.session.commit()
 
+        # Index into ES
+        article_data = (existing or doc).to_es_doc()
         result = engine.index_article(article_data)
         if result:
-            flash(f"Research document '{title}' indexed successfully.", "success")
+            flash(f"Research document '{title}' saved and indexed.", "success")
         else:
-            flash("Failed to index document.", "error")
+            flash("Saved to database but failed to index in ES. Use Re-index to retry.", "warning")
 
         return redirect(url_for("admin.research_library"))
 
-    return render_template("admin/research.html", categories=CATEGORIES)
+    # Show existing research documents
+    docs = db.session.query(ResearchDocument).order_by(ResearchDocument.created_at.desc()).all()
+    return render_template("admin/research.html", categories=CATEGORIES, documents=docs)
 
 
 @admin_bp.route("/ai-settings", methods=["GET", "POST"])

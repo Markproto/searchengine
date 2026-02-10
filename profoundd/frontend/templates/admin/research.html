@@ -4,41 +4,86 @@
 {% block content %}
 <div class="container admin-page">
     <div class="admin-header">
-        <h1>Add Research Document</h1>
-        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        <h1>Research Library</h1>
+        <div class="admin-links">
+            <form method="POST" action="{{ url_for('admin.research_library') }}" style="display:inline;">
+                <input type="hidden" name="action" value="reindex">
+                <button type="submit" class="btn btn-secondary">Re-index All to ES</button>
+            </form>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+        </div>
     </div>
 
-    <p class="text-muted" style="margin-bottom: 20px;">Paste a research document, collection of links, or any content you want indexed and searchable. It will appear in search results with credibility 9 (admin-curated).</p>
-
-    <form method="POST" action="{{ url_for('admin.research_library') }}">
-        <div class="form-group">
-            <label for="title">Document Title</label>
-            <input type="text" id="title" name="title" required placeholder="e.g. COVID-19 Vaccine Safety Research Collection">
-        </div>
-
-        <div class="form-group">
-            <label for="source_name">Source / Author Name</label>
-            <input type="text" id="source_name" name="source_name" placeholder="Profoundd Research (default)">
-        </div>
-
-        <div class="form-group">
-            <label for="category">Category</label>
-            <select id="category" name="category">
-                {% for key, cat in categories.items() %}
-                <option value="{{ key }}">{{ cat.label }}</option>
+    {% if documents %}
+    <div class="admin-section">
+        <h2>Saved Documents ({{ documents|length }})</h2>
+        <p class="action-desc">These are persisted in the database and survive ES index rebuilds. Use "Re-index All" after a rebuild.</p>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Source</th>
+                    <th>Added</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in documents %}
+                <tr>
+                    <td>{{ doc.title[:60] }}{% if doc.title|length > 60 %}...{% endif %}</td>
+                    <td>{{ doc.category | title }}</td>
+                    <td>{{ doc.source_name }}</td>
+                    <td>{{ doc.created_at.strftime('%Y-%m-%d') if doc.created_at else '' }}</td>
+                    <td class="actions-cell">
+                        <form method="POST" action="{{ url_for('admin.research_library') }}" style="display:inline;">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="doc_id" value="{{ doc.id }}">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this document?')">Delete</button>
+                        </form>
+                    </td>
+                </tr>
                 {% endfor %}
-            </select>
-        </div>
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
 
-        <div class="form-group">
-            <label for="content">Full Document</label>
-            <p class="text-muted" style="margin-bottom: 8px;">Paste the entire document — links, notes, studies, commentary, everything. All of it becomes searchable.</p>
-            <textarea id="content" name="content" rows="25" class="about-editor" required placeholder="Paste your research document here..."></textarea>
-        </div>
+    <div class="admin-section">
+        <h2>Add New Document</h2>
+        <p class="text-muted" style="margin-bottom: 20px;">Paste a research document, collection of links, or any content you want indexed and searchable. It will appear in search results with credibility 9 (admin-curated).</p>
 
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Index Document</button>
-        </div>
-    </form>
+        <form method="POST" action="{{ url_for('admin.research_library') }}">
+            <input type="hidden" name="action" value="add">
+            <div class="form-group">
+                <label for="title">Document Title</label>
+                <input type="text" id="title" name="title" required placeholder="e.g. COVID-19 Vaccine Safety Research Collection">
+            </div>
+
+            <div class="form-group">
+                <label for="source_name">Source / Author Name</label>
+                <input type="text" id="source_name" name="source_name" placeholder="Profoundd Research (default)">
+            </div>
+
+            <div class="form-group">
+                <label for="category">Category</label>
+                <select id="category" name="category">
+                    {% for key, cat in categories.items() %}
+                    <option value="{{ key }}">{{ cat.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="content">Full Document</label>
+                <p class="text-muted" style="margin-bottom: 8px;">Paste the entire document — links, notes, studies, commentary, everything. All of it becomes searchable.</p>
+                <textarea id="content" name="content" rows="25" class="about-editor" required placeholder="Paste your research document here..."></textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save & Index Document</button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}

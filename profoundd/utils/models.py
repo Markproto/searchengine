@@ -177,6 +177,35 @@ class SiteSetting(db.Model):
         db.session.commit()
 
 
+class ResearchDocument(db.Model):
+    """Admin-curated research documents persisted in DB so they survive ES rebuilds."""
+    __tablename__ = "research_documents"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(500), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    summary = db.Column(db.Text)
+    category = db.Column(db.String(50), default="news")
+    source_name = db.Column(db.String(200), default="Profoundd Research")
+    doc_url = db.Column(db.String(500), unique=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def to_es_doc(self):
+        """Convert to Elasticsearch document format for indexing."""
+        return {
+            "title": self.title,
+            "summary": self.summary or self.title,
+            "content": self.content,
+            "author": "Admin",
+            "category": self.category,
+            "source_name": self.source_name,
+            "source_credibility": 9,
+            "url": self.doc_url,
+            "published_at": self.created_at.isoformat() if self.created_at else datetime.now(timezone.utc).isoformat(),
+            "crawled_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+
 class ArticleVote(db.Model):
     """Public thumbs up/down votes on search results."""
     __tablename__ = "article_votes"
