@@ -141,8 +141,9 @@ def create_app(config_override=None):
                         insert_pos += 1
                 results["enhanced_providers"] = list(enhanced_providers)
 
-            # SearXNG fallback: when local index has < 5 results, search the web
-            local_count = results.get("total", 0)
+            # SearXNG fallback: when local index has few relevant results, search the web
+            # Use actual article count (post-filtering), not ES total which counts weak matches
+            local_count = len(results.get("articles", []))
             if local_count < 5:
                 searxng_url = SiteSetting.get("searxng_url", "")
                 if searxng_url:
