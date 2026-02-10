@@ -356,6 +356,16 @@ main { flex: 1; }
 .credibility-high { background: rgba(34,197,94,0.15); color: var(--success); }
 .credibility-medium { background: rgba(234,179,8,0.15); color: var(--warning); }
 .credibility-low { background: rgba(239,68,68,0.15); color: var(--danger); }
+.credibility-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    vertical-align: middle;
+}
+.credibility-dot.credibility-high { background: var(--success); }
+.credibility-dot.credibility-medium { background: var(--warning); }
+.credibility-dot.credibility-low { background: var(--danger); }
 
 .result-title {
     font-size: 1.1rem;
