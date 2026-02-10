@@ -20,6 +20,12 @@
         {% endfor %}
     </div>
 
+    <!-- Search Filter -->
+    <div class="source-search-bar">
+        <input type="text" id="sourceSearch" placeholder="Search sources by name or URL..." class="source-search-input" autofocus>
+        <span id="sourceCount" class="source-count">{{ sources|length }} sources</span>
+    </div>
+
     {% if sources %}
     <table class="admin-table">
         <thead>
@@ -68,4 +74,27 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var searchInput = document.getElementById('sourceSearch');
+    var countEl = document.getElementById('sourceCount');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', function() {
+        var query = this.value.toLowerCase();
+        var rows = document.querySelectorAll('.admin-table tbody tr');
+        var visible = 0;
+        rows.forEach(function(row) {
+            var text = row.textContent.toLowerCase();
+            var match = !query || text.indexOf(query) !== -1;
+            row.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+        countEl.textContent = visible + (visible === 1 ? ' source' : ' sources');
+    });
+});
+</script>
 {% endblock %}

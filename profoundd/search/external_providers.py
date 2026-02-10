@@ -177,7 +177,7 @@ def fetch_pubmed(query, max_results=5):
                 "summary": summary,
                 "content": "",
                 "source_name": f"PubMed ({journal})" if journal else "PubMed",
-                "source_credibility": 9,
+                "source_credibility": 7,
                 "category": "medical",
                 "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
                 "published_at": date_iso,

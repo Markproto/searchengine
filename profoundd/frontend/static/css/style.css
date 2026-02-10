@@ -1007,3 +1007,29 @@ main { flex: 1; }
     .enhanced-sources { margin-left: 0; width: 100%; }
 }
 
+/* --- Admin Source Search Bar --- */
+.source-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.source-search-input {
+    flex: 1;
+    padding: 10px 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.source-search-input:focus { border-color: var(--accent); }
+.source-count {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
