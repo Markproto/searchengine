@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}SEO Settings - Admin{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>SEO Settings</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+
+    <form method="POST" action="{{ url_for('admin.edit_seo') }}">
+        <div class="admin-section">
+            <h2>Global Keywords</h2>
+            <p class="text-muted">Applies to all pages. Comma-separated.</p>
+            <div class="form-group">
+                <input type="text" name="global_keywords" value="{{ seo.global_keywords }}"
+                       placeholder="search engine, credible news, verified sources, Profoundd">
+            </div>
+        </div>
+
+        {% set page_labels = {"home": "Homepage", "about": "About Page", "search": "Search Results", "submit": "Suggest Source"} %}
+
+        {% for page, data in seo.items() %}
+        {% if page != 'global_keywords' %}
+        <div class="admin-section">
+            <h2>{{ page_labels.get(page, page|title) }}</h2>
+            <div class="form-group">
+                <label for="{{ page }}_title">Page Title (browser tab)</label>
+                <input type="text" id="{{ page }}_title" name="{{ page }}_title" value="{{ data.title }}"
+                       placeholder="e.g. Profoundd - Search What Matters">
+            </div>
+            <div class="form-group">
+                <label for="{{ page }}_description">Meta Description (shows in Google results)</label>
+                <textarea id="{{ page }}_description" name="{{ page }}_description" rows="2" class="about-editor">{{ data.description }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="{{ page }}_keywords">Page-Specific Keywords (comma-separated)</label>
+                <input type="text" id="{{ page }}_keywords" name="{{ page }}_keywords" value="{{ data.keywords }}"
+                       placeholder="news search, independent journalism">
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save SEO Settings</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

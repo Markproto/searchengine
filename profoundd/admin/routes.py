@@ -370,32 +370,38 @@ def api_stats():
 @admin_bp.route("/about", methods=["GET", "POST"])
 @login_required
 def edit_about():
-    """Edit the public About page content."""
-    # Define editable sections with their keys and labels
-    sections = [
-        ("about_intro_title", "Intro Section Title"),
-        ("about_intro_text", "Intro Section Text"),
-        ("about_what_title", "What is Profoundd? Title"),
-        ("about_what_text", "What is Profoundd? Text"),
-        ("about_how_title", "How It Works Title"),
-        ("about_how_text", "How It Works Text"),
-        ("about_ranking_title", "Ranking Algorithm Title"),
-        ("about_ranking_text", "Ranking Algorithm Text"),
-        ("about_api_title", "API Access Title"),
-        ("about_api_text", "API Access Text"),
-    ]
-
+    """Edit the public About page — one big HTML document."""
     if request.method == "POST":
-        for key, _ in sections:
-            val = request.form.get(key, "").strip()
-            if val:
-                SiteSetting.set(key, val)
+        SiteSetting.set("about_page_html", request.form.get("about_page_html", ""))
         flash("About page updated.", "success")
         return redirect(url_for("admin.edit_about"))
 
-    # Load current values
-    content = {}
-    for key, label in sections:
-        content[key] = {"label": label, "value": SiteSetting.get(key, "")}
-
+    content = SiteSetting.get("about_page_html", "")
     return render_template("admin/edit_about.html", content=content, categories=CATEGORIES)
+
+
+@admin_bp.route("/seo", methods=["GET", "POST"])
+@login_required
+def edit_seo():
+    """Edit SEO meta tags for each page."""
+    pages = ["home", "about", "search", "submit"]
+
+    if request.method == "POST":
+        for page in pages:
+            SiteSetting.set(f"seo_{page}_title", request.form.get(f"{page}_title", "").strip())
+            SiteSetting.set(f"seo_{page}_description", request.form.get(f"{page}_description", "").strip())
+            SiteSetting.set(f"seo_{page}_keywords", request.form.get(f"{page}_keywords", "").strip())
+        SiteSetting.set("seo_global_keywords", request.form.get("global_keywords", "").strip())
+        flash("SEO settings updated.", "success")
+        return redirect(url_for("admin.edit_seo"))
+
+    seo = {}
+    for page in pages:
+        seo[page] = {
+            "title": SiteSetting.get(f"seo_{page}_title", ""),
+            "description": SiteSetting.get(f"seo_{page}_description", ""),
+            "keywords": SiteSetting.get(f"seo_{page}_keywords", ""),
+        }
+    seo["global_keywords"] = SiteSetting.get("seo_global_keywords", "")
+
+    return render_template("admin/edit_seo.html", seo=seo, categories=CATEGORIES)

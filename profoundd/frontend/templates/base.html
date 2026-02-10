@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Profoundd{% endblock %} - Multi-Domain Search Engine</title>
-    <meta name="description" content="{% block description %}Profoundd - Search across News, Medical, Legal, Technology, Finance & Science from verified sources.{% endblock %}">
+    <title>{% block title %}{{ seo_title or 'Profoundd' }}{% endblock %}</title>
+    <meta name="description" content="{% block description %}{{ seo_description or 'Profoundd - Search across News, Medical, Legal, Technology, Finance & Science from verified sources.' }}{% endblock %}">
+    {% if seo_keywords %}<meta name="keywords" content="{{ seo_keywords }}">{% endif %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">

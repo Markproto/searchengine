@@ -5,49 +5,37 @@
 <div class="container about-page">
     <h1>About Profoundd</h1>
 
+    {% if about_html %}
+    {{ about_html | safe }}
+    {% else %}
     <section class="about-section">
-        <h2>{{ about.about_intro_title or "The Importance of Credible Search Engines in Today's Information Landscape" }}</h2>
-        {% if about.about_intro_text %}
-        {{ about.about_intro_text | safe }}
-        {% else %}
+        <h2>The Importance of Credible Search Engines in Today's Information Landscape</h2>
         <p>In an age where information overload and misinformation run rampant, the need for reliable, transparent search engines has never been more critical. Traditional search platforms often prioritize clicks, ads, and algorithms that amplify sensationalism over substance, leading to echo chambers, biased results, and the spread of falsehoods. This erodes public trust, influences decisions in everything from health choices to political views, and disproportionately affects vulnerable populations who may lack the tools to discern fact from fiction. A search engine focused on credibility—like Profoundd—addresses this by curating sources with proven track records of honesty, assigning ratings based on historical accuracy, journalistic standards, and peer reviews. Such systems empower users from all walks of life: students seeking unbiased research, professionals needing verifiable data, journalists chasing leads, or everyday citizens navigating complex issues like climate change or economic policies.</p>
         <p>By emphasizing vetted sources across diverse domains, these engines foster informed discourse and democratic participation. They counteract the "infodemic" highlighted during events like the COVID-19 pandemic, where false claims led to real-world harm. Moreover, with credibility scoring tied to a source's history—fact-checked by independent bodies like Media Bias/Fact Check or academic evaluations—users gain confidence in results. This transparency builds accountability: sources with low ratings are deprioritized, encouraging better journalism overall. Open-source models further democratize access, allowing communities to contribute, audit, and customize, reducing monopolies held by big tech. In essence, engines like Profoundd aren't just tools; they're safeguards for truth in a fragmented digital world, promoting equity, education, and enlightenment for everyone.</p>
-        {% endif %}
     </section>
 
     <section class="about-section">
-        <h2>{{ about.about_what_title or "What is Profoundd?" }}</h2>
-        {% if about.about_what_text %}
-        {{ about.about_what_text | safe }}
-        {% else %}
+        <h2>What is Profoundd?</h2>
         <p>Profoundd is an open-source, multi-domain search engine that aggregates content from verified, credible sources across nine key areas:</p>
         <ul>
             {% for key, cat in categories.items() %}
             <li><strong>{{ cat.label }}</strong> - {{ cat.description }}</li>
             {% endfor %}
         </ul>
-        {% endif %}
     </section>
 
     <section class="about-section">
-        <h2>{{ about.about_how_title or "How It Works" }}</h2>
-        {% if about.about_how_text %}
-        {{ about.about_how_text | safe }}
-        {% else %}
+        <h2>How It Works</h2>
         <ol>
             <li><strong>Curated Sources</strong> - We crawl RSS/Atom feeds from vetted, verifiable sources.</li>
             <li><strong>Credibility Scoring</strong> - Each source is assigned a credibility score (1-10) that influences search rankings.</li>
             <li><strong>Smart Ranking</strong> - Results are ranked by a combination of text relevance, source credibility, and recency.</li>
             <li><strong>Transparent</strong> - Every result links directly to the original source. We don't host content; we help you find it.</li>
         </ol>
-        {% endif %}
     </section>
 
     <section class="about-section">
-        <h2>{{ about.about_ranking_title or "Ranking Algorithm" }}</h2>
-        {% if about.about_ranking_text %}
-        {{ about.about_ranking_text | safe }}
-        {% else %}
+        <h2>Ranking Algorithm</h2>
         <p>Our search ranking considers:</p>
         <ul>
             <li><strong>Text Relevance</strong> (BM25) - How well the article matches your query</li>
@@ -55,18 +43,14 @@
             <li><strong>Recency</strong> - Recent articles (last 24h-7d) are boosted</li>
         </ul>
         <p>Admins can adjust per-source weights through the admin panel.</p>
-        {% endif %}
     </section>
 
     <section class="about-section">
-        <h2>{{ about.about_api_title or "API Access" }}</h2>
-        {% if about.about_api_text %}
-        {{ about.about_api_text | safe }}
-        {% else %}
+        <h2>API Access</h2>
         <p>Profoundd provides a free JSON API:</p>
         <code>GET /api/search?q=your+query&category=news&page=1</code>
         <p>Returns JSON with articles, total count, and pagination info.</p>
-        {% endif %}
     </section>
+    {% endif %}
 </div>
 {% endblock %}

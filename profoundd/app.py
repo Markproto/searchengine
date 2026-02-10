@@ -47,10 +47,30 @@ def create_app(config_override=None):
     # Register blueprints
     app.register_blueprint(admin_bp)
 
-    # Make categories available to all templates
+    # Make categories and SEO tags available to all templates
     @app.context_processor
-    def inject_categories():
-        return {"categories": CATEGORIES}
+    def inject_globals():
+        # Determine which page we're on for SEO lookup
+        page_key = "home"
+        if request.path.startswith("/about"):
+            page_key = "about"
+        elif request.path.startswith("/search"):
+            page_key = "search"
+        elif request.path.startswith("/submit"):
+            page_key = "submit"
+
+        seo_title = SiteSetting.get(f"seo_{page_key}_title", "")
+        seo_desc = SiteSetting.get(f"seo_{page_key}_description", "")
+        page_kw = SiteSetting.get(f"seo_{page_key}_keywords", "")
+        global_kw = SiteSetting.get("seo_global_keywords", "")
+        combined_kw = ", ".join(filter(None, [page_kw, global_kw]))
+
+        return {
+            "categories": CATEGORIES,
+            "seo_title": seo_title,
+            "seo_description": seo_desc,
+            "seo_keywords": combined_kw,
+        }
 
     # Initialize search engine
     search_engine = SearchEngine(app.config.get("ELASTICSEARCH_URL", "http://localhost:9200"))
@@ -221,13 +241,8 @@ def create_app(config_override=None):
 
     @app.route("/about")
     def about():
-        about_content = {}
-        keys = ["about_intro_title", "about_intro_text", "about_what_title", "about_what_text",
-                "about_how_title", "about_how_text", "about_ranking_title", "about_ranking_text",
-                "about_api_title", "about_api_text"]
-        for key in keys:
-            about_content[key] = SiteSetting.get(key, "")
-        return render_template("about.html", categories=CATEGORIES, about=about_content)
+        about_html = SiteSetting.get("about_page_html", "")
+        return render_template("about.html", categories=CATEGORIES, about_html=about_html)
 
     @app.errorhandler(404)
     def not_found(e):
