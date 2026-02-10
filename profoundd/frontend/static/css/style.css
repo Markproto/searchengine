@@ -1098,3 +1098,94 @@ main { flex: 1; }
     white-space: nowrap;
 }
 
+/* --- AI Analyze URL Page --- */
+.ai-insights-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 28px;
+}
+.ai-insights-panel h3 {
+    color: var(--accent);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.ai-insights-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.ai-insight-block label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+.ai-insight-block p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+.ai-key-points {
+    list-style: none;
+    padding: 0;
+}
+.ai-key-points li {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    padding: 6px 0 6px 18px;
+    position: relative;
+    line-height: 1.5;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.ai-key-points li:last-child { border-bottom: none; }
+.ai-key-points li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 13px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+}
+.ai-insight-row {
+    display: flex;
+    gap: 24px;
+}
+.ai-insight-row .ai-insight-block { flex: 1; }
+.analyze-form .form-control-lg {
+    font-size: 1rem;
+    padding: 12px 16px;
+}
+.analyze-form textarea.form-control-lg {
+    min-height: 120px;
+    line-height: 1.6;
+}
+.form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+.btn-lg {
+    padding: 12px 32px;
+    font-size: 1rem;
+}
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+@media (max-width: 768px) {
+    .form-row-2 { grid-template-columns: 1fr; }
+    .ai-insight-row { flex-direction: column; gap: 12px; }
+}
+

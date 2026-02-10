@@ -70,7 +70,7 @@ def fetch_url_content(url):
         return None, f"Error extracting content: {e}"
 
 
-ANALYSIS_PROMPT = """Analyze the following web page content and extract structured information for a search engine index.
+ANALYSIS_PROMPT = """You are a senior editorial analyst for Profoundd, a multi-domain search engine. Analyze the following web page content thoroughly and extract structured information.
 
 URL: {url}
 Page Title: {page_title}
@@ -78,13 +78,19 @@ Page Title: {page_title}
 Content:
 {text}
 
-Respond with EXACTLY this format (no markdown, no extra text):
-TITLE: [A clear, accurate article title]
-SUMMARY: [A 2-3 sentence summary of the key points]
+Provide a detailed analysis using EXACTLY this format. Each field should be on its own line starting with the label. Be thorough and informative.
+
+TITLE: [A clear, accurate, compelling article title — not clickbait]
+SUMMARY: [A detailed 4-6 sentence summary covering the main argument, key evidence presented, notable claims, and conclusion. Be specific — include names, dates, statistics, and findings mentioned in the article.]
+KEY_POINTS: [3-5 bullet points of the most important facts or claims, separated by semicolons. Example: FDA approved drug X for condition Y; Study included 3,000 participants over 2 years; Side effects reported in 12% of cases]
 CATEGORY: [One of: news, politics, legal, medical, science, tech, finance, markets, environment, education]
-TAGS: [Comma-separated relevant tags, max 5]
-CREDIBILITY: [Rate 1-10 based on source quality, citation of evidence, balanced reporting]
-SOURCE_NAME: [The publication or website name]"""
+TAGS: [Comma-separated relevant tags, 5-8 tags covering topic, people, organizations, and themes]
+CREDIBILITY: [Rate 1-10. Consider: Does it cite primary sources? Are claims verifiable? Is the reporting balanced? Is the author/outlet established? 8-10 = peer-reviewed/official sources, 6-7 = established journalism, 4-5 = opinion/blog, 1-3 = unverified/misleading]
+CREDIBILITY_REASONING: [One sentence explaining the credibility score. Example: "Published by Reuters with multiple named sources and official data citations."]
+SOURCE_NAME: [The publication, organization, or website name]
+AUTHOR: [Author name if identifiable, otherwise "Unknown"]
+DATE_PUBLISHED: [Publication date if found in content, in YYYY-MM-DD format, otherwise "Unknown"]
+BIAS_NOTES: [Brief note on any detectable bias or perspective. Example: "Article presents primarily the plaintiff's perspective" or "Balanced coverage with quotes from both sides" or "None detected"]"""
 
 
 def analyze_with_anthropic(content_data, api_key, model="claude-sonnet-4-5-20250929"):
@@ -102,7 +108,7 @@ def analyze_with_anthropic(content_data, api_key, model="claude-sonnet-4-5-20250
 
         message = client.messages.create(
             model=model,
-            max_tokens=1024,
+            max_tokens=2048,
             messages=[{"role": "user", "content": prompt}],
         )
 
@@ -129,7 +135,7 @@ def analyze_with_xai(content_data, api_key, model="grok-2-latest"):
 
         response = client.chat.completions.create(
             model=model,
-            max_tokens=1024,
+            max_tokens=2048,
             messages=[{"role": "user", "content": prompt}],
         )
 
@@ -146,10 +152,15 @@ def _parse_analysis(text, url):
     result = {
         "title": "",
         "summary": "",
+        "key_points": "",
         "category": "news",
         "tags": "",
         "credibility": 7,
+        "credibility_reasoning": "",
         "source_name": "",
+        "author": "",
+        "date_published": "",
+        "bias_notes": "",
         "url": url,
     }
 
@@ -159,6 +170,8 @@ def _parse_analysis(text, url):
             result["title"] = line[6:].strip()
         elif line.startswith("SUMMARY:"):
             result["summary"] = line[8:].strip()
+        elif line.startswith("KEY_POINTS:"):
+            result["key_points"] = line[11:].strip()
         elif line.startswith("CATEGORY:"):
             cat = line[9:].strip().lower()
             valid_cats = {"news", "politics", "legal", "medical", "science",
@@ -173,7 +186,15 @@ def _parse_analysis(text, url):
                 result["credibility"] = max(1, min(10, val))
             except (ValueError, IndexError):
                 pass
+        elif line.startswith("CREDIBILITY_REASONING:"):
+            result["credibility_reasoning"] = line[22:].strip()
         elif line.startswith("SOURCE_NAME:"):
             result["source_name"] = line[12:].strip()
+        elif line.startswith("AUTHOR:"):
+            result["author"] = line[7:].strip()
+        elif line.startswith("DATE_PUBLISHED:"):
+            result["date_published"] = line[15:].strip()
+        elif line.startswith("BIAS_NOTES:"):
+            result["bias_notes"] = line[11:].strip()
 
     return result

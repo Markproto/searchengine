@@ -39,39 +39,97 @@
     <!-- Step 2: Review & Approve -->
     <div class="admin-section">
         <h2>AI Analysis Results</h2>
-        <p class="action-desc">Review the analysis below. Edit any fields before approving.</p>
+        <p class="action-desc">Review the AI's analysis below. Edit any fields before approving to index.</p>
 
-        <form method="POST" class="admin-form">
+        <!-- AI Insights Panel (read-only) -->
+        <div class="ai-insights-panel">
+            <h3>AI Insights</h3>
+            <div class="ai-insights-grid">
+                {% if analysis.key_points %}
+                <div class="ai-insight-block">
+                    <label>Key Points</label>
+                    <ul class="ai-key-points">
+                        {% for point in analysis.key_points.split(';') %}
+                        {% if point.strip() %}
+                        <li>{{ point.strip() }}</li>
+                        {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                {% if analysis.credibility_reasoning %}
+                <div class="ai-insight-block">
+                    <label>Credibility Assessment</label>
+                    <p>
+                        <span class="credibility-badge credibility-{{ 'high' if analysis.credibility >= 8 else ('medium' if analysis.credibility >= 5 else 'low') }}">
+                            {{ analysis.credibility }}/10
+                        </span>
+                        {{ analysis.credibility_reasoning }}
+                    </p>
+                </div>
+                {% endif %}
+                {% if analysis.bias_notes %}
+                <div class="ai-insight-block">
+                    <label>Bias Assessment</label>
+                    <p>{{ analysis.bias_notes }}</p>
+                </div>
+                {% endif %}
+                <div class="ai-insight-row">
+                    {% if analysis.author and analysis.author != 'Unknown' %}
+                    <div class="ai-insight-block">
+                        <label>Author</label>
+                        <p>{{ analysis.author }}</p>
+                    </div>
+                    {% endif %}
+                    {% if analysis.date_published and analysis.date_published != 'Unknown' %}
+                    <div class="ai-insight-block">
+                        <label>Published</label>
+                        <p>{{ analysis.date_published }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Editable Form -->
+        <form method="POST" class="admin-form analyze-form">
             <input type="hidden" name="step" value="approve">
             <input type="hidden" name="original_url" value="{{ analysis.url }}">
 
             <div class="form-group">
                 <label>Title</label>
-                <input type="text" name="title" value="{{ analysis.title }}" class="form-control" required>
+                <input type="text" name="title" value="{{ analysis.title }}" class="form-control form-control-lg" required>
             </div>
 
             <div class="form-group">
                 <label>Summary</label>
-                <textarea name="summary" rows="3" class="form-control">{{ analysis.summary }}</textarea>
+                <textarea name="summary" rows="6" class="form-control form-control-lg">{{ analysis.summary }}</textarea>
             </div>
 
-            <div class="form-group">
-                <label>Category</label>
-                <select name="category" class="form-control">
-                    {% for key, cat in categories.items() %}
-                    <option value="{{ key }}" {% if key == analysis.category %}selected{% endif %}>{{ cat.label }}</option>
-                    {% endfor %}
-                </select>
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label>Category</label>
+                    <select name="category" class="form-control">
+                        {% for key, cat in categories.items() %}
+                        <option value="{{ key }}" {% if key == analysis.category %}selected{% endif %}>{{ cat.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Source Name</label>
+                    <input type="text" name="source_name" value="{{ analysis.source_name }}" class="form-control">
+                </div>
             </div>
 
-            <div class="form-group">
-                <label>Source Name</label>
-                <input type="text" name="source_name" value="{{ analysis.source_name }}" class="form-control">
-            </div>
-
-            <div class="form-group">
-                <label>Credibility (1-10)</label>
-                <input type="number" name="credibility" value="{{ analysis.credibility }}" min="1" max="10" class="form-control">
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label>Credibility (1-10)</label>
+                    <input type="number" name="credibility" value="{{ analysis.credibility }}" min="1" max="10" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Author</label>
+                    <input type="text" name="author" value="{{ analysis.author }}" class="form-control">
+                </div>
             </div>
 
             <div class="form-group">
@@ -85,7 +143,7 @@
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Approve & Index</button>
+                <button type="submit" class="btn btn-primary btn-lg">Approve & Index</button>
                 <a href="{{ url_for('admin.analyze_url') }}" class="btn btn-secondary">Start Over</a>
             </div>
         </form>
