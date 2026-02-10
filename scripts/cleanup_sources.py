@@ -17,6 +17,14 @@ with app.app_context():
         "The Guardian - Environment", "CNN", "MSNBC", "NY Times",
         "Reuters", "BBC News", "BBC World", "NPR News",
         "Reuters (X)", "BBC Breaking (X)",
+        # Broken X/Twitter sources (rsshub.app → google.com/404)
+        "Al Jazeera (X)", "WHO (X)", "The Lancet (X)", "NEJM (X)",
+        "TechCrunch (X)", "Elon Musk (X)", "OpenAI (X)",
+        "Bloomberg (X)", "CNBC (X)", "WSJ (X)", "NASA (X)",
+        "SCOTUSblog (X)", "Lawfare (X)", "NOAA (X)",
+        "POTUS (X)", "White House (X)", "Politico (X)", "C-SPAN (X)",
+        # Broken feeds (404/403)
+        "Kitco News", "SchiffGold", "GoldPrice.org",
     ]
     deleted = 0
     for n in names:

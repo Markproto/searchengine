@@ -135,11 +135,8 @@ POLITICS_SOURCES = [
 
 MARKETS_SOURCES = [
     # --- Commodities & Metals ---
-    {"name": "Kitco News", "url": "https://www.kitco.com/rss/feed.xml", "category": "markets", "credibility": 8, "feed_type": "rss"},
     {"name": "Gold Telegraph", "url": "https://goldtelegraph.com/feed", "category": "markets", "credibility": 8, "feed_type": "rss"},
     {"name": "Silver Doctors", "url": "https://www.silverdoctors.com/feed/", "category": "markets", "credibility": 8, "feed_type": "rss"},
-    {"name": "SchiffGold", "url": "https://schiffgold.com/feed/", "category": "markets", "credibility": 8, "feed_type": "rss"},
-    {"name": "GoldPrice.org", "url": "https://goldprice.org/feed", "category": "markets", "credibility": 7, "feed_type": "rss"},
     {"name": "Mining.com", "url": "https://www.mining.com/feed/", "category": "markets", "credibility": 7, "feed_type": "rss"},
     {"name": "OilPrice.com", "url": "https://oilprice.com/rss/main", "category": "markets", "credibility": 7, "feed_type": "rss"},
 
@@ -158,46 +155,10 @@ MARKETS_SOURCES = [
     {"name": "Blockworks", "url": "https://blockworks.co/feed", "category": "markets", "credibility": 7, "feed_type": "rss"},
 ]
 
-TWITTER_SOURCES = [
-    # --- News Twitter/X accounts (via RSSHub) ---
-    {"name": "Al Jazeera (X)", "url": "https://rsshub.app/twitter/user/AJEnglish", "category": "news", "credibility": 7, "feed_type": "rss"},
-
-    # --- Medical Twitter/X ---
-    {"name": "WHO (X)", "url": "https://rsshub.app/twitter/user/WHO", "category": "medical", "credibility": 7, "feed_type": "rss"},
-    {"name": "The Lancet (X)", "url": "https://rsshub.app/twitter/user/TheLancet", "category": "medical", "credibility": 7, "feed_type": "rss"},
-    {"name": "NEJM (X)", "url": "https://rsshub.app/twitter/user/ABORINGNEJMG", "category": "medical", "credibility": 7, "feed_type": "rss"},
-
-    # --- Tech Twitter/X ---
-    {"name": "TechCrunch (X)", "url": "https://rsshub.app/twitter/user/TechCrunch", "category": "tech", "credibility": 7, "feed_type": "rss"},
-    {"name": "Elon Musk (X)", "url": "https://rsshub.app/twitter/user/elonmusk", "category": "tech", "credibility": 7, "feed_type": "rss"},
-    {"name": "OpenAI (X)", "url": "https://rsshub.app/twitter/user/OpenAI", "category": "tech", "credibility": 7, "feed_type": "rss"},
-
-    # --- Finance Twitter/X ---
-    {"name": "Bloomberg (X)", "url": "https://rsshub.app/twitter/user/business", "category": "finance", "credibility": 7, "feed_type": "rss"},
-    {"name": "CNBC (X)", "url": "https://rsshub.app/twitter/user/CNBC", "category": "finance", "credibility": 7, "feed_type": "rss"},
-    {"name": "WSJ (X)", "url": "https://rsshub.app/twitter/user/WSJ", "category": "finance", "credibility": 7, "feed_type": "rss"},
-
-    # --- Science Twitter/X ---
-    {"name": "NASA (X)", "url": "https://rsshub.app/twitter/user/NASA", "category": "science", "credibility": 7, "feed_type": "rss"},
-
-    # --- Legal Twitter/X ---
-    {"name": "SCOTUSblog (X)", "url": "https://rsshub.app/twitter/user/SCOTUSblog", "category": "legal", "credibility": 7, "feed_type": "rss"},
-    {"name": "Lawfare (X)", "url": "https://rsshub.app/twitter/user/lawaboringfareblog", "category": "legal", "credibility": 7, "feed_type": "rss"},
-
-    # --- Environment Twitter/X ---
-    {"name": "NOAA (X)", "url": "https://rsshub.app/twitter/user/NOAA", "category": "environment", "credibility": 7, "feed_type": "rss"},
-
-    # --- Politics Twitter/X ---
-    {"name": "POTUS (X)", "url": "https://rsshub.app/twitter/user/POTUS", "category": "politics", "credibility": 7, "feed_type": "rss"},
-    {"name": "White House (X)", "url": "https://rsshub.app/twitter/user/WhiteHouse", "category": "politics", "credibility": 7, "feed_type": "rss"},
-    {"name": "Politico (X)", "url": "https://rsshub.app/twitter/user/politico", "category": "politics", "credibility": 7, "feed_type": "rss"},
-    {"name": "C-SPAN (X)", "url": "https://rsshub.app/twitter/user/cspan", "category": "politics", "credibility": 7, "feed_type": "rss"},
-]
-
 ALL_SOURCES = (
     NEWS_SOURCES + MEDICAL_SOURCES + LEGAL_SOURCES + TECH_SOURCES +
     FINANCE_SOURCES + SCIENCE_SOURCES + EDUCATION_SOURCES +
-    ENVIRONMENT_SOURCES + POLITICS_SOURCES + MARKETS_SOURCES + TWITTER_SOURCES
+    ENVIRONMENT_SOURCES + POLITICS_SOURCES + MARKETS_SOURCES
 )
 
 CATEGORIES = {

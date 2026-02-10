@@ -344,16 +344,31 @@ class SearchEngine:
             "sort": [
                 {"published_at": {"order": "desc"}},
             ],
-            "size": size,
+            "size": size * 3,  # fetch extra so dedup still fills the page
         }
 
         try:
             result = self.es.search(index=self.index_name, body=body)
-            articles = [hit["_source"] for hit in result["hits"]["hits"]]
-            return articles
+            raw = [hit["_source"] for hit in result["hits"]["hits"]]
+            return self._dedup_by_title(raw, size)
         except Exception as e:
             logger.error("get_latest failed (category=%s): %s", category, e)
             return []
+
+    @staticmethod
+    def _dedup_by_title(articles, limit):
+        """Remove articles with duplicate titles (Python-level fallback for collapse)."""
+        seen = set()
+        result = []
+        for a in articles:
+            key = (a.get("title") or "").strip().lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            result.append(a)
+            if len(result) >= limit:
+                break
+        return result
 
     def get_stats(self):
         """Get index statistics."""
@@ -454,8 +469,10 @@ class SearchEngine:
             # Fallback: try without collapse in case title.raw has issues
             try:
                 del body["collapse"]
+                body["size"] = size * 3
                 result = self.es.search(index=self.index_name, body=body)
-                articles = [hit["_source"] for hit in result["hits"]["hits"]]
+                raw = [hit["_source"] for hit in result["hits"]["hits"]]
+                articles = self._dedup_by_title(raw, size)
                 logger.info("get_trending fallback (no collapse) returned %d articles", len(articles))
                 return articles
             except Exception as e2:
