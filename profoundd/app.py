@@ -98,6 +98,8 @@ def create_app(config_override=None):
         trending = []
         if search_engine.is_available():
             trending = search_engine.get_trending(size=9)
+            if not trending:
+                trending = search_engine.get_trending(size=9, hours=720)
         return render_template("index.html", categories=CATEGORIES, trending=trending)
 
     @app.route("/search")
@@ -188,6 +190,9 @@ def create_app(config_override=None):
         trending = []
         if search_engine.is_available():
             trending = search_engine.get_trending(category=category_name, size=20, hours=72)
+            if not trending:
+                # Fallback: widen window after index rebuilds when dates are older
+                trending = search_engine.get_trending(category=category_name, size=20, hours=720)
 
         cat_info = CATEGORIES[category_name]
         return render_template("category.html", category_name=category_name,
