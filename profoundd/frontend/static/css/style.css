@@ -782,6 +782,8 @@ main { flex: 1; }
 .category-education:hover { border-color: #ec4899; }
 .category-environment:hover { border-color: #10b981; }
 .category-politics:hover { border-color: #8b5cf6; }
+.category-markets .category-icon, .category-tag-markets { color: #f97316; }
+.category-markets:hover { border-color: #f97316; }
 
 /* --- Search Suggestions Dropdown --- */
 .suggestions-dropdown {

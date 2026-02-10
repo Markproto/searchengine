@@ -133,6 +133,31 @@ POLITICS_SOURCES = [
     {"name": "Joe Rogan Experience", "url": "https://feeds.megaphone.fm/GLT1412515089", "category": "politics", "credibility": 8, "feed_type": "rss"},
 ]
 
+MARKETS_SOURCES = [
+    # --- Commodities & Metals ---
+    {"name": "Kitco News", "url": "https://www.kitco.com/rss/feed.xml", "category": "markets", "credibility": 8, "feed_type": "rss"},
+    {"name": "Gold Telegraph", "url": "https://goldtelegraph.com/feed", "category": "markets", "credibility": 8, "feed_type": "rss"},
+    {"name": "Silver Doctors", "url": "https://www.silverdoctors.com/feed/", "category": "markets", "credibility": 8, "feed_type": "rss"},
+    {"name": "SchiffGold", "url": "https://schiffgold.com/feed/", "category": "markets", "credibility": 8, "feed_type": "rss"},
+    {"name": "GoldPrice.org", "url": "https://goldprice.org/feed", "category": "markets", "credibility": 7, "feed_type": "rss"},
+    {"name": "Mining.com", "url": "https://www.mining.com/feed/", "category": "markets", "credibility": 7, "feed_type": "rss"},
+    {"name": "OilPrice.com", "url": "https://oilprice.com/rss/main", "category": "markets", "credibility": 7, "feed_type": "rss"},
+
+    # --- Markets & Trading ---
+    {"name": "Zero Hedge (Markets)", "url": "https://feeds.feedburner.com/zerohedge/feed", "category": "markets", "credibility": 8, "feed_type": "rss"},
+    {"name": "Wolf Street", "url": "https://wolfstreet.com/feed/", "category": "markets", "credibility": 8, "feed_type": "rss"},
+    {"name": "Mish Talk", "url": "https://mishtalk.com/feed", "category": "markets", "credibility": 8, "feed_type": "rss"},
+    {"name": "Investing.com", "url": "https://www.investing.com/rss/news.rss", "category": "markets", "credibility": 7, "feed_type": "rss"},
+
+    # --- Cryptocurrency ---
+    {"name": "CoinDesk", "url": "https://www.coindesk.com/arc/outboundfeeds/rss/", "category": "markets", "credibility": 7, "feed_type": "rss"},
+    {"name": "CoinTelegraph", "url": "https://cointelegraph.com/rss", "category": "markets", "credibility": 7, "feed_type": "rss"},
+    {"name": "Bitcoin Magazine", "url": "https://bitcoinmagazine.com/.rss/full/", "category": "markets", "credibility": 8, "feed_type": "rss"},
+    {"name": "Decrypt", "url": "https://decrypt.co/feed", "category": "markets", "credibility": 7, "feed_type": "rss"},
+    {"name": "The Block", "url": "https://www.theblock.co/rss.xml", "category": "markets", "credibility": 7, "feed_type": "rss"},
+    {"name": "Blockworks", "url": "https://blockworks.co/feed", "category": "markets", "credibility": 7, "feed_type": "rss"},
+]
+
 TWITTER_SOURCES = [
     # --- News Twitter/X accounts (via RSSHub) ---
     {"name": "Al Jazeera (X)", "url": "https://rsshub.app/twitter/user/AJEnglish", "category": "news", "credibility": 7, "feed_type": "rss"},
@@ -172,7 +197,7 @@ TWITTER_SOURCES = [
 ALL_SOURCES = (
     NEWS_SOURCES + MEDICAL_SOURCES + LEGAL_SOURCES + TECH_SOURCES +
     FINANCE_SOURCES + SCIENCE_SOURCES + EDUCATION_SOURCES +
-    ENVIRONMENT_SOURCES + POLITICS_SOURCES + TWITTER_SOURCES
+    ENVIRONMENT_SOURCES + POLITICS_SOURCES + MARKETS_SOURCES + TWITTER_SOURCES
 )
 
 CATEGORIES = {
@@ -185,4 +210,5 @@ CATEGORIES = {
     "education": {"label": "Education", "description": "Higher Ed, Research & Learning", "icon": "graduation-cap", "color": "#ec4899"},
     "environment": {"label": "Environment", "description": "Climate, Energy & Conservation", "icon": "leaf", "color": "#10b981"},
     "politics": {"label": "Politics", "description": "Policy, Government & Analysis", "icon": "landmark", "color": "#8b5cf6"},
+    "markets": {"label": "Markets", "description": "Commodities, Metals, Crypto & Trading", "icon": "coins", "color": "#f97316"},
 }
