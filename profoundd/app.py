@@ -11,7 +11,7 @@ from flask_login import LoginManager
 
 from profoundd.config.settings import get_config
 from profoundd.config.sources import CATEGORIES
-from profoundd.utils.models import db, AdminUser, SearchLog, SourceSubmission, SiteSetting
+from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting
 from profoundd.search.engine import SearchEngine
 from profoundd.admin.routes import admin_bp
 from profoundd.utils.logging_config import setup_logging
@@ -278,7 +278,29 @@ def create_app(config_override=None):
             # Auto-extract site name from domain
             parsed = urlparse(url)
             domain = parsed.netloc or parsed.path
-            name = domain.replace("www.", "").split(".")[0].title()
+            domain_clean = domain.replace("www.", "").lower()
+            name = domain_clean.split(".")[0].title()
+            # Check for duplicate submissions (exact URL or same domain)
+            existing_url = db.session.query(SourceSubmission).filter(
+                SourceSubmission.url == url
+            ).first()
+            if existing_url:
+                flash("This URL has already been submitted. We're reviewing it!", "info")
+                return redirect("/submit")
+            existing_domain = db.session.query(SourceSubmission).filter(
+                SourceSubmission.url.ilike(f"%{domain_clean}%")
+            ).first()
+            if existing_domain:
+                flash("A source from this website has already been submitted. We're reviewing it!", "info")
+                return redirect("/submit")
+            # Also check if it's already an active source
+            active_source = db.session.query(Source).filter(
+                Source.url.ilike(f"%{domain_clean}%"),
+                Source.is_active == True,
+            ).first()
+            if active_source:
+                flash("Great news — we already crawl this source!", "info")
+                return redirect("/submit")
             submission = SourceSubmission(
                 name=name,
                 url=url,
