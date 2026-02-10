@@ -52,6 +52,11 @@ class SearchEngine:
     def __init__(self, elasticsearch_url="http://localhost:9200"):
         self.es = Elasticsearch(elasticsearch_url)
         self.index_name = "profoundd_articles"
+        try:
+            if self.is_available():
+                self.create_index()
+        except Exception as e:
+            logger.warning("Could not ensure index on startup: %s", e)
 
     def is_available(self):
         """Check if Elasticsearch is running."""
