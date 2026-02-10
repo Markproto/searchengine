@@ -119,14 +119,15 @@ class SearchEngine:
                 "query": query,
                 "fields": ["title^3", "summary^2", "content"],
                 "type": "best_fields",
-                "fuzziness": "AUTO",
             }
-            # For multi-word queries, require a meaningful portion of terms to match.
-            # Prevents returning noise when only 1 incidental term matches
-            # (e.g. "indoor" from mask articles matching "electric heater indoor").
             query_terms = query.split()
             if len(query_terms) >= 3:
+                # For multi-word queries: no fuzziness (prevents "heater"→"weaker",
+                # "watt"→"want" false matches) and require 50% of terms to match.
                 multi_match_query["minimum_should_match"] = "50%"
+            else:
+                # Short queries: allow fuzziness for typo correction
+                multi_match_query["fuzziness"] = "AUTO"
             must_clauses.append({"multi_match": multi_match_query})
 
         # Category filter
