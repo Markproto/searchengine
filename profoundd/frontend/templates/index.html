@@ -1,5 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Profoundd - Search What Matters{% endblock %}
+{% block og_title %}Profoundd - Search What Matters{% endblock %}
+{% block og_description %}Search across News, Medical, Legal, Technology, Finance & Science from verified sources.{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Profoundd",
+    "url": "https://{{ site_domain }}/",
+    "logo": "{{ og_image }}",
+    "description": "Multi-domain search engine covering News, Medical, Legal, Technology, Finance & Science from verified sources.",
+    "sameAs": []
+}
+</script>
+{% endblock %}
 
 {% block nav_search %}{% endblock %}
 

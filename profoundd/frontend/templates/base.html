@@ -6,6 +6,51 @@
     <title>{% block title %}{{ seo_title or 'Profoundd' }}{% endblock %}</title>
     <meta name="description" content="{% block description %}{{ seo_description or 'Profoundd - Search across News, Medical, Legal, Technology, Finance & Science from verified sources.' }}{% endblock %}">
     {% if seo_keywords %}<meta name="keywords" content="{{ seo_keywords }}">{% endif %}
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="{{ canonical_url }}">
+
+    <!-- Open Graph (Facebook, LinkedIn) -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Profoundd">
+    <meta property="og:title" content="{% block og_title %}{{ seo_title or 'Profoundd - Search What Matters' }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ seo_description or 'Search across News, Medical, Legal, Technology, Finance & Science from verified sources.' }}{% endblock %}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta property="og:image" content="{{ og_image }}">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ seo_title or 'Profoundd - Search What Matters' }}">
+    <meta name="twitter:description" content="{{ seo_description or 'Search across News, Medical, Legal, Technology, Finance & Science from verified sources.' }}">
+    <meta name="twitter:image" content="{{ og_image }}">
+
+    <!-- Favicon & Theme -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
+    <meta name="theme-color" content="#1a1a2e">
+
+    <!-- Google Search Console -->
+    {% if gsc_verification %}<meta name="google-site-verification" content="{{ gsc_verification }}">{% endif %}
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Profoundd",
+        "url": "https://{{ site_domain }}/",
+        "description": "{{ seo_description or 'Search across News, Medical, Legal, Technology, Finance & Science from verified sources.' }}",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://{{ site_domain }}/search?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+        }
+    }
+    </script>
+    {% block structured_data %}{% endblock %}
+
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -64,7 +109,7 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2025 Profoundd (profoundd.com). Open-source search engine.</p>
+                <p>&copy; 2026 Profoundd (profoundd.com). Open-source search engine.</p>
             </div>
         </div>
     </footer>

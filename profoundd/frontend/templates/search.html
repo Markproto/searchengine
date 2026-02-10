@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{{ query or 'Search' }} - Profoundd{% endblock %}
+{% block description %}Search results for "{{ query }}" on Profoundd - verified sources across News, Medical, Legal, Tech, Finance & Science.{% endblock %}
+{% block og_title %}{{ query or 'Search' }} - Profoundd{% endblock %}
+{% block og_description %}Search results for "{{ query }}" on Profoundd.{% endblock %}
 
 {% block nav_search %}
 <form action="/search" method="GET" class="nav-search-form {% if enhanced_providers %}enhanced-active{% endif %}">

@@ -1,5 +1,21 @@
 {% extends "base.html" %}
 {% block title %}{{ category.label }} - Profoundd{% endblock %}
+{% block description %}Browse the latest {{ category.label }} articles from verified sources on Profoundd.{% endblock %}
+{% block og_title %}{{ category.label }} - Profoundd{% endblock %}
+{% block og_description %}Browse the latest {{ category.label }} articles from verified sources on Profoundd.{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://{{ site_domain }}/"},
+        {"@type": "ListItem", "position": 2, "name": "{{ category.label }}", "item": "https://{{ site_domain }}/category/{{ category_name }}"}
+    ]
+}
+</script>
+{% endblock %}
 
 {% block nav_search %}
 <form action="/search" method="GET" class="nav-search-form">

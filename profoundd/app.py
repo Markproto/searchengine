@@ -5,7 +5,7 @@ import os
 import logging
 from datetime import datetime, timezone
 
-from flask import Flask, render_template, request, jsonify, flash, redirect
+from flask import Flask, render_template, request, jsonify, flash, redirect, Response, url_for
 from flask_cors import CORS
 from flask_login import LoginManager
 
@@ -65,11 +65,27 @@ def create_app(config_override=None):
         global_kw = SiteSetting.get("seo_global_keywords", "")
         combined_kw = ", ".join(filter(None, [page_kw, global_kw]))
 
+        # Canonical URL
+        domain = app.config.get("DOMAIN", "profoundd.com")
+        canonical_url = f"https://{domain}{request.path}"
+        if request.query_string:
+            canonical_url += f"?{request.query_string.decode('utf-8')}"
+
+        # OG image (admin-configurable, fallback to default)
+        og_image = SiteSetting.get("seo_og_image", f"https://{domain}/static/images/og-default.png")
+
+        # Google Search Console verification
+        gsc_verification = SiteSetting.get("google_site_verification", "")
+
         return {
             "categories": CATEGORIES,
             "seo_title": seo_title,
             "seo_description": seo_desc,
             "seo_keywords": combined_kw,
+            "canonical_url": canonical_url,
+            "og_image": og_image,
+            "site_domain": domain,
+            "gsc_verification": gsc_verification,
         }
 
     # Initialize search engine
@@ -319,6 +335,53 @@ def create_app(config_override=None):
     def about():
         about_html = SiteSetting.get("about_page_html", "")
         return render_template("about.html", categories=CATEGORIES, about_html=about_html)
+
+    @app.route("/robots.txt")
+    def robots_txt():
+        """Serve robots.txt for search engine crawlers."""
+        domain = app.config.get("DOMAIN", "profoundd.com")
+        content = f"""User-agent: *
+Allow: /
+Allow: /search
+Allow: /category/
+Allow: /about
+Allow: /submit
+Disallow: /admin/
+Disallow: /api/
+Disallow: /health
+
+Sitemap: https://{domain}/sitemap.xml
+"""
+        return Response(content, mimetype="text/plain")
+
+    @app.route("/sitemap.xml")
+    def sitemap_xml():
+        """Dynamic sitemap.xml with all public pages."""
+        domain = app.config.get("DOMAIN", "profoundd.com")
+        base = f"https://{domain}"
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+        urls = [
+            {"loc": base + "/", "changefreq": "hourly", "priority": "1.0"},
+            {"loc": base + "/about", "changefreq": "monthly", "priority": "0.3"},
+            {"loc": base + "/submit", "changefreq": "monthly", "priority": "0.3"},
+            {"loc": base + "/search", "changefreq": "daily", "priority": "0.7"},
+        ]
+        for key in CATEGORIES:
+            urls.append({"loc": f"{base}/category/{key}", "changefreq": "hourly", "priority": "0.8"})
+
+        xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>']
+        xml_parts.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+        for u in urls:
+            xml_parts.append("  <url>")
+            xml_parts.append(f"    <loc>{u['loc']}</loc>")
+            xml_parts.append(f"    <lastmod>{today}</lastmod>")
+            xml_parts.append(f"    <changefreq>{u['changefreq']}</changefreq>")
+            xml_parts.append(f"    <priority>{u['priority']}</priority>")
+            xml_parts.append("  </url>")
+        xml_parts.append("</urlset>")
+
+        return Response("\n".join(xml_parts), mimetype="application/xml")
 
     @app.errorhandler(404)
     def not_found(e):
