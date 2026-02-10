@@ -79,6 +79,38 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // --- Credibility Disclaimer Popup ---
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('credibility-help')) {
+            e.preventDefault();
+            e.stopPropagation();
+            // Remove any existing disclaimer
+            var existing = document.querySelector('.credibility-overlay');
+            if (existing) existing.remove();
+            existing = document.querySelector('.credibility-disclaimer');
+            if (existing) existing.remove();
+
+            var overlay = document.createElement('div');
+            overlay.className = 'credibility-overlay';
+
+            var popup = document.createElement('div');
+            popup.className = 'credibility-disclaimer';
+            popup.innerHTML = '<strong>Credibility Rating</strong>' +
+                'This credibility rating is an opinion and is not to be construed as medical or legal advice.' +
+                '<br><button class="credibility-disclaimer-close">OK</button>';
+
+            document.body.appendChild(overlay);
+            document.body.appendChild(popup);
+
+            function closeDisclaimer() {
+                overlay.remove();
+                popup.remove();
+            }
+            overlay.addEventListener('click', closeDisclaimer);
+            popup.querySelector('.credibility-disclaimer-close').addEventListener('click', closeDisclaimer);
+        }
+    });
+
     // --- Relative Time Dates ---
     var dateElements = document.querySelectorAll('[data-time]');
     dateElements.forEach(function(el) {

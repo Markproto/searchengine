@@ -30,7 +30,9 @@
             <div class="result-header">
                 <span class="result-source">{{ article.source_name }}</span>
                 {% if article.source_credibility %}
-                <span class="credibility-dot credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }}"></span>
+                <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }}">
+                    {{ article.source_credibility }}/10 <span class="credibility-help" title="This credibility rating is an opinion">?</span>
+                </span>
                 {% endif %}
             </div>
             <h3><a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>

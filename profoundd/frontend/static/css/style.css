@@ -366,6 +366,61 @@ main { flex: 1; }
 .credibility-dot.credibility-high { background: var(--success); }
 .credibility-dot.credibility-medium { background: var(--warning); }
 .credibility-dot.credibility-low { background: var(--danger); }
+.credibility-help {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    font-size: 0.55rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: 2px;
+    vertical-align: middle;
+    position: relative;
+}
+.credibility-disclaimer {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    max-width: 360px;
+    z-index: 1000;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    text-align: center;
+}
+.credibility-disclaimer strong {
+    color: var(--text);
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+.credibility-disclaimer-close {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 6px 20px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+.credibility-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+}
 
 .result-title {
     font-size: 1.1rem;

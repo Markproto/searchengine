@@ -73,7 +73,9 @@
                 <span class="result-source">{{ article.source_name }}</span>
                 <span class="result-category category-tag-{{ article.category }}">{{ article.category | title }}</span>
                 {% if article.source_credibility %}
-                <span class="credibility-dot credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }}"></span>
+                <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }}">
+                    {{ article.source_credibility }}/10 <span class="credibility-help" title="This credibility rating is an opinion">?</span>
+                </span>
                 {% endif %}
                 {% if article._enhanced %}
                 <span class="enhanced-badge">{% if article._provider == 'courtlistener' %}Court Opinion{% elif article._provider == 'pubmed' %}Research Paper{% else %}Enhanced{% endif %}</span>
