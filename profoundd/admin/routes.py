@@ -460,3 +460,127 @@ def research_library():
         return redirect(url_for("admin.research_library"))
 
     return render_template("admin/research.html", categories=CATEGORIES)
+
+
+@admin_bp.route("/ai-settings", methods=["GET", "POST"])
+@login_required
+def ai_settings():
+    """Configure AI provider API keys."""
+    if request.method == "POST":
+        SiteSetting.set("ai_anthropic_key", request.form.get("anthropic_api_key", "").strip())
+        SiteSetting.set("ai_anthropic_model", request.form.get("anthropic_model", "claude-sonnet-4-5-20250929"))
+        SiteSetting.set("ai_xai_key", request.form.get("xai_api_key", "").strip())
+        SiteSetting.set("ai_xai_model", request.form.get("xai_model", "grok-2-latest"))
+        SiteSetting.set("ai_default_provider", request.form.get("default_ai_provider", "anthropic"))
+        flash("AI settings saved.", "success")
+        return redirect(url_for("admin.ai_settings"))
+
+    return render_template("admin/ai_settings.html",
+                           anthropic_key=SiteSetting.get("ai_anthropic_key", ""),
+                           anthropic_model=SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929"),
+                           xai_key=SiteSetting.get("ai_xai_key", ""),
+                           xai_model=SiteSetting.get("ai_xai_model", "grok-2-latest"),
+                           default_provider=SiteSetting.get("ai_default_provider", "anthropic"),
+                           categories=CATEGORIES)
+
+
+@admin_bp.route("/analyze-url", methods=["GET", "POST"])
+@login_required
+def analyze_url():
+    """Analyze a URL with AI, review, and index into search."""
+    from profoundd.search.ai_analyzer import (
+        fetch_url_content, analyze_with_anthropic, analyze_with_xai
+    )
+
+    anthropic_key = SiteSetting.get("ai_anthropic_key", "")
+    xai_key = SiteSetting.get("ai_xai_key", "")
+    default_provider = SiteSetting.get("ai_default_provider", "anthropic")
+    has_ai_key = bool(anthropic_key or xai_key)
+
+    if request.method == "POST":
+        step = request.form.get("step")
+
+        if step == "analyze":
+            # Step 1: Fetch URL and run AI analysis
+            url = request.form.get("url", "").strip()
+            provider = request.form.get("provider", default_provider)
+
+            if not url:
+                flash("Please enter a URL.", "error")
+                return redirect(url_for("admin.analyze_url"))
+
+            # Fetch content
+            content_data, error = fetch_url_content(url)
+            if error:
+                flash(f"Could not fetch URL: {error}", "error")
+                return redirect(url_for("admin.analyze_url"))
+
+            # Run AI analysis
+            if provider == "xai" and xai_key:
+                model = SiteSetting.get("ai_xai_model", "grok-2-latest")
+                analysis, error = analyze_with_xai(content_data, xai_key, model)
+            elif anthropic_key:
+                model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+                analysis, error = analyze_with_anthropic(content_data, anthropic_key, model)
+            else:
+                flash("No API key configured for the selected provider.", "error")
+                return redirect(url_for("admin.analyze_url"))
+
+            if error:
+                flash(error, "error")
+                return redirect(url_for("admin.analyze_url"))
+
+            return render_template("admin/analyze_url.html",
+                                   analysis=analysis,
+                                   has_ai_key=has_ai_key,
+                                   default_provider=default_provider,
+                                   categories=CATEGORIES)
+
+        elif step == "approve":
+            # Step 2: Admin approved — index into ES
+            engine = SearchEngine(config.ELASTICSEARCH_URL)
+            if not engine.is_available():
+                flash("Elasticsearch is not available.", "error")
+                return redirect(url_for("admin.analyze_url"))
+
+            engine.create_index()
+
+            title = request.form.get("title", "").strip()
+            summary = request.form.get("summary", "").strip()
+            category = request.form.get("category", "news")
+            source_name = request.form.get("source_name", "").strip()
+            credibility = int(request.form.get("credibility", 7))
+            tags = request.form.get("tags", "").strip()
+            url = request.form.get("url", "").strip()
+
+            if not title:
+                flash("Title is required.", "error")
+                return redirect(url_for("admin.analyze_url"))
+
+            article_data = {
+                "title": title,
+                "summary": summary,
+                "content": summary,
+                "author": "AI Analysis",
+                "category": category,
+                "source_name": source_name or "Analyzed Source",
+                "source_credibility": credibility,
+                "url": url,
+                "tags": [t.strip() for t in tags.split(",") if t.strip()],
+                "published_at": datetime.now(timezone.utc).isoformat(),
+                "crawled_at": datetime.now(timezone.utc).isoformat(),
+            }
+
+            result = engine.index_article(article_data)
+            if result:
+                flash(f"'{title}' approved and indexed into search.", "success")
+            else:
+                flash("Failed to index article.", "error")
+
+            return redirect(url_for("admin.analyze_url"))
+
+    return render_template("admin/analyze_url.html",
+                           analysis=None,
+                           has_ai_key=has_ai_key,
+                           default_provider=default_provider,
+                           categories=CATEGORIES)

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}AI Settings{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>AI Settings</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+    </div>
+
+    <form method="POST" class="admin-form">
+        <div class="admin-section">
+            <h2>Anthropic (Claude)</h2>
+            <p class="action-desc">Used for analyzing URLs and extracting article content.</p>
+            <div class="form-group">
+                <label>API Key</label>
+                <input type="password" name="anthropic_api_key" value="{{ anthropic_key }}"
+                       placeholder="sk-ant-..." class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Model</label>
+                <select name="anthropic_model" class="form-control">
+                    <option value="claude-sonnet-4-5-20250929" {% if anthropic_model == 'claude-sonnet-4-5-20250929' %}selected{% endif %}>Claude Sonnet 4.5 (recommended)</option>
+                    <option value="claude-haiku-4-5-20251001" {% if anthropic_model == 'claude-haiku-4-5-20251001' %}selected{% endif %}>Claude Haiku 4.5 (faster, cheaper)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h2>xAI (Grok)</h2>
+            <p class="action-desc">Alternative AI provider. Uses OpenAI-compatible API.</p>
+            <div class="form-group">
+                <label>API Key</label>
+                <input type="password" name="xai_api_key" value="{{ xai_key }}"
+                       placeholder="xai-..." class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Model</label>
+                <select name="xai_model" class="form-control">
+                    <option value="grok-2-latest" {% if xai_model == 'grok-2-latest' %}selected{% endif %}>Grok 2 (recommended)</option>
+                    <option value="grok-3-latest" {% if xai_model == 'grok-3-latest' %}selected{% endif %}>Grok 3</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="admin-section">
+            <h2>Default Provider</h2>
+            <div class="form-group">
+                <select name="default_ai_provider" class="form-control">
+                    <option value="anthropic" {% if default_provider == 'anthropic' %}selected{% endif %}>Anthropic (Claude)</option>
+                    <option value="xai" {% if default_provider == 'xai' %}selected{% endif %}>xAI (Grok)</option>
+                </select>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save AI Settings</button>
+    </form>
+</div>
+{% endblock %}

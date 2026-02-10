@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Analyze URL{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>Analyze URL with AI</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+    </div>
+
+    {% if not has_ai_key %}
+    <div class="alert alert-error">
+        No AI API key configured. <a href="{{ url_for('admin.ai_settings') }}">Set up AI settings</a> first.
+    </div>
+    {% endif %}
+
+    <!-- Step 1: Submit URL -->
+    {% if not analysis %}
+    <div class="admin-section">
+        <h2>Paste a URL to Analyze</h2>
+        <form method="POST" class="admin-form">
+            <input type="hidden" name="step" value="analyze">
+            <div class="form-group">
+                <label>URL</label>
+                <input type="url" name="url" placeholder="https://..." class="form-control" required value="https://">
+            </div>
+            <div class="form-group">
+                <label>AI Provider</label>
+                <select name="provider" class="form-control">
+                    <option value="anthropic" {% if default_provider == 'anthropic' %}selected{% endif %}>Claude (Anthropic)</option>
+                    <option value="xai" {% if default_provider == 'xai' %}selected{% endif %}>Grok (xAI)</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" {% if not has_ai_key %}disabled{% endif %}>Analyze with AI</button>
+        </form>
+    </div>
+
+    {% else %}
+    <!-- Step 2: Review & Approve -->
+    <div class="admin-section">
+        <h2>AI Analysis Results</h2>
+        <p class="action-desc">Review the analysis below. Edit any fields before approving.</p>
+
+        <form method="POST" class="admin-form">
+            <input type="hidden" name="step" value="approve">
+            <input type="hidden" name="original_url" value="{{ analysis.url }}">
+
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" name="title" value="{{ analysis.title }}" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label>Summary</label>
+                <textarea name="summary" rows="3" class="form-control">{{ analysis.summary }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Category</label>
+                <select name="category" class="form-control">
+                    {% for key, cat in categories.items() %}
+                    <option value="{{ key }}" {% if key == analysis.category %}selected{% endif %}>{{ cat.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Source Name</label>
+                <input type="text" name="source_name" value="{{ analysis.source_name }}" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label>Credibility (1-10)</label>
+                <input type="number" name="credibility" value="{{ analysis.credibility }}" min="1" max="10" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label>Tags</label>
+                <input type="text" name="tags" value="{{ analysis.tags }}" class="form-control" placeholder="tag1, tag2, tag3">
+            </div>
+
+            <div class="form-group">
+                <label>URL</label>
+                <input type="url" name="url" value="{{ analysis.url }}" class="form-control">
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Approve & Index</button>
+                <a href="{{ url_for('admin.analyze_url') }}" class="btn btn-secondary">Start Over</a>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
