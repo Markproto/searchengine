@@ -1,5 +1,34 @@
 /* Profoundd - Main JavaScript */
 
+function copyShareLink(btn) {
+    var url = window.location.href;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function() {
+            showCopied(btn);
+        });
+    } else {
+        // Fallback for older browsers / non-HTTPS
+        var tmp = document.createElement('textarea');
+        tmp.value = url;
+        tmp.style.position = 'fixed';
+        tmp.style.opacity = '0';
+        document.body.appendChild(tmp);
+        tmp.select();
+        document.execCommand('copy');
+        document.body.removeChild(tmp);
+        showCopied(btn);
+    }
+}
+function showCopied(btn) {
+    var orig = btn.innerHTML;
+    btn.classList.add('copied');
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Link Copied!';
+    setTimeout(function() {
+        btn.classList.remove('copied');
+        btn.innerHTML = orig;
+    }, 2000);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
 
     // --- Search Suggestions (Autocomplete) ---

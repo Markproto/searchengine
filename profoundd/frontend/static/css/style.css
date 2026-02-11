@@ -379,6 +379,33 @@ main { flex: 1; }
     margin-bottom: 20px;
     color: var(--text-secondary);
     font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.share-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.share-link-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+.share-link-btn.copied {
+    color: #22c55e;
+    border-color: #22c55e;
 }
 
 .result-card {
