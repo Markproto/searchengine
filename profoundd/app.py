@@ -219,6 +219,16 @@ def create_app(config_override=None):
         return render_template("category.html", category_name=category_name,
                                category=cat_info, articles=trending, categories=CATEGORIES)
 
+    @app.route("/article/<doc_id>")
+    def article_detail(doc_id):
+        """Permalink page for Profoundd research articles."""
+        article_url = f"profoundd://research/{doc_id}"
+        article = search_engine.get_article(article_url)
+        if not article:
+            return render_template("404.html", categories=CATEGORIES), 404
+        return render_template("article.html", article=article, doc_id=doc_id,
+                               categories=CATEGORIES)
+
     # --- API Routes ---
 
     @app.route("/api/search")
@@ -345,6 +355,7 @@ def create_app(config_override=None):
 Allow: /
 Allow: /search
 Allow: /category/
+Allow: /article/
 Allow: /about
 Allow: /submit
 Disallow: /admin/

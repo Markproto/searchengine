@@ -112,13 +112,13 @@
             </div>
             <h3 class="result-title">
                 {% if article.url.startswith('profoundd://') %}
-                <span>
+                <a href="/article/{{ article.url.split('/')[-1] }}">
                     {% if article._highlights and article._highlights.title %}
                     {{ article._highlights.title[0] | safe }}
                     {% else %}
                     {{ article.title }}
                     {% endif %}
-                </span>
+                </a>
                 {% else %}
                 <a href="{{ article.url }}" target="_blank" rel="noopener">
                     {% if article._highlights and article._highlights.title %}
@@ -139,7 +139,7 @@
                 {% endif %}
             </p>
             <div class="result-footer">
-                <span class="result-url">{% if article.url.startswith('profoundd://') %}Profoundd Research{% else %}{{ article.url[:80] }}{% if article.url|length > 80 %}...{% endif %}{% endif %}</span>
+                <span class="result-url">{% if article.url.startswith('profoundd://') %}<a href="/article/{{ article.url.split('/')[-1] }}">Profoundd Research</a>{% else %}{{ article.url[:80] }}{% if article.url|length > 80 %}...{% endif %}{% endif %}</span>
                 {% if article.published_at %}
                 <span class="result-date">{{ article.published_at[:10] }}</span>
                 {% endif %}

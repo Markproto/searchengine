@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ article.title }} - Profoundd{% endblock %}
+{% block description %}{{ (article.summary or article.title)[:160] }}{% endblock %}
+{% block og_title %}{{ article.title }} - Profoundd{% endblock %}
+{% block og_description %}{{ (article.summary or article.title)[:200] }}{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": {{ article.title | tojson }},
+    "description": {{ (article.summary or article.title) | tojson }},
+    "author": {"@type": "Organization", "name": {{ (article.source_name or "Profoundd Research") | tojson }}},
+    {% if article.published_at %}"datePublished": "{{ article.published_at[:10] }}",{% endif %}
+    "publisher": {"@type": "Organization", "name": "Profoundd"},
+    "mainEntityOfPage": "https://{{ site_domain }}/article/{{ doc_id }}"
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container article-page">
+    <nav class="article-breadcrumb">
+        <a href="/">Home</a>
+        <span class="breadcrumb-sep">/</span>
+        {% if article.category %}
+        <a href="/category/{{ article.category }}">{{ article.category | title }}</a>
+        <span class="breadcrumb-sep">/</span>
+        {% endif %}
+        <span>Article</span>
+    </nav>
+
+    <article class="article-detail">
+        <header class="article-header">
+            <div class="article-meta-bar">
+                <span class="result-source">{{ article.source_name or "Profoundd Research" }}</span>
+                {% if article.category %}
+                <span class="result-category category-tag-{{ article.category }}">{{ article.category | title }}</span>
+                {% endif %}
+                {% if article.source_credibility %}
+                <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }}">
+                    {{ article.source_credibility }}/10
+                </span>
+                {% endif %}
+            </div>
+            <h1>{{ article.title }}</h1>
+            <div class="article-info">
+                {% if article.author %}
+                <span class="article-author">By {{ article.author }}</span>
+                {% endif %}
+                {% if article.published_at %}
+                <span class="article-date">{{ article.published_at[:10] }}</span>
+                {% endif %}
+            </div>
+        </header>
+
+        {% if article.summary %}
+        <div class="article-summary">
+            {{ article.summary }}
+        </div>
+        {% endif %}
+
+        {% if article.content %}
+        <div class="article-content">
+            {{ article.content }}
+        </div>
+        {% endif %}
+
+        <footer class="article-footer">
+            <button type="button" class="share-link-btn" onclick="copyShareLink(this)" title="Copy shareable link">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                Share Article
+            </button>
+        </footer>
+    </article>
+</div>
+{% endblock %}
