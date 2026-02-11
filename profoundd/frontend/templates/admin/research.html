@@ -18,7 +18,13 @@
     <div class="admin-section">
         <h2>Saved Documents ({{ documents|length }})</h2>
         <p class="action-desc">These are persisted in the database and survive ES index rebuilds. Use "Re-index All" after a rebuild.</p>
-        <table class="admin-table">
+
+        <div class="source-search-bar">
+            <input type="text" id="docSearch" placeholder="Search by title, source, or category..." class="source-search-input" autofocus>
+            <span id="docCount" class="source-count">{{ documents|length }} documents</span>
+        </div>
+
+        <table class="admin-table" id="docTable">
             <thead>
                 <tr>
                     <th>Title</th>
@@ -101,4 +107,27 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var searchInput = document.getElementById('docSearch');
+    var countEl = document.getElementById('docCount');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', function() {
+        var query = this.value.toLowerCase();
+        var rows = document.querySelectorAll('#docTable tbody tr');
+        var visible = 0;
+        rows.forEach(function(row) {
+            var text = row.textContent.toLowerCase();
+            var match = !query || text.indexOf(query) !== -1;
+            row.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+        countEl.textContent = visible + (visible === 1 ? ' document' : ' documents');
+    });
+});
+</script>
 {% endblock %}
