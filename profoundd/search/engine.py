@@ -346,6 +346,62 @@ class SearchEngine:
 
         return result[:limit]
 
+    @staticmethod
+    def _diversify_by_source(articles, limit):
+        """
+        Ensure no single source dominates trending results.
+        Caps each source to at most *max_per_source* articles, then
+        round-robins across sources (ordered by their best article's
+        position) to fill the remaining slots organically.
+        """
+        if not articles:
+            return []
+
+        # For small result sets (landing page) cap tighter than category pages
+        max_per_source = 2 if limit <= 10 else 3
+
+        # Group articles by source, preserving ES sort order within each group
+        source_buckets = {}
+        source_order = []
+        for a in articles:
+            src = a.get("source_name", "Unknown")
+            if src not in source_buckets:
+                source_buckets[src] = []
+                source_order.append(src)
+            source_buckets[src].append(a)
+
+        # Round-robin across sources, taking one article at a time from each
+        result = []
+        pointers = {src: 0 for src in source_order}
+        counts = {src: 0 for src in source_order}
+
+        while len(result) < limit:
+            added_this_round = False
+            for src in source_order:
+                if len(result) >= limit:
+                    break
+                idx = pointers[src]
+                if idx < len(source_buckets[src]) and counts[src] < max_per_source:
+                    result.append(source_buckets[src][idx])
+                    pointers[src] = idx + 1
+                    counts[src] += 1
+                    added_this_round = True
+            if not added_this_round:
+                break
+
+        # If we still haven't filled the page (all sources hit their cap),
+        # relax the cap and fill remaining slots in original order
+        if len(result) < limit:
+            used_urls = {a.get("url") for a in result}
+            for a in articles:
+                if len(result) >= limit:
+                    break
+                if a.get("url") not in used_urls:
+                    result.append(a)
+                    used_urls.add(a.get("url"))
+
+        return result[:limit]
+
     def get_latest(self, category=None, size=20):
         """Get latest articles with no time filter — reliable fallback."""
         filter_clauses = []
@@ -367,7 +423,8 @@ class SearchEngine:
         try:
             result = self.es.search(index=self.index_name, body=body)
             raw = [hit["_source"] for hit in result["hits"]["hits"]]
-            return self._dedup_by_title(raw, size)
+            deduped = self._dedup_by_title(raw, size * 3)
+            return self._diversify_by_source(deduped, size)
         except Exception as e:
             logger.error("get_latest failed (category=%s): %s", category, e)
             return []
@@ -432,12 +489,15 @@ class SearchEngine:
     }
 
     def get_trending(self, category=None, hours=24, size=10):
-        """Get trending/recent articles."""
+        """Get trending/recent articles with source diversity."""
         filter_clauses = [
             {"range": {"published_at": {"gte": f"now-{hours}h"}}}
         ]
         if category and category != "all":
             filter_clauses.append({"term": {"category": category}})
+
+        # Fetch extra results so source-diversity filtering still fills the page
+        fetch_size = size * 3
 
         body = {
             "query": {
@@ -467,12 +527,15 @@ class SearchEngine:
                 {"source_credibility": {"order": "desc"}},
                 {"published_at": {"order": "desc"}},
             ],
-            "size": size,
+            "size": fetch_size,
         }
 
         try:
             result = self.es.search(index=self.index_name, body=body)
             articles = [hit["_source"] for hit in result["hits"]["hits"]]
+
+            # Diversify: cap per-source articles so no single source dominates
+            articles = self._diversify_by_source(articles, size)
 
             # Enforce sub-topic guarantees for this category
             if category and category in self.CATEGORY_SUBTOPIC_GUARANTEES:
