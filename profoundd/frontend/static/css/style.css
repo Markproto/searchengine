@@ -1650,3 +1650,40 @@ body,
     opacity: 1;
 }
 
+/* Admin boost promote/demote controls */
+.admin-boost-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 6px;
+    padding: 1px 4px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    font-size: 0.65rem;
+    vertical-align: middle;
+}
+.boost-btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.55rem;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+}
+.boost-btn:hover {
+    color: #fff;
+}
+.boost-up:hover { color: #4caf50; }
+.boost-down:hover { color: #f44336; }
+.boost-value {
+    font-weight: 600;
+    min-width: 16px;
+    text-align: center;
+    font-size: 0.65rem;
+}
+.boost-value.positive { color: #4caf50; }
+.boost-value.negative { color: #f44336; }
+.boost-value.neutral { color: rgba(255,255,255,0.4); }
+

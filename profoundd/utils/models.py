@@ -206,6 +206,34 @@ class ResearchDocument(db.Model):
         }
 
 
+class AdminRankingAction(db.Model):
+    """Logs admin promote/demote actions on articles for AI training."""
+    __tablename__ = "admin_ranking_actions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    article_url = db.Column(db.String(1000), nullable=False, index=True)
+    article_title = db.Column(db.String(500))
+    source_name = db.Column(db.String(200))
+    category = db.Column(db.String(50))
+    action = db.Column(db.String(20), nullable=False)  # "promote" or "demote"
+    old_boost = db.Column(db.Integer, default=0)
+    new_boost = db.Column(db.Integer, default=0)
+    search_query = db.Column(db.String(500))  # what the admin was searching when they acted
+    acted_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def to_training_dict(self):
+        """Format for AI training: what the admin decided and why context."""
+        return {
+            "action": self.action,
+            "article_title": self.article_title,
+            "source_name": self.source_name,
+            "category": self.category,
+            "boost_change": f"{self.old_boost} -> {self.new_boost}",
+            "search_context": self.search_query,
+            "timestamp": self.acted_at.isoformat() if self.acted_at else None,
+        }
+
+
 class ArticleVote(db.Model):
     """Public thumbs up/down votes on search results."""
     __tablename__ = "article_votes"

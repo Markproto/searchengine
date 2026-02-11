@@ -26,6 +26,7 @@ ARTICLE_MAPPING = {
             "category": {"type": "keyword"},
             "source_name": {"type": "keyword"},
             "source_credibility": {"type": "integer"},
+            "admin_boost": {"type": "integer"},
             "url": {"type": "keyword"},
             "tags": {"type": "keyword"},
             "published_at": {"type": "date"},
@@ -113,6 +114,31 @@ class SearchEngine:
             logger.error("Failed to update credibility for %s: %s", article_url, e)
             return False
 
+    def get_article(self, article_url):
+        """Fetch an article from ES by its URL."""
+        es_id = hashlib.md5(article_url.encode()).hexdigest()
+        try:
+            result = self.es.get(index=self.index_name, id=es_id)
+            return result["_source"]
+        except Exception as e:
+            logger.error("Failed to get article %s: %s", article_url, e)
+            return None
+
+    def update_boost(self, article_url, boost):
+        """Update the admin_boost of an article in ES by its URL."""
+        boost = max(-5, min(5, boost))
+        es_id = hashlib.md5(article_url.encode()).hexdigest()
+        try:
+            self.es.update(
+                index=self.index_name,
+                id=es_id,
+                doc={"admin_boost": boost},
+            )
+            return True
+        except Exception as e:
+            logger.error("Failed to update boost for %s: %s", article_url, e)
+            return False
+
     def bulk_index(self, articles):
         """Bulk index multiple articles."""
         if not articles:
@@ -198,6 +224,7 @@ class SearchEngine:
 
         # Wrap in function_score: credibility multiplies the relevance score
         # A credibility-8 source scores 8x, credibility-7 scores 7x, etc.
+        # Admin boost adds a second multiplier: 0=neutral, +5=2x, -5=0.1x
         scored_query = {
             "function_score": {
                 "query": bool_query,
@@ -209,9 +236,17 @@ class SearchEngine:
                             "modifier": "none",
                             "missing": 5,
                         }
+                    },
+                    {
+                        "script_score": {
+                            "script": {
+                                "source": "Math.max(0.1, 1 + (doc['admin_boost'].size() > 0 ? doc['admin_boost'].value : 0) * 0.2)"
+                            }
+                        }
                     }
                 ],
                 "boost_mode": "multiply",
+                "score_mode": "multiply",
             }
         }
 

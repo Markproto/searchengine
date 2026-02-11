@@ -95,6 +95,13 @@
                 </span>
                 {% endif %}
                 {% endif %}
+                {% if session.get('admin_logged_in') and article._provider != 'searxng' %}
+                <span class="admin-boost-controls" data-url="{{ article.url }}" data-boost="{{ article.admin_boost or 0 }}">
+                    <button class="boost-btn boost-up" title="Promote">&#9650;</button>
+                    <span class="boost-value">{{ article.admin_boost or 0 }}</span>
+                    <button class="boost-btn boost-down" title="Demote">&#9660;</button>
+                </span>
+                {% endif %}
                 {% if article._enhanced %}
                 <span class="enhanced-badge {% if article._provider == 'searxng' %}web-result-badge{% endif %}">{% if article._provider == 'courtlistener' %}Court Opinion{% elif article._provider == 'pubmed' %}Research Paper{% elif article._provider == 'searxng' %}Web Result{% else %}Enhanced{% endif %}</span>
                 {% endif %}

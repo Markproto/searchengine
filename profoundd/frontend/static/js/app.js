@@ -214,3 +214,44 @@ document.addEventListener('click', function(e) {
         alert('Network error');
     });
 });
+
+/* Admin boost promote/demote */
+function updateBoostDisplay(el, val) {
+    el.textContent = val;
+    el.className = 'boost-value ' + (val > 0 ? 'positive' : (val < 0 ? 'negative' : 'neutral'));
+}
+
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.boost-btn');
+    if (!btn) return;
+    var controls = btn.closest('.admin-boost-controls');
+    var url = controls.getAttribute('data-url');
+    var direction = btn.classList.contains('boost-up') ? 'promote' : 'demote';
+    var valueEl = controls.querySelector('.boost-value');
+    var currentBoost = parseInt(controls.getAttribute('data-boost'), 10) || 0;
+
+    // Get the search query from the page if available
+    var searchInput = document.querySelector('input[name="q"]');
+    var searchQuery = searchInput ? searchInput.value : '';
+
+    fetch('/admin/api/update-boost', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({url: url, direction: direction, search_query: searchQuery})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            controls.setAttribute('data-boost', data.boost);
+            updateBoostDisplay(valueEl, data.boost);
+        } else {
+            alert(data.error || 'Update failed');
+        }
+    })
+    .catch(function() { alert('Network error'); });
+});
+
+// Initialize boost value colors on page load
+document.querySelectorAll('.boost-value').forEach(function(el) {
+    updateBoostDisplay(el, parseInt(el.textContent, 10) || 0);
+});

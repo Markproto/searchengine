@@ -8,7 +8,7 @@ from functools import wraps
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction
 from profoundd.config.settings import get_config
 from profoundd.config.sources import ALL_SOURCES, CATEGORIES
 from profoundd.search.engine import SearchEngine
@@ -760,3 +760,51 @@ def api_update_credibility():
     if engine.update_credibility(article_url, credibility):
         return jsonify({"success": True, "credibility": credibility})
     return jsonify({"error": "Failed to update"}), 500
+
+
+@admin_bp.route("/api/update-boost", methods=["POST"])
+@login_required
+def api_update_boost():
+    """AJAX endpoint to promote/demote an article's ranking. Logs action for The Man (AI training)."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid request"}), 400
+
+    article_url = data.get("url", "").strip()
+    direction = data.get("direction")  # "promote" or "demote"
+    search_query = data.get("search_query", "").strip()
+
+    if not article_url or direction not in ("promote", "demote"):
+        return jsonify({"error": "URL and direction (promote/demote) required"}), 400
+
+    engine = SearchEngine(config.ELASTICSEARCH_URL)
+    if not engine.is_available():
+        return jsonify({"error": "Elasticsearch not available"}), 503
+
+    # Get current article data
+    article = engine.get_article(article_url)
+    if not article:
+        return jsonify({"error": "Article not found"}), 404
+
+    old_boost = article.get("admin_boost", 0) or 0
+    new_boost = old_boost + (1 if direction == "promote" else -1)
+    new_boost = max(-5, min(5, new_boost))
+
+    if not engine.update_boost(article_url, new_boost):
+        return jsonify({"error": "Failed to update"}), 500
+
+    # Log the action for The Man (AI training)
+    action_log = AdminRankingAction(
+        article_url=article_url,
+        article_title=article.get("title", ""),
+        source_name=article.get("source_name", ""),
+        category=article.get("category", ""),
+        action=direction,
+        old_boost=old_boost,
+        new_boost=new_boost,
+        search_query=search_query,
+    )
+    db.session.add(action_log)
+    db.session.commit()
+
+    return jsonify({"success": True, "boost": new_boost})
