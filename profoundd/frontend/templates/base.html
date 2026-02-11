@@ -10,20 +10,20 @@
     <!-- Canonical URL -->
     <link rel="canonical" href="{{ canonical_url }}">
 
-    <!-- Open Graph (Facebook, LinkedIn) -->
-    <meta property="og:type" content="website">
+    <!-- Open Graph (Facebook, LinkedIn, Telegram) -->
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
     <meta property="og:site_name" content="Profoundd">
     <meta property="og:title" content="{% block og_title %}{{ seo_title or 'Profoundd - Search What Matters' }}{% endblock %}">
     <meta property="og:description" content="{% block og_description %}{{ seo_description or 'Search across News, Medical, Legal, Technology, Finance & Science from verified sources.' }}{% endblock %}">
     <meta property="og:url" content="{{ canonical_url }}">
-    <meta property="og:image" content="{{ og_image }}">
+    <meta property="og:image" content="{% block og_image_url %}{{ og_image }}{% endblock %}">
     <meta property="og:locale" content="en_US">
 
     <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{{ seo_title or 'Profoundd - Search What Matters' }}">
-    <meta name="twitter:description" content="{{ seo_description or 'Search across News, Medical, Legal, Technology, Finance & Science from verified sources.' }}">
-    <meta name="twitter:image" content="{{ og_image }}">
+    <meta name="twitter:card" content="{% block twitter_card %}summary_large_image{% endblock %}">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ seo_title or 'Profoundd - Search What Matters' }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ seo_description or 'Search across News, Medical, Legal, Technology, Finance & Science from verified sources.' }}{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ og_image }}{% endblock %}"">
 
     <!-- Favicon & Theme -->
     {% if is_admin %}

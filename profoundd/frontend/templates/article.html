@@ -1,8 +1,14 @@
 {% extends "base.html" %}
 {% block title %}{{ article.title }} - Profoundd{% endblock %}
 {% block description %}{{ (article.summary or article.title)[:160] }}{% endblock %}
-{% block og_title %}{{ article.title }} - Profoundd{% endblock %}
-{% block og_description %}{{ (article.summary or article.title)[:200] }}{% endblock %}
+
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ article.title }}{% endblock %}
+{% block og_description %}{{ (article.summary or article.title)[:200] }} | Read more on Profoundd{% endblock %}
+
+{% block twitter_card %}summary{% endblock %}
+{% block twitter_title %}{{ article.title }}{% endblock %}
+{% block twitter_description %}{{ (article.summary or article.title)[:200] }} | Read more on Profoundd{% endblock %}
 
 {% block structured_data %}
 <script type="application/ld+json">
@@ -46,9 +52,6 @@
             </div>
             <h1>{{ article.title }}</h1>
             <div class="article-info">
-                {% if article.author %}
-                <span class="article-author">By {{ article.author }}</span>
-                {% endif %}
                 {% if article.published_at %}
                 <span class="article-date">{{ article.published_at[:10] }}</span>
                 {% endif %}
