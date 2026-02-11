@@ -221,6 +221,36 @@ function updateBoostDisplay(el, val) {
     el.className = 'boost-value ' + (val > 5 ? 'positive' : (val < 5 ? 'negative' : 'neutral'));
 }
 
+function reorderArticleInList(card, direction) {
+    /* Move the article card up or down in its parent grid/container */
+    var parent = card.parentNode;
+    if (!parent) return;
+
+    if (direction === 'promote') {
+        var prev = card.previousElementSibling;
+        if (prev) {
+            card.style.transition = 'transform 0.25s ease';
+            card.style.transform = 'translateY(-8px)';
+            setTimeout(function() {
+                parent.insertBefore(card, prev);
+                card.style.transform = '';
+                setTimeout(function() { card.style.transition = ''; }, 250);
+            }, 150);
+        }
+    } else {
+        var next = card.nextElementSibling;
+        if (next) {
+            card.style.transition = 'transform 0.25s ease';
+            card.style.transform = 'translateY(8px)';
+            setTimeout(function() {
+                parent.insertBefore(card, next.nextElementSibling);
+                card.style.transform = '';
+                setTimeout(function() { card.style.transition = ''; }, 250);
+            }, 150);
+        }
+    }
+}
+
 document.addEventListener('click', function(e) {
     var btn = e.target.closest('.boost-btn');
     if (!btn) return;
@@ -243,6 +273,12 @@ document.addEventListener('click', function(e) {
     // Immediate visual feedback
     updateBoostDisplay(valueEl, preview);
     btn.style.opacity = '0.4';
+
+    // Move the article card up or down in the list
+    var card = controls.closest('.trending-card, .result-card, article');
+    if (card) {
+        reorderArticleInList(card, direction);
+    }
 
     // Get the search query from the page if available
     var searchInput = document.querySelector('input[name="q"]');
