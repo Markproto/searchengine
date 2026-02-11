@@ -224,11 +224,25 @@ function updateBoostDisplay(el, val) {
 document.addEventListener('click', function(e) {
     var btn = e.target.closest('.boost-btn');
     if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+
     var controls = btn.closest('.admin-boost-controls');
+    if (!controls) return;
     var url = controls.getAttribute('data-url');
+    if (!url) return;
+
     var direction = btn.classList.contains('boost-up') ? 'promote' : 'demote';
     var valueEl = controls.querySelector('.boost-value');
     var currentBoost = parseInt(controls.getAttribute('data-boost'), 10) || 5;
+
+    // Clamp: don't go below 1 or above 10
+    var preview = currentBoost + (direction === 'promote' ? 1 : -1);
+    if (preview < 1 || preview > 10) return;
+
+    // Immediate visual feedback
+    updateBoostDisplay(valueEl, preview);
+    btn.style.opacity = '0.4';
 
     // Get the search query from the page if available
     var searchInput = document.querySelector('input[name="q"]');
@@ -239,16 +253,27 @@ document.addEventListener('click', function(e) {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({url: url, direction: direction, search_query: searchQuery})
     })
-    .then(function(r) { return r.json(); })
+    .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    })
     .then(function(data) {
+        btn.style.opacity = '';
         if (data.success) {
             controls.setAttribute('data-boost', data.boost);
             updateBoostDisplay(valueEl, data.boost);
         } else {
+            // Revert on failure
+            updateBoostDisplay(valueEl, currentBoost);
             alert(data.error || 'Update failed');
         }
     })
-    .catch(function() { alert('Network error'); });
+    .catch(function(err) {
+        btn.style.opacity = '';
+        // Revert on error
+        updateBoostDisplay(valueEl, currentBoost);
+        alert('Boost update failed: ' + err.message);
+    });
 });
 
 // Initialize boost value colors on page load
