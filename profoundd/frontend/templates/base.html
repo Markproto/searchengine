@@ -26,8 +26,12 @@
     <meta name="twitter:image" content="{{ og_image }}">
 
     <!-- Favicon & Theme -->
+    {% if is_admin %}
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon-admin.svg') }}">
+    {% else %}
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32.png') }}">
+    {% endif %}
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
     <meta name="theme-color" content="#ffffff">
 

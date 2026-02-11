@@ -86,6 +86,7 @@ def create_app(config_override=None):
             "og_image": og_image,
             "site_domain": domain,
             "gsc_verification": gsc_verification,
+            "is_admin": request.path.startswith("/admin"),
         }
 
     # Initialize search engine
