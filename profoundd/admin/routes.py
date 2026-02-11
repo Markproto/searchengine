@@ -808,3 +808,31 @@ def api_update_boost():
     db.session.commit()
 
     return jsonify({"success": True, "boost": new_boost})
+
+
+@admin_bp.route("/the-man", methods=["GET", "POST"])
+@login_required
+def the_man():
+    """The Man — AI editorial guidance system. View ranking history and set editorial guidelines."""
+    if request.method == "POST":
+        SiteSetting.set("the_man_guidelines", request.form.get("guidelines", "").strip())
+        flash("Editorial guidelines saved.", "success")
+        return redirect(url_for("admin.the_man"))
+
+    guidelines = SiteSetting.get("the_man_guidelines", "")
+    recent_actions = (db.session.query(AdminRankingAction)
+                      .order_by(AdminRankingAction.acted_at.desc())
+                      .limit(100)
+                      .all())
+
+    # Summary stats
+    total_actions = db.session.query(AdminRankingAction).count()
+    promotes = db.session.query(AdminRankingAction).filter_by(action="promote").count()
+    demotes = db.session.query(AdminRankingAction).filter_by(action="demote").count()
+
+    return render_template("admin/the_man.html",
+                           guidelines=guidelines,
+                           recent_actions=recent_actions,
+                           total_actions=total_actions,
+                           promotes=promotes,
+                           demotes=demotes)

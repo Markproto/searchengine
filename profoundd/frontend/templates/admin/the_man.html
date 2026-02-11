@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}The Man - Editorial AI{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>The Man</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+    </div>
+
+    <p class="action-desc">The Man learns from your promote/demote decisions and editorial guidelines to help rank articles the way you want.</p>
+
+    <!-- Stats -->
+    <div class="admin-section">
+        <h2>Training Data</h2>
+        <div class="stats-row" style="display:flex; gap:30px; margin-bottom:20px;">
+            <div>
+                <strong style="font-size:1.5rem;">{{ total_actions }}</strong>
+                <span style="display:block; opacity:0.6; font-size:0.85rem;">Total Actions</span>
+            </div>
+            <div>
+                <strong style="font-size:1.5rem; color:#4caf50;">{{ promotes }}</strong>
+                <span style="display:block; opacity:0.6; font-size:0.85rem;">Promotes</span>
+            </div>
+            <div>
+                <strong style="font-size:1.5rem; color:#f44336;">{{ demotes }}</strong>
+                <span style="display:block; opacity:0.6; font-size:0.85rem;">Demotes</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editorial Guidelines -->
+    <div class="admin-section">
+        <h2>Editorial Guidelines</h2>
+        <p class="action-desc">These guidelines define what The Man should promote or demote. Be specific about your audience and editorial philosophy. The Man will reference these when analyzing new articles.</p>
+
+        <form method="POST" class="admin-form">
+            <div class="form-group">
+                <textarea name="guidelines" rows="15" class="about-editor" placeholder="Write your editorial guidelines here...
+
+Example:
+- Our audience values stories about achievement and results over identity-focused framing
+- Promote stories where people succeed on merit regardless of background
+- Demote articles with divisive framing that emphasizes differences over unity
+- Prefer stories that bring people together over stories that divide
+- Quality journalism with primary sources is preferred over opinion pieces
+- Local impact stories are valued higher than national outrage pieces">{{ guidelines }}</textarea>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save Guidelines</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Recent Actions Log -->
+    {% if recent_actions %}
+    <div class="admin-section">
+        <h2>Recent Ranking Actions</h2>
+        <p class="action-desc">Your promote/demote history. The Man studies these patterns.</p>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Action</th>
+                    <th>Article</th>
+                    <th>Source</th>
+                    <th>Category</th>
+                    <th>Boost</th>
+                    <th>Search Context</th>
+                    <th>When</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in recent_actions %}
+                <tr>
+                    <td>
+                        {% if a.action == 'promote' %}
+                        <span style="color:#4caf50;">&#9650; Promoted</span>
+                        {% else %}
+                        <span style="color:#f44336;">&#9660; Demoted</span>
+                        {% endif %}
+                    </td>
+                    <td title="{{ a.article_title }}">{{ a.article_title[:50] }}{% if a.article_title|length > 50 %}...{% endif %}</td>
+                    <td>{{ a.source_name }}</td>
+                    <td>{{ a.category | title }}</td>
+                    <td>{{ a.old_boost }} &rarr; {{ a.new_boost }}</td>
+                    <td>{{ a.search_query or '-' }}</td>
+                    <td>{{ a.acted_at.strftime('%m/%d %H:%M') if a.acted_at else '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="admin-section">
+        <h2>No Actions Yet</h2>
+        <p>Start promoting and demoting articles from search results. The Man will learn from every decision you make.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
