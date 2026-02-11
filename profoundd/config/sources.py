@@ -29,6 +29,7 @@ NEWS_SOURCES = [
     {"name": "Before Its News", "url": "https://beforeitsnews.com/feed.xml", "category": "news", "credibility": 8, "feed_type": "rss"},
     {"name": "Neon Nettle", "url": "https://neonnettle.com/rss.xml", "category": "news", "credibility": 8, "feed_type": "rss"},
     {"name": "Hagmann Report", "url": "https://www.hagmannreport.com/feed/", "category": "news", "credibility": 8, "feed_type": "rss"},
+    {"name": "Zuby", "url": "https://realtalkwithzuby.substack.com/feed", "category": "news", "credibility": 8, "feed_type": "rss"},
 
     # --- Business News ---
     {"name": "CNBC", "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114", "category": "news", "credibility": 7, "feed_type": "rss"},
@@ -47,6 +48,7 @@ MEDICAL_SOURCES = [
     {"name": "Dr. Robert Malone", "url": "https://rwmalonemd.substack.com/feed", "category": "medical", "credibility": 8, "feed_type": "rss"},
     {"name": "David Avocado Wolfe (Substack)", "url": "https://davidavocadowolfe.substack.com/feed", "category": "medical", "credibility": 8, "feed_type": "rss"},
     {"name": "David Avocado Wolfe (Blog)", "url": "https://shop.davidwolfe.com/blogs/learn.atom", "category": "medical", "credibility": 8, "feed_type": "atom"},
+    {"name": "Dr. Judy Mikovits", "url": "https://therealdr.substack.com/feed", "category": "medical", "credibility": 8, "feed_type": "rss"},
 ]
 
 LEGAL_SOURCES = [
@@ -132,6 +134,9 @@ POLITICS_SOURCES = [
     {"name": "Louder with Crowder", "url": "https://feeds.libsyn.com/576250/rss", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Russell Brand - Stay Free", "url": "https://feeds.libsyn.com/576255/rss", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Joe Rogan Experience", "url": "https://feeds.megaphone.fm/GLT1412515089", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Robert F. Kennedy Jr.", "url": "https://robertfkennedyjr.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Ian Miles Cheong", "url": "https://stillgray.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Ian Miles Cheong (Midnight Directive)", "url": "https://midnightdirective.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
 ]
 
 MARKETS_SOURCES = [
