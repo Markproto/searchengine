@@ -29,12 +29,89 @@
         </div>
     </div>
 
+    <!-- Run The Man -->
+    <div class="admin-section">
+        <h2>Run The Man</h2>
+        <p class="action-desc">Manually run The Man to review recent articles against your editorial guidelines. Uses Claude API.</p>
+
+        <form method="POST" style="display:flex; gap:15px; align-items:center; margin-bottom:20px;">
+            <input type="hidden" name="action" value="run">
+            <button type="submit" class="btn btn-primary btn-lg">Run The Man (Review Only)</button>
+            <label style="display:flex; align-items:center; gap:6px; opacity:0.8; font-size:0.9rem;">
+                <input type="checkbox" name="auto_apply" value="1">
+                Auto-apply decisions
+            </label>
+        </form>
+    </div>
+
+    <!-- Decisions Results -->
+    {% if decisions %}
+    <div class="admin-section">
+        <h2>The Man's Decisions</h2>
+        <p class="action-desc">
+            {{ decisions | selectattr('action', 'equalto', 'promote') | list | length }} promotes,
+            {{ decisions | selectattr('action', 'equalto', 'demote') | list | length }} demotes,
+            {{ decisions | selectattr('action', 'equalto', 'skip') | list | length }} skipped
+        </p>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Decision</th>
+                    <th>Article</th>
+                    <th>Reason</th>
+                    {% if decisions[0].applied is defined %}
+                    <th>Applied</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in decisions %}
+                <tr>
+                    <td>
+                        {% if d.action == 'promote' %}
+                        <span style="color:#4caf50;">&#9650; PROMOTE</span>
+                        {% elif d.action == 'demote' %}
+                        <span style="color:#f44336;">&#9660; DEMOTE</span>
+                        {% else %}
+                        <span style="opacity:0.5;">- SKIP</span>
+                        {% endif %}
+                    </td>
+                    <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                        <a href="{{ d.url }}" target="_blank" rel="noopener" title="{{ d.url }}">{{ d.url[:60] }}{% if d.url|length > 60 %}...{% endif %}</a>
+                    </td>
+                    <td>{{ d.reason }}</td>
+                    {% if d.applied is defined %}
+                    <td>
+                        {% if d.applied %}
+                        <span style="color:#4caf50;">&#10003; {{ d.old_boost }} &rarr; {{ d.new_boost }}</span>
+                        {% elif d.action == 'skip' %}
+                        <span style="opacity:0.5;">-</span>
+                        {% else %}
+                        <span style="color:#f44336;">&#10007;</span>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if run_error %}
+    <div class="admin-section">
+        <h2>Run Error</h2>
+        <p style="color:#f44336;">{{ run_error }}</p>
+    </div>
+    {% endif %}
+
     <!-- Editorial Guidelines -->
     <div class="admin-section">
         <h2>Editorial Guidelines</h2>
         <p class="action-desc">These guidelines define what The Man should promote or demote. Be specific about your audience and editorial philosophy. The Man will reference these when analyzing new articles.</p>
 
         <form method="POST" class="admin-form">
+            <input type="hidden" name="action" value="save_guidelines">
             <div class="form-group">
                 <textarea name="guidelines" rows="15" class="about-editor" placeholder="Write your editorial guidelines here...
 

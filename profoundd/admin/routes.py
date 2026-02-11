@@ -814,10 +814,55 @@ def api_update_boost():
 @login_required
 def the_man():
     """The Man — AI editorial guidance system. View ranking history and set editorial guidelines."""
+    from profoundd.search.the_man import run_the_man
+
+    decisions = None
+    run_error = None
+
     if request.method == "POST":
-        SiteSetting.set("the_man_guidelines", request.form.get("guidelines", "").strip())
-        flash("Editorial guidelines saved.", "success")
-        return redirect(url_for("admin.the_man"))
+        action = request.form.get("action", "save_guidelines")
+
+        if action == "save_guidelines":
+            SiteSetting.set("the_man_guidelines", request.form.get("guidelines", "").strip())
+            flash("Editorial guidelines saved.", "success")
+            return redirect(url_for("admin.the_man"))
+
+        elif action == "run":
+            auto_apply = request.form.get("auto_apply") == "1"
+            guidelines = SiteSetting.get("the_man_guidelines", "")
+            api_key = SiteSetting.get("ai_anthropic_key", "")
+            model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+
+            engine = SearchEngine(config.ELASTICSEARCH_URL)
+            past_actions = (db.session.query(AdminRankingAction)
+                            .order_by(AdminRankingAction.acted_at.desc())
+                            .limit(30)
+                            .all())
+
+            decisions, run_error = run_the_man(
+                engine, guidelines, past_actions, api_key, model, auto_apply=auto_apply
+            )
+
+            if run_error:
+                flash(f"The Man: {run_error}", "error")
+            elif auto_apply and decisions:
+                # Log auto-applied actions
+                applied_count = sum(1 for d in decisions if d.get("applied"))
+                for d in decisions:
+                    if d.get("applied") and d["action"] != "skip":
+                        log = AdminRankingAction(
+                            article_url=d["url"],
+                            article_title="",
+                            source_name="",
+                            category="",
+                            action=d["action"],
+                            old_boost=d.get("old_boost", 0),
+                            new_boost=d.get("new_boost", 0),
+                            search_query="[The Man auto-applied]",
+                        )
+                        db.session.add(log)
+                db.session.commit()
+                flash(f"The Man applied {applied_count} ranking changes.", "success")
 
     guidelines = SiteSetting.get("the_man_guidelines", "")
     recent_actions = (db.session.query(AdminRankingAction)
@@ -835,4 +880,6 @@ def the_man():
                            recent_actions=recent_actions,
                            total_actions=total_actions,
                            promotes=promotes,
-                           demotes=demotes)
+                           demotes=demotes,
+                           decisions=decisions,
+                           run_error=run_error)
