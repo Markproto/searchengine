@@ -111,6 +111,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // --- Theme Toggle ---
+    var themeIcons = document.querySelectorAll('#themeIcon, #mobileThemeIcon');
+    function updateThemeIcons() {
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        themeIcons.forEach(function(icon) { icon.textContent = isDark ? '🌙' : '☀️'; });
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', isDark ? '#0a0a0f' : '#ffffff');
+    }
+    updateThemeIcons();
+    function handleThemeToggle() {
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if (isDark) {
+            document.documentElement.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        }
+        updateThemeIcons();
+    }
+    document.querySelectorAll('#themeToggle, #mobileThemeToggle').forEach(function(btn) {
+        btn.addEventListener('click', handleThemeToggle);
+    });
+
     // --- Relative Time Dates ---
     var dateElements = document.querySelectorAll('[data-time]');
     dateElements.forEach(function(el) {

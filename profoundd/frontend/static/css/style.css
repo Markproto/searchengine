@@ -10,6 +10,7 @@
 }
 
 :root {
+    /* Light theme (default) */
     --bg: #f8f9fb;
     --bg-secondary: #ffffff;
     --bg-card: #ffffff;
@@ -36,6 +37,56 @@
     --tech: #0891b2;
     --finance: #16a34a;
     --science: #d97706;
+
+    /* Theme-specific hardcoded overrides */
+    --navbar-bg: rgba(255, 255, 255, 0.85);
+    --hero-gradient: linear-gradient(180deg, #eef1f8 0%, var(--bg) 100%);
+    --footer-bg: #f0f2f5;
+    --overlay-bg: rgba(0,0,0,0.2);
+    --credibility-help-bg: rgba(0,0,0,0.06);
+    --search-controls-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    --disclaimer-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    --mark-bg: rgba(79, 70, 229, 0.12);
+}
+
+/* Dark theme */
+[data-theme="dark"] {
+    --bg: #0a0a0f;
+    --bg-secondary: #12121a;
+    --bg-card: #1a1a25;
+    --bg-input: #1e1e2a;
+    --text: #e8e8ed;
+    --text-secondary: #9898a8;
+    --text-muted: #6b6b7b;
+    --border: #2a2a38;
+    --accent: #6366f1;
+    --accent-hover: #818cf8;
+    --accent-glow: rgba(99, 102, 241, 0.15);
+    --success: #22c55e;
+    --warning: #eab308;
+    --danger: #ef4444;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 4px 20px rgba(0,0,0,0.3);
+    --shadow-lg: 0 4px 24px rgba(0,0,0,0.4);
+
+    /* Category colors (brighter for dark bg) */
+    --news: #3b82f6;
+    --medical: #ef4444;
+    --legal: #a855f7;
+    --tech: #06b6d4;
+    --finance: #22c55e;
+    --science: #f59e0b;
+
+    /* Theme-specific hardcoded overrides */
+    --navbar-bg: rgba(18, 18, 26, 0.85);
+    --hero-gradient: radial-gradient(ellipse at center top, var(--accent-glow), transparent 70%);
+    --footer-bg: var(--bg-secondary);
+    --overlay-bg: rgba(0,0,0,0.5);
+    --credibility-help-bg: rgba(255,255,255,0.1);
+    --search-controls-shadow: none;
+    --disclaimer-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    --mark-bg: var(--accent-glow);
 }
 
 html {
@@ -70,7 +121,7 @@ main { flex: 1; }
 
 /* --- Navbar --- */
 .navbar {
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--navbar-bg);
     border-bottom: 1px solid var(--border);
     padding: 12px 0;
     position: sticky;
@@ -127,7 +178,7 @@ main { flex: 1; }
 .hero {
     text-align: center;
     padding: 100px 0 70px;
-    background: linear-gradient(180deg, #eef1f8 0%, var(--bg) 100%);
+    background: var(--hero-gradient);
 }
 .hero-title {
     font-size: 3.2rem;
@@ -296,7 +347,7 @@ main { flex: 1; }
     background: var(--bg-card);
     border-radius: var(--radius);
     border: 1px solid var(--border);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    box-shadow: var(--search-controls-shadow);
 }
 .search-filters {
     display: flex;
@@ -383,7 +434,7 @@ main { flex: 1; }
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: rgba(0,0,0,0.06);
+    background: var(--credibility-help-bg);
     font-size: 0.55rem;
     font-weight: 700;
     cursor: pointer;
@@ -403,7 +454,7 @@ main { flex: 1; }
     padding: 24px 28px;
     max-width: 360px;
     z-index: 1000;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    box-shadow: var(--disclaimer-shadow);
     font-size: 0.85rem;
     line-height: 1.6;
     color: var(--text-secondary);
@@ -429,7 +480,7 @@ main { flex: 1; }
 .credibility-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.2);
+    background: var(--overlay-bg);
     z-index: 999;
 }
 
@@ -447,7 +498,7 @@ main { flex: 1; }
     margin-bottom: 8px;
 }
 .result-summary mark {
-    background: rgba(79, 70, 229, 0.12);
+    background: var(--mark-bg);
     color: var(--accent);
     padding: 1px 3px;
     border-radius: 3px;
@@ -752,7 +803,7 @@ main { flex: 1; }
 
 /* --- Footer --- */
 .footer {
-    background: #f0f2f5;
+    background: var(--footer-bg);
     border-top: 1px solid var(--border);
     padding: 40px 0 20px;
     margin-top: 60px;
@@ -809,6 +860,14 @@ main { flex: 1; }
     .nav-links {
         display: none; /* links live in footer on mobile */
     }
+    .nav-links .theme-toggle {
+        /* Keep theme toggle visible on mobile even though nav-links is hidden */
+        display: none;
+    }
+    /* Show a standalone mobile theme toggle in the navbar */
+    .mobile-theme-toggle {
+        display: flex;
+    }
     .nav-search-form {
         flex: 1;
         min-width: 0;
@@ -822,7 +881,7 @@ main { flex: 1; }
     /* Homepage: Google-like clean layout */
     .hero {
         padding: 60px 0 30px;
-        background: linear-gradient(180deg, #eef1f8 0%, var(--bg) 100%);
+        background: var(--hero-gradient);
     }
     .hero-subtitle {
         font-size: 0.9rem;
@@ -1273,5 +1332,89 @@ main { flex: 1; }
 @media (max-width: 768px) {
     .form-row-2 { grid-template-columns: 1fr; }
     .ai-insight-row { flex-direction: column; gap: 12px; }
+}
+
+/* --- Theme Toggle Switch --- */
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+}
+.theme-toggle-track {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: background 0.3s, border-color 0.3s;
+}
+.theme-toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: var(--accent);
+    border-radius: 50%;
+    transition: transform 0.3s;
+}
+[data-theme="dark"] .theme-toggle-track::after {
+    transform: translateX(20px);
+}
+.theme-toggle-icon {
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+/* Mobile theme toggle - hidden on desktop, shown on mobile */
+.mobile-theme-toggle {
+    display: none;
+}
+
+/* Smooth color transitions when switching themes */
+body,
+.navbar,
+.hero,
+.footer,
+.result-card,
+.category-card,
+.trending-card,
+.search-controls,
+.stat-card,
+.login-card,
+.action-grid form,
+.suggestions-dropdown,
+.suggestion-item,
+.page-link,
+.filter-tag,
+.credibility-disclaimer,
+.ai-insights-panel,
+.about-section code,
+.category-stat,
+.btn,
+.alert,
+.badge,
+.status-badge,
+.vote-btn {
+    transition: background 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+
+/* Dark theme color-scheme for native elements */
+[data-theme="dark"] {
+    color-scheme: dark;
+}
+[data-theme="dark"] .category-select,
+[data-theme="dark"] .filter-group select,
+[data-theme="dark"] .action-select {
+    color-scheme: dark;
 }
 

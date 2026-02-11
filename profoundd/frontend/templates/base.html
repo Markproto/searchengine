@@ -51,6 +51,13 @@
     </script>
     {% block structured_data %}{% endblock %}
 
+    <!-- Apply saved theme before CSS loads to prevent flash of wrong theme -->
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme') || 'light';
+            if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        })();
+    </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -70,7 +77,15 @@
             <div class="nav-links">
                 <a href="/submit">Suggest Source</a>
                 <a href="/about">About</a>
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+                    <span class="theme-toggle-icon" id="themeIcon">☀️</span>
+                    <span class="theme-toggle-track"></span>
+                </button>
             </div>
+            <button class="theme-toggle mobile-theme-toggle" id="mobileThemeToggle" aria-label="Toggle dark mode">
+                <span class="theme-toggle-icon" id="mobileThemeIcon">☀️</span>
+                <span class="theme-toggle-track"></span>
+            </button>
         </div>
     </nav>
 
