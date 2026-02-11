@@ -308,6 +308,9 @@ class SearchEngine:
             # Diversify: group by credibility tier, interleave 3 high then 1 lower
             articles = self._diversify_results(raw_articles, per_page)
 
+            # Final pass: admin boost shifts articles up/down in the list
+            articles = self._apply_admin_boost_reorder(articles)
+
             return {
                 "articles": articles,
                 "total": total,
@@ -451,6 +454,19 @@ class SearchEngine:
 
         return result[:limit]
 
+    @staticmethod
+    def _apply_admin_boost_reorder(articles):
+        """
+        Final pass: shift articles up/down based on admin_boost.
+        Each boost point away from 5 shifts the article by 2 positions.
+        boost 7 → moves up 4 spots, boost 3 → moves down 4 spots, boost 5 → stays.
+        """
+        if not articles:
+            return articles
+        indexed = list(enumerate(articles))
+        indexed.sort(key=lambda item: item[0] - ((item[1].get("admin_boost") or 5) - 5) * 2)
+        return [a for _, a in indexed]
+
     def get_latest(self, category=None, size=20):
         """Get latest articles with no time filter — reliable fallback."""
         filter_clauses = []
@@ -499,7 +515,8 @@ class SearchEngine:
             result = self.es.search(index=self.index_name, body=body)
             raw = [hit["_source"] for hit in result["hits"]["hits"]]
             deduped = self._dedup_by_title(raw, size * 3)
-            return self._diversify_by_source(deduped, size)
+            diversified = self._diversify_by_source(deduped, size)
+            return self._apply_admin_boost_reorder(diversified)
         except Exception as e:
             logger.error("get_latest failed (category=%s): %s", category, e)
             return []
@@ -625,6 +642,9 @@ class SearchEngine:
                 articles = self._enforce_subtopic_guarantees(
                     articles, category, filter_clauses, size
                 )
+
+            # Final pass: admin boost shifts articles up/down in the list
+            articles = self._apply_admin_boost_reorder(articles)
 
             return articles
         except Exception as e:
