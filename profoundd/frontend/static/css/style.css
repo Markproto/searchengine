@@ -381,14 +381,35 @@ main { flex: 1; }
     color: var(--text-primary);
     white-space: pre-wrap;
 }
+.article-source-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+.article-source-link:hover { text-decoration: underline; }
+.article-hero-image {
+    margin-bottom: 24px;
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+.article-hero-image img {
+    width: 100%;
+    max-height: 420px;
+    object-fit: cover;
+    display: block;
+}
 .article-footer {
     margin-top: 32px;
     padding-top: 20px;
     border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 @media (max-width: 768px) {
     .article-detail { padding: 20px 16px; }
     .article-detail h1 { font-size: 1.4rem; }
+    .article-hero-image img { max-height: 240px; }
 }
 
 /* --- Search Results Page --- */

@@ -5,10 +5,12 @@
 {% block og_type %}article{% endblock %}
 {% block og_title %}{{ article.title }}{% endblock %}
 {% block og_description %}{{ (article.summary or article.title)[:200] }} | Read more on Profoundd{% endblock %}
+{% block og_image_url %}{{ article.image_url or og_image }}{% endblock %}
 
 {% block twitter_card %}summary{% endblock %}
 {% block twitter_title %}{{ article.title }}{% endblock %}
 {% block twitter_description %}{{ (article.summary or article.title)[:200] }} | Read more on Profoundd{% endblock %}
+{% block twitter_image %}{{ article.image_url or og_image }}{% endblock %}
 
 {% block structured_data %}
 <script type="application/ld+json">
@@ -18,6 +20,7 @@
     "headline": {{ article.title | tojson }},
     "description": {{ (article.summary or article.title) | tojson }},
     "author": {"@type": "Organization", "name": {{ (article.source_name or "Profoundd Research") | tojson }}},
+    {% if article.image_url %}"image": {{ article.image_url | tojson }},{% endif %}
     {% if article.published_at %}"datePublished": "{{ article.published_at[:10] }}",{% endif %}
     "publisher": {"@type": "Organization", "name": "Profoundd"},
     "mainEntityOfPage": "https://{{ site_domain }}/article/{{ doc_id }}"
@@ -55,8 +58,17 @@
                 {% if article.published_at %}
                 <span class="article-date">{{ article.published_at[:10] }}</span>
                 {% endif %}
+                {% if article.source_url %}
+                <a href="{{ article.source_url }}" class="article-source-link" target="_blank" rel="noopener">View Original Source</a>
+                {% endif %}
             </div>
         </header>
+
+        {% if article.image_url %}
+        <div class="article-hero-image">
+            <img src="{{ article.image_url }}" alt="{{ article.title }}" loading="lazy">
+        </div>
+        {% endif %}
 
         {% if article.summary %}
         <div class="article-summary">
@@ -71,6 +83,12 @@
         {% endif %}
 
         <footer class="article-footer">
+            {% if article.source_url %}
+            <a href="{{ article.source_url }}" class="share-link-btn" target="_blank" rel="noopener" title="View the original story">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Original Source
+            </a>
+            {% endif %}
             <button type="button" class="share-link-btn" onclick="copyShareLink(this)" title="Copy shareable link">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                 Share Article

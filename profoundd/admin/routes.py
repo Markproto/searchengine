@@ -2,10 +2,12 @@
 Admin panel routes for managing sources, rankings, and monitoring.
 """
 import logging
+import re
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from functools import wraps
 
+import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
 from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction
@@ -15,6 +17,31 @@ from profoundd.search.engine import SearchEngine
 from profoundd.crawler.feed_crawler import FeedCrawler
 
 logger = logging.getLogger(__name__)
+
+
+def fetch_og_image(url):
+    """Try to extract the og:image from a URL. Returns the image URL or None."""
+    try:
+        resp = requests.get(url, timeout=10, headers={
+            "User-Agent": "Mozilla/5.0 (compatible; Profoundd/1.0)"
+        })
+        resp.raise_for_status()
+        # Look for <meta property="og:image" content="...">
+        match = re.search(
+            r'<meta\s+[^>]*property=["\']og:image["\']\s+[^>]*content=["\']([^"\']+)["\']',
+            resp.text, re.IGNORECASE
+        )
+        if not match:
+            # Try reversed attribute order: content before property
+            match = re.search(
+                r'<meta\s+[^>]*content=["\']([^"\']+)["\']\s+[^>]*property=["\']og:image["\']',
+                resp.text, re.IGNORECASE
+            )
+        if match:
+            return match.group(1)
+    except Exception as e:
+        logger.warning("Failed to fetch og:image from %s: %s", url, e)
+    return None
 config = get_config()
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -452,6 +479,8 @@ def research_library():
         content = request.form.get("content", "").strip()
         category = request.form.get("category", "news")
         source_name = request.form.get("source_name", "").strip() or "Profoundd Research"
+        source_url = request.form.get("source_url", "").strip() or None
+        image_url = request.form.get("image_url", "").strip() or None
 
         if not title or not content:
             flash("Title and content are required.", "error")
@@ -462,6 +491,10 @@ def research_library():
             return redirect(url_for("admin.research_library"))
 
         engine.create_index()
+
+        # Auto-fetch og:image from source URL if no explicit image provided
+        if source_url and not image_url:
+            image_url = fetch_og_image(source_url)
 
         # Build a unique URL for this document
         import hashlib
@@ -482,6 +515,8 @@ def research_library():
                 category=category,
                 source_name=source_name,
                 doc_url=doc_url,
+                source_url=source_url,
+                image_url=image_url,
             )
             db.session.add(doc)
             db.session.commit()

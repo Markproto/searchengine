@@ -188,11 +188,13 @@ class ResearchDocument(db.Model):
     category = db.Column(db.String(50), default="news")
     source_name = db.Column(db.String(200), default="Profoundd Research")
     doc_url = db.Column(db.String(500), unique=True, nullable=False)
+    source_url = db.Column(db.String(1000))  # original source article link
+    image_url = db.Column(db.String(1000))   # image from source (og:image or manual)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def to_es_doc(self):
         """Convert to Elasticsearch document format for indexing."""
-        return {
+        doc = {
             "title": self.title,
             "summary": self.summary or self.title,
             "content": self.content,
@@ -204,6 +206,11 @@ class ResearchDocument(db.Model):
             "published_at": self.created_at.isoformat() if self.created_at else datetime.now(timezone.utc).isoformat(),
             "crawled_at": datetime.now(timezone.utc).isoformat(),
         }
+        if self.source_url:
+            doc["source_url"] = self.source_url
+        if self.image_url:
+            doc["image_url"] = self.image_url
+        return doc
 
 
 class AdminRankingAction(db.Model):
