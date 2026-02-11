@@ -1603,3 +1603,50 @@ body,
     color-scheme: dark;
 }
 
+/* Admin inline credibility editor */
+.admin-editable-cred {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    cursor: default;
+}
+.admin-editable-cred .cred-input {
+    width: 36px;
+    padding: 0 2px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-align: center;
+    -moz-appearance: textfield;
+}
+.admin-editable-cred .cred-input::-webkit-inner-spin-button,
+.admin-editable-cred .cred-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.admin-editable-cred .cred-label {
+    font-size: 0.7rem;
+}
+.admin-editable-cred .cred-save-btn {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 4px;
+    color: inherit;
+    font-size: 0.65rem;
+    padding: 0 4px;
+    cursor: pointer;
+    line-height: 1.4;
+    opacity: 0.7;
+}
+.admin-editable-cred .cred-save-btn:hover {
+    opacity: 1;
+    background: rgba(255,255,255,0.1);
+}
+.admin-editable-cred .cred-save-btn.saved {
+    color: #4caf50;
+    opacity: 1;
+}
+

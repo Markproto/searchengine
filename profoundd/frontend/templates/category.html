@@ -46,9 +46,17 @@
             <div class="result-header">
                 <span class="result-source">{{ article.source_name }}</span>
                 {% if article.source_credibility %}
+                {% if session.get('admin_logged_in') %}
+                <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }} admin-editable-cred" data-url="{{ article.url }}">
+                    <input type="number" class="cred-input" value="{{ article.source_credibility }}" min="1" max="10" title="Edit credibility (admin)">
+                    <span class="cred-label">/10</span>
+                    <button class="cred-save-btn" title="Save">&#10003;</button>
+                </span>
+                {% else %}
                 <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }}">
                     {{ article.source_credibility }}/10 <span class="credibility-help" title="This credibility rating is an opinion">?</span>
                 </span>
+                {% endif %}
                 {% endif %}
             </div>
             <h3><a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>

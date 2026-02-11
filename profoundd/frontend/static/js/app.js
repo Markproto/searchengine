@@ -176,3 +176,41 @@ function escapeHtml(text) {
     div.appendChild(document.createTextNode(text));
     return div.innerHTML;
 }
+
+/* Admin inline credibility editor */
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.cred-save-btn');
+    if (!btn) return;
+    var badge = btn.closest('.admin-editable-cred');
+    var input = badge.querySelector('.cred-input');
+    var url = badge.getAttribute('data-url');
+    var val = parseInt(input.value, 10);
+    if (!url || isNaN(val) || val < 1 || val > 10) return;
+
+    btn.textContent = '...';
+    fetch('/admin/api/update-credibility', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({url: url, credibility: val})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            btn.innerHTML = '&#10003;';
+            btn.classList.add('saved');
+            // Update badge color class
+            badge.className = badge.className.replace(/credibility-(high|medium|low)/g, '');
+            if (val >= 8) badge.classList.add('credibility-high');
+            else if (val >= 5) badge.classList.add('credibility-medium');
+            else badge.classList.add('credibility-low');
+            setTimeout(function() { btn.classList.remove('saved'); }, 2000);
+        } else {
+            btn.textContent = '!';
+            alert(data.error || 'Update failed');
+        }
+    })
+    .catch(function() {
+        btn.textContent = '!';
+        alert('Network error');
+    });
+});

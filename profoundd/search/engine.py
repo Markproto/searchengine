@@ -99,6 +99,20 @@ class SearchEngine:
             logger.error("Failed to index article: %s", e)
             return None
 
+    def update_credibility(self, article_url, credibility):
+        """Update the source_credibility of an article in ES by its URL."""
+        es_id = hashlib.md5(article_url.encode()).hexdigest()
+        try:
+            self.es.update(
+                index=self.index_name,
+                id=es_id,
+                doc={"source_credibility": credibility},
+            )
+            return True
+        except Exception as e:
+            logger.error("Failed to update credibility for %s: %s", article_url, e)
+            return False
+
     def bulk_index(self, articles):
         """Bulk index multiple articles."""
         if not articles:

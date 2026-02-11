@@ -18,19 +18,12 @@
     <div class="admin-section">
         <h2>Saved Documents ({{ documents|length }})</h2>
         <p class="action-desc">These are persisted in the database and survive ES index rebuilds. Use "Re-index All" after a rebuild.</p>
-
-        <div class="source-search-bar">
-            <input type="text" id="docSearch" placeholder="Search by title, source, or category..." class="source-search-input" autofocus>
-            <span id="docCount" class="source-count">{{ documents|length }} documents</span>
-        </div>
-
-        <table class="admin-table" id="docTable">
+        <table class="admin-table">
             <thead>
                 <tr>
                     <th>Title</th>
                     <th>Category</th>
                     <th>Source</th>
-                    <th>Credibility</th>
                     <th>Added</th>
                     <th>Actions</th>
                 </tr>
@@ -41,14 +34,6 @@
                     <td>{{ doc.title[:60] }}{% if doc.title|length > 60 %}...{% endif %}</td>
                     <td>{{ doc.category | title }}</td>
                     <td>{{ doc.source_name }}</td>
-                    <td>
-                        <form method="POST" action="{{ url_for('admin.research_library') }}" style="display:inline-flex; align-items:center; gap:4px;">
-                            <input type="hidden" name="action" value="edit_credibility">
-                            <input type="hidden" name="doc_id" value="{{ doc.id }}">
-                            <input type="number" name="credibility" value="{{ doc.source_credibility or 9 }}" min="1" max="10" style="width:60px;">
-                            <button type="submit" class="btn btn-sm btn-primary">Save</button>
-                        </form>
-                    </td>
                     <td>{{ doc.created_at.strftime('%Y-%m-%d') if doc.created_at else '' }}</td>
                     <td class="actions-cell">
                         <form method="POST" action="{{ url_for('admin.research_library') }}" style="display:inline;">
@@ -66,7 +51,7 @@
 
     <div class="admin-section">
         <h2>Add New Document</h2>
-        <p class="text-muted" style="margin-bottom: 20px;">Paste a research document, collection of links, or any content you want indexed and searchable.</p>
+        <p class="text-muted" style="margin-bottom: 20px;">Paste a research document, collection of links, or any content you want indexed and searchable. It will appear in search results with credibility 9 (admin-curated).</p>
 
         <form method="POST" action="{{ url_for('admin.research_library') }}">
             <input type="hidden" name="action" value="add">
@@ -90,12 +75,6 @@
             </div>
 
             <div class="form-group">
-                <label for="credibility">Credibility Rating (1-10)</label>
-                <input type="number" id="credibility" name="credibility" value="9" min="1" max="10">
-                <p class="text-muted" style="margin-top:4px; font-size:0.85em;">Higher = ranks higher in results. 9 = admin-curated default.</p>
-            </div>
-
-            <div class="form-group">
                 <label for="content">Full Document</label>
                 <p class="text-muted" style="margin-bottom: 8px;">Paste the entire document — links, notes, studies, commentary, everything. All of it becomes searchable.</p>
                 <textarea id="content" name="content" rows="25" class="about-editor" required placeholder="Paste your research document here..."></textarea>
@@ -107,27 +86,4 @@
         </form>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var searchInput = document.getElementById('docSearch');
-    var countEl = document.getElementById('docCount');
-    if (!searchInput) return;
-
-    searchInput.addEventListener('input', function() {
-        var query = this.value.toLowerCase();
-        var rows = document.querySelectorAll('#docTable tbody tr');
-        var visible = 0;
-        rows.forEach(function(row) {
-            var text = row.textContent.toLowerCase();
-            var match = !query || text.indexOf(query) !== -1;
-            row.style.display = match ? '' : 'none';
-            if (match) visible++;
-        });
-        countEl.textContent = visible + (visible === 1 ? ' document' : ' documents');
-    });
-});
-</script>
 {% endblock %}
