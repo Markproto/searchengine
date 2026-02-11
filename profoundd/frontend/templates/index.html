@@ -96,9 +96,9 @@
                             <button class="cred-save-btn" title="Save">&#10003;</button>
                         </span>
                         {% endif %}
-                        <span class="admin-boost-controls" data-url="{{ article.url }}" data-boost="{{ article.admin_boost or 0 }}">
+                        <span class="admin-boost-controls" data-url="{{ article.url }}" data-boost="{{ article.admin_boost or 5 }}">
                             <button class="boost-btn boost-up" title="Promote">&#9650;</button>
-                            <span class="boost-value">{{ article.admin_boost or 0 }}</span>
+                            <span class="boost-value">{{ article.admin_boost or 5 }}</span>
                             <button class="boost-btn boost-down" title="Demote">&#9660;</button>
                         </span>
                     </div>

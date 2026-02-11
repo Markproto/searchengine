@@ -215,10 +215,10 @@ document.addEventListener('click', function(e) {
     });
 });
 
-/* Admin boost promote/demote */
+/* Admin boost promote/demote (1-10 scale, 5=neutral) */
 function updateBoostDisplay(el, val) {
     el.textContent = val;
-    el.className = 'boost-value ' + (val > 0 ? 'positive' : (val < 0 ? 'negative' : 'neutral'));
+    el.className = 'boost-value ' + (val > 5 ? 'positive' : (val < 5 ? 'negative' : 'neutral'));
 }
 
 document.addEventListener('click', function(e) {
@@ -228,7 +228,7 @@ document.addEventListener('click', function(e) {
     var url = controls.getAttribute('data-url');
     var direction = btn.classList.contains('boost-up') ? 'promote' : 'demote';
     var valueEl = controls.querySelector('.boost-value');
-    var currentBoost = parseInt(controls.getAttribute('data-boost'), 10) || 0;
+    var currentBoost = parseInt(controls.getAttribute('data-boost'), 10) || 5;
 
     // Get the search query from the page if available
     var searchInput = document.querySelector('input[name="q"]');
@@ -253,5 +253,5 @@ document.addEventListener('click', function(e) {
 
 // Initialize boost value colors on page load
 document.querySelectorAll('.boost-value').forEach(function(el) {
-    updateBoostDisplay(el, parseInt(el.textContent, 10) || 0);
+    updateBoostDisplay(el, parseInt(el.textContent, 10) || 5);
 });

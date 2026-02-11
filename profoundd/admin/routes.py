@@ -786,9 +786,9 @@ def api_update_boost():
     if not article:
         return jsonify({"error": "Article not found"}), 404
 
-    old_boost = article.get("admin_boost", 0) or 0
+    old_boost = article.get("admin_boost", 5) or 5
     new_boost = old_boost + (1 if direction == "promote" else -1)
-    new_boost = max(-5, min(5, new_boost))
+    new_boost = max(1, min(10, new_boost))
 
     if not engine.update_boost(article_url, new_boost):
         return jsonify({"error": "Failed to update"}), 500

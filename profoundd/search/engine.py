@@ -125,8 +125,8 @@ class SearchEngine:
             return None
 
     def update_boost(self, article_url, boost):
-        """Update the admin_boost of an article in ES by its URL."""
-        boost = max(-5, min(5, boost))
+        """Update the admin_boost of an article in ES by its URL (1-10 scale, 5=neutral)."""
+        boost = max(1, min(10, boost))
         es_id = hashlib.md5(article_url.encode()).hexdigest()
         try:
             self.es.update(
@@ -240,7 +240,7 @@ class SearchEngine:
                     {
                         "script_score": {
                             "script": {
-                                "source": "Math.max(0.1, 1 + (doc['admin_boost'].size() > 0 ? doc['admin_boost'].value : 0) * 0.2)"
+                                "source": "Math.max(0.1, (doc['admin_boost'].size() > 0 ? doc['admin_boost'].value : 5) / 5.0)"
                             }
                         }
                     }
@@ -479,7 +479,7 @@ class SearchEngine:
                         {
                             "script_score": {
                                 "script": {
-                                    "source": "Math.max(0.1, 1 + (doc['admin_boost'].size() > 0 ? doc['admin_boost'].value : 0) * 0.2)"
+                                    "source": "Math.max(0.1, (doc['admin_boost'].size() > 0 ? doc['admin_boost'].value : 5) / 5.0)"
                                 }
                             }
                         }
@@ -594,7 +594,7 @@ class SearchEngine:
                         {
                             "script_score": {
                                 "script": {
-                                    "source": "Math.max(0.1, 1 + (doc['admin_boost'].size() > 0 ? doc['admin_boost'].value : 0) * 0.2)"
+                                    "source": "Math.max(0.1, (doc['admin_boost'].size() > 0 ? doc['admin_boost'].value : 5) / 5.0)"
                                 }
                             }
                         }
