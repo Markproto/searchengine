@@ -457,14 +457,40 @@ class SearchEngine:
         if category and category != "all":
             filter_clauses.append({"term": {"category": category}})
 
+        inner_query = {
+            "bool": {
+                "filter": filter_clauses,
+            }
+        } if filter_clauses else {"match_all": {}}
+
         body = {
             "query": {
-                "bool": {
-                    "filter": filter_clauses,
+                "function_score": {
+                    "query": inner_query,
+                    "functions": [
+                        {
+                            "field_value_factor": {
+                                "field": "source_credibility",
+                                "factor": 1,
+                                "modifier": "none",
+                                "missing": 5,
+                            }
+                        },
+                        {
+                            "script_score": {
+                                "script": {
+                                    "source": "Math.max(0.1, 1 + (doc['admin_boost'].size() > 0 ? doc['admin_boost'].value : 0) * 0.2)"
+                                }
+                            }
+                        }
+                    ],
+                    "boost_mode": "multiply",
+                    "score_mode": "multiply",
                 }
-            } if filter_clauses else {"match_all": {}},
+            },
             "sort": [
                 {"published_at": {"order": "desc"}},
+                {"_score": {"order": "desc"}},
             ],
             "size": size * 3,  # fetch extra so dedup still fills the page
         }
@@ -564,16 +590,24 @@ class SearchEngine:
                                 "modifier": "none",
                                 "missing": 5,
                             }
+                        },
+                        {
+                            "script_score": {
+                                "script": {
+                                    "source": "Math.max(0.1, 1 + (doc['admin_boost'].size() > 0 ? doc['admin_boost'].value : 0) * 0.2)"
+                                }
+                            }
                         }
                     ],
                     "boost_mode": "multiply",
+                    "score_mode": "multiply",
                 }
             },
             "collapse": {
                 "field": "title.raw",
             },
             "sort": [
-                {"source_credibility": {"order": "desc"}},
+                {"_score": {"order": "desc"}},
                 {"published_at": {"order": "desc"}},
             ],
             "size": fetch_size,
