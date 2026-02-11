@@ -433,6 +433,21 @@ def research_library():
                 flash(f"Deleted '{doc.title}'.", "success")
             return redirect(url_for("admin.research_library"))
 
+        if action == "edit_credibility":
+            doc_id = request.form.get("doc_id", type=int)
+            new_cred = request.form.get("credibility", type=int)
+            doc = db.session.query(ResearchDocument).get(doc_id)
+            if doc and new_cred is not None and 1 <= new_cred <= 10:
+                doc.source_credibility = new_cred
+                db.session.commit()
+                # Re-index in ES with updated credibility
+                if engine.is_available():
+                    engine.index_article(doc.to_es_doc())
+                flash(f"Updated '{doc.title}' credibility to {new_cred}/10.", "success")
+            else:
+                flash("Invalid document or credibility value (1-10).", "error")
+            return redirect(url_for("admin.research_library"))
+
         if action == "reindex":
             # Re-index all research docs from DB into ES
             if engine.is_available():
@@ -452,6 +467,8 @@ def research_library():
         content = request.form.get("content", "").strip()
         category = request.form.get("category", "news")
         source_name = request.form.get("source_name", "").strip() or "Profoundd Research"
+        credibility = request.form.get("credibility", 9, type=int)
+        credibility = max(1, min(10, credibility))
 
         if not title or not content:
             flash("Title and content are required.", "error")
@@ -481,6 +498,7 @@ def research_library():
                 summary=summary,
                 category=category,
                 source_name=source_name,
+                source_credibility=credibility,
                 doc_url=doc_url,
             )
             db.session.add(doc)

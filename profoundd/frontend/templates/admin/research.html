@@ -24,6 +24,7 @@
                     <th>Title</th>
                     <th>Category</th>
                     <th>Source</th>
+                    <th>Credibility</th>
                     <th>Added</th>
                     <th>Actions</th>
                 </tr>
@@ -34,6 +35,14 @@
                     <td>{{ doc.title[:60] }}{% if doc.title|length > 60 %}...{% endif %}</td>
                     <td>{{ doc.category | title }}</td>
                     <td>{{ doc.source_name }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('admin.research_library') }}" style="display:inline-flex; align-items:center; gap:4px;">
+                            <input type="hidden" name="action" value="edit_credibility">
+                            <input type="hidden" name="doc_id" value="{{ doc.id }}">
+                            <input type="number" name="credibility" value="{{ doc.source_credibility or 9 }}" min="1" max="10" style="width:60px;">
+                            <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                        </form>
+                    </td>
                     <td>{{ doc.created_at.strftime('%Y-%m-%d') if doc.created_at else '' }}</td>
                     <td class="actions-cell">
                         <form method="POST" action="{{ url_for('admin.research_library') }}" style="display:inline;">
@@ -51,7 +60,7 @@
 
     <div class="admin-section">
         <h2>Add New Document</h2>
-        <p class="text-muted" style="margin-bottom: 20px;">Paste a research document, collection of links, or any content you want indexed and searchable. It will appear in search results with credibility 9 (admin-curated).</p>
+        <p class="text-muted" style="margin-bottom: 20px;">Paste a research document, collection of links, or any content you want indexed and searchable.</p>
 
         <form method="POST" action="{{ url_for('admin.research_library') }}">
             <input type="hidden" name="action" value="add">
@@ -72,6 +81,12 @@
                     <option value="{{ key }}">{{ cat.label }}</option>
                     {% endfor %}
                 </select>
+            </div>
+
+            <div class="form-group">
+                <label for="credibility">Credibility Rating (1-10)</label>
+                <input type="number" id="credibility" name="credibility" value="9" min="1" max="10">
+                <p class="text-muted" style="margin-top:4px; font-size:0.85em;">Higher = ranks higher in results. 9 = admin-curated default.</p>
             </div>
 
             <div class="form-group">

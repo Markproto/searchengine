@@ -188,6 +188,7 @@ class ResearchDocument(db.Model):
     category = db.Column(db.String(50), default="news")
     source_name = db.Column(db.String(200), default="Profoundd Research")
     doc_url = db.Column(db.String(500), unique=True, nullable=False)
+    source_credibility = db.Column(db.Integer, default=9)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def to_es_doc(self):
@@ -199,7 +200,7 @@ class ResearchDocument(db.Model):
             "author": "Admin",
             "category": self.category,
             "source_name": self.source_name,
-            "source_credibility": 9,
+            "source_credibility": self.source_credibility if self.source_credibility is not None else 9,
             "url": self.doc_url,
             "published_at": self.created_at.isoformat() if self.created_at else datetime.now(timezone.utc).isoformat(),
             "crawled_at": datetime.now(timezone.utc).isoformat(),
