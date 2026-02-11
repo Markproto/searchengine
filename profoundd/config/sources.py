@@ -134,6 +134,7 @@ POLITICS_SOURCES = [
     {"name": "Louder with Crowder", "url": "https://feeds.libsyn.com/576250/rss", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Russell Brand - Stay Free", "url": "https://feeds.libsyn.com/576255/rss", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Joe Rogan Experience", "url": "https://feeds.megaphone.fm/GLT1412515089", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Redacted", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCoJhK5kMc4LjBKdiYrDtzlA", "category": "politics", "credibility": 8, "feed_type": "atom"},
     {"name": "Robert F. Kennedy Jr.", "url": "https://robertfkennedyjr.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Ian Miles Cheong", "url": "https://stillgray.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Ian Miles Cheong (Midnight Directive)", "url": "https://midnightdirective.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
