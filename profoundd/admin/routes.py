@@ -625,3 +625,109 @@ def analyze_url():
                            has_ai_key=has_ai_key,
                            default_provider=default_provider,
                            categories=CATEGORIES)
+
+
+# --- Historical Crawl ---
+
+# Store active historical crawlers for progress tracking
+_active_historical_crawls = {}
+
+
+@admin_bp.route("/sources/<int:source_id>/historical-crawl", methods=["GET", "POST"])
+@login_required
+def historical_crawl(source_id):
+    """Launch a historical crawl for a specific source."""
+    source = db.session.get(Source, source_id)
+    if not source:
+        flash("Source not found.", "error")
+        return redirect(url_for("admin.sources_list"))
+
+    if request.method == "POST":
+        import threading
+        from flask import current_app
+        from profoundd.crawler.historical_crawler import HistoricalCrawler
+
+        date_from_str = request.form.get("date_from", "")
+        date_to_str = request.form.get("date_to", "")
+        max_pages = int(request.form.get("max_pages", 500))
+
+        if not date_from_str or not date_to_str:
+            flash("Both start and end dates are required.", "error")
+            return redirect(url_for("admin.historical_crawl", source_id=source_id))
+
+        try:
+            date_from = datetime.strptime(date_from_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            date_to = datetime.strptime(date_to_str, "%Y-%m-%d").replace(
+                hour=23, minute=59, second=59, tzinfo=timezone.utc
+            )
+        except ValueError:
+            flash("Invalid date format.", "error")
+            return redirect(url_for("admin.historical_crawl", source_id=source_id))
+
+        if date_from > date_to:
+            flash("Start date must be before end date.", "error")
+            return redirect(url_for("admin.historical_crawl", source_id=source_id))
+
+        engine = SearchEngine(config.ELASTICSEARCH_URL)
+        if not engine.is_available():
+            flash("Elasticsearch is not available.", "error")
+            return redirect(url_for("admin.historical_crawl", source_id=source_id))
+
+        engine.create_index()
+        crawler = HistoricalCrawler(search_engine=engine)
+        _active_historical_crawls[source_id] = crawler
+
+        source_info = {
+            "name": source.name,
+            "url": source.url,
+            "category": source.category,
+            "credibility": source.credibility,
+        }
+
+        app = current_app._get_current_object()
+        sid = source_id
+
+        def run_historical():
+            with app.app_context():
+                try:
+                    count = crawler.crawl(source_info, date_from, date_to, max_pages)
+                    progress = crawler.get_progress()
+                    crawl_log = CrawlLog(
+                        articles_found=progress["urls_in_range"],
+                        articles_new=progress["articles_indexed"],
+                        articles_duplicate=progress["articles_skipped"],
+                        errors=progress["errors"],
+                        status="success" if count > 0 else "empty",
+                        trigger="historical",
+                        category=source_info["category"],
+                        duration_seconds=0,
+                    )
+                    db.session.add(crawl_log)
+                    db.session.commit()
+                except Exception as e:
+                    crawler.status = "error"
+                    crawler.progress_message = str(e)
+                    logger.error("Historical crawl failed for source %d: %s", sid, e)
+
+        threading.Thread(target=run_historical, daemon=True).start()
+        flash("Historical crawl started. Monitor progress below.", "success")
+        return redirect(url_for("admin.historical_crawl", source_id=source_id))
+
+    # Check if there's an active crawl for this source
+    active_crawler = _active_historical_crawls.get(source_id)
+    progress = active_crawler.get_progress() if active_crawler else None
+
+    return render_template("admin/historical_crawl.html",
+                           source=source,
+                           progress=progress,
+                           categories=CATEGORIES)
+
+
+@admin_bp.route("/sources/<int:source_id>/historical-crawl/status")
+@login_required
+def historical_crawl_status(source_id):
+    """AJAX endpoint for historical crawl progress."""
+    crawler = _active_historical_crawls.get(source_id)
+    if not crawler:
+        return jsonify({"status": "idle", "message": "No active crawl."})
+    return jsonify(crawler.get_progress())

@@ -1408,6 +1408,191 @@ body,
     transition: background 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s;
 }
 
+/* --- Historical Crawl Page --- */
+.btn-accent {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+}
+.btn-accent:hover {
+    background: var(--accent-hover);
+    color: #fff;
+}
+
+.historical-source-info {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+}
+.historical-source-info h2 {
+    margin-bottom: 4px;
+    font-size: 1.3rem;
+}
+.historical-source-info .source-meta {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+    align-items: center;
+}
+
+.historical-form-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+.historical-form-card h3 {
+    margin-bottom: 6px;
+    font-size: 1.1rem;
+}
+
+.historical-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+}
+.historical-form-grid .form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+}
+.historical-form-grid .form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-input);
+    color: var(--text);
+    font-size: 0.95rem;
+}
+.historical-form-grid small {
+    display: block;
+    margin-top: 4px;
+}
+
+.btn-lg {
+    padding: 12px 32px;
+    font-size: 1rem;
+}
+
+/* Progress section */
+.historical-progress {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+.historical-progress h3 {
+    margin-bottom: 16px;
+    font-size: 1.1rem;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background: var(--bg-input);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+.progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    min-width: 0;
+}
+
+.progress-message {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    word-break: break-all;
+}
+
+.progress-stats {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.stat-item {
+    text-align: center;
+    padding: 12px 8px;
+    background: var(--bg-input);
+    border-radius: var(--radius-sm);
+}
+.stat-value {
+    display: block;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text);
+}
+.stat-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+.stat-success .stat-value { color: var(--success); }
+.stat-error .stat-value { color: var(--danger); }
+
+.progress-complete {
+    background: rgba(22, 163, 74, 0.1);
+    border: 1px solid var(--success);
+    color: var(--success);
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    text-align: center;
+}
+.progress-error {
+    background: rgba(220, 38, 38, 0.1);
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+/* Info section */
+.historical-info {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+}
+.historical-info h3 {
+    margin-bottom: 12px;
+    font-size: 1.1rem;
+}
+.historical-info ol {
+    padding-left: 20px;
+    margin-bottom: 12px;
+}
+.historical-info li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+.historical-info code {
+    background: var(--bg-input);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+    .historical-form-grid {
+        grid-template-columns: 1fr;
+    }
+    .progress-stats {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
 /* Dark theme color-scheme for native elements */
 [data-theme="dark"] {
     color-scheme: dark;
