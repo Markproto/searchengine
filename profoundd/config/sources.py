@@ -137,6 +137,7 @@ POLITICS_SOURCES = [
     {"name": "Robert F. Kennedy Jr.", "url": "https://robertfkennedyjr.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Ian Miles Cheong", "url": "https://stillgray.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Ian Miles Cheong (Midnight Directive)", "url": "https://midnightdirective.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Ian Carroll", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCXN75hqjDGF0sKsCRoAZ6fz", "category": "politics", "credibility": 8, "feed_type": "atom"},
 ]
 
 MARKETS_SOURCES = [
