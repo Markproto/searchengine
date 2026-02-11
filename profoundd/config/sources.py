@@ -83,6 +83,7 @@ FINANCE_SOURCES = [
     {"name": "Wall Street Journal", "url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml", "category": "finance", "credibility": 7, "feed_type": "rss"},
     {"name": "Seeking Alpha", "url": "https://seekingalpha.com/feed.xml", "category": "finance", "credibility": 7, "feed_type": "rss"},
     {"name": "Barrons", "url": "https://www.barrons.com/feed", "category": "finance", "credibility": 7, "feed_type": "rss"},
+    {"name": "The Solari Report", "url": "https://thesolarireport.substack.com/feed", "category": "finance", "credibility": 8, "feed_type": "rss"},
 ]
 
 SCIENCE_SOURCES = [
