@@ -379,7 +379,12 @@ main { flex: 1; }
     font-size: 1rem;
     line-height: 1.8;
     color: var(--text-primary);
-    white-space: pre-wrap;
+}
+.article-content p {
+    margin: 0 0 1em 0;
+}
+.article-content p:last-child {
+    margin-bottom: 0;
 }
 .article-source-link {
     color: var(--accent);

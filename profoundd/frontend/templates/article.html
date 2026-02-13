@@ -78,7 +78,12 @@
 
         {% if article.content %}
         <div class="article-content">
-            {{ article.content }}
+            {% for paragraph in article.content.split('\n\n') %}
+                {% set text = paragraph.strip() %}
+                {% if text %}
+                <p>{{ text }}</p>
+                {% endif %}
+            {% endfor %}
         </div>
         {% endif %}
 
