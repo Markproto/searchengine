@@ -128,8 +128,12 @@ class FeedCrawler:
         if hasattr(entry, "tags") and entry.tags:
             tags = [t.get("term", "") for t in entry.tags[:5]]
 
-        # Determine category — check for special section keyword matches
-        category = self._match_special_category(title, summary) or source["category"]
+        # Determine category — check for special section keyword matches.
+        # For articles from any feed, if keywords match a special section, re-categorize.
+        # _matched_special is also used by crawl_source to filter out non-matching
+        # articles from feeds assigned to special categories.
+        matched_special = self._match_special_category(title, summary)
+        category = matched_special or source["category"]
 
         return {
             "title": title,
@@ -150,6 +154,10 @@ class FeedCrawler:
         logger.info("Crawling: %s (%s)", source["name"], source["category"])
         entries = self.fetch_feed(source)
         articles = []
+        # If this source is assigned to a special category, only keep articles
+        # that actually match the keywords — otherwise the whole general feed
+        # (e.g. Daily Mail) would flood the special section with irrelevant stories.
+        source_is_special = source["category"] in SPECIAL_SECTION_KEYWORDS
 
         for entry in entries:
             try:
@@ -158,6 +166,17 @@ class FeedCrawler:
                     continue
 
                 self.stats["found"] += 1
+
+                # For special-category sources, only keep articles whose keywords
+                # actually matched.  When no keyword matches, extract_article falls
+                # back to source["category"] — but that would flood the section with
+                # unrelated articles from general feeds like Daily Mail.
+                if source_is_special:
+                    keyword_matched = self._match_special_category(
+                        article["title"], article["summary"]
+                    )
+                    if not keyword_matched:
+                        continue
 
                 if self._is_duplicate(article["url"]):
                     self.stats["duplicate"] += 1
