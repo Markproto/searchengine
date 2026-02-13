@@ -11,7 +11,7 @@ from flask_login import LoginManager
 
 from profoundd.config.settings import get_config
 from profoundd.config.sources import CATEGORIES
-from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting
+from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting, BobStory
 from profoundd.search.engine import SearchEngine
 from profoundd.admin.routes import admin_bp
 from profoundd.utils.logging_config import setup_logging
@@ -58,6 +58,8 @@ def create_app(config_override=None):
             page_key = "search"
         elif request.path.startswith("/submit"):
             page_key = "submit"
+        elif request.path.startswith("/newsroom"):
+            page_key = "newsroom"
 
         seo_title = SiteSetting.get(f"seo_{page_key}_title", "")
         seo_desc = SiteSetting.get(f"seo_{page_key}_description", "")
@@ -347,6 +349,29 @@ def create_app(config_override=None):
         about_html = SiteSetting.get("about_page_html", "")
         return render_template("about.html", categories=CATEGORIES, about_html=about_html)
 
+    # --- NewsRoom Bob public routes ---
+
+    @app.route("/newsroom")
+    def newsroom():
+        """Public newsroom page listing all Bob stories."""
+        page = request.args.get("page", 1, type=int)
+        per_page = 12
+        query = db.session.query(BobStory).filter_by(status="published")\
+            .order_by(BobStory.published_at.desc())
+        total = query.count()
+        stories = query.offset((page - 1) * per_page).limit(per_page).all()
+        pages = (total + per_page - 1) // per_page
+        return render_template("newsroom.html", stories=stories, categories=CATEGORIES,
+                               page=page, pages=pages, total=total)
+
+    @app.route("/newsroom/<slug>")
+    def bob_story(slug):
+        """Individual Bob story page with full SEO."""
+        story = db.session.query(BobStory).filter_by(slug=slug, status="published").first()
+        if not story:
+            return render_template("404.html", categories=CATEGORIES), 404
+        return render_template("bob_story.html", story=story, categories=CATEGORIES)
+
     @app.route("/robots.txt")
     def robots_txt():
         """Serve robots.txt for search engine crawlers."""
@@ -358,6 +383,7 @@ Allow: /category/
 Allow: /article/
 Allow: /about
 Allow: /submit
+Allow: /newsroom
 Disallow: /admin/
 Disallow: /api/
 Disallow: /health
@@ -381,6 +407,13 @@ Sitemap: https://{domain}/sitemap.xml
         ]
         for key in CATEGORIES:
             urls.append({"loc": f"{base}/category/{key}", "changefreq": "hourly", "priority": "0.8"})
+
+        # Add NewsRoom Bob stories to sitemap
+        urls.append({"loc": base + "/newsroom", "changefreq": "daily", "priority": "0.7"})
+        bob_stories = db.session.query(BobStory).filter_by(status="published")\
+            .order_by(BobStory.published_at.desc()).limit(200).all()
+        for story in bob_stories:
+            urls.append({"loc": f"{base}/newsroom/{story.slug}", "changefreq": "weekly", "priority": "0.6"})
 
         xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>']
         xml_parts.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')

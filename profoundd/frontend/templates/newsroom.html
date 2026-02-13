@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}NewsRoom - Profoundd{% endblock %}
+{% block description %}Original stories by NewsRoom Bob, powered by AI and sourced from real reporting. Fresh takes on what matters.{% endblock %}
+{% block og_title %}NewsRoom - Profoundd{% endblock %}
+{% block og_description %}Original stories by NewsRoom Bob, powered by AI and sourced from real reporting.{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Profoundd NewsRoom",
+    "description": "AI-generated stories by NewsRoom Bob, based on original source reporting.",
+    "url": "https://{{ site_domain }}/newsroom",
+    "publisher": {"@type": "Organization", "name": "Profoundd"}
+}
+</script>
+{% endblock %}
+
+{% block nav_search %}
+<form action="/search" method="GET" class="nav-search-form">
+    <input type="text" name="q" placeholder="Search..." class="nav-search-input">
+</form>
+{% endblock %}
+
+{% block content %}
+<div class="container newsroom-page">
+    <div class="newsroom-header">
+        <h1>NewsRoom</h1>
+        <p class="newsroom-byline">Original stories by <strong>NewsRoom Bob</strong> — AI-generated from real source reporting. Every story links back to the original.</p>
+    </div>
+
+    {% if stories %}
+    <div class="articles-grid">
+        {% for story in stories %}
+        <article class="trending-card bob-story-card">
+            {% if story.image_url %}
+            <div class="bob-card-image">
+                <a href="/newsroom/{{ story.slug }}">
+                    <img src="{{ story.image_url }}" alt="{{ story.title }}" loading="lazy">
+                </a>
+            </div>
+            {% endif %}
+            <div class="result-header">
+                <span class="result-source">NewsRoom Bob</span>
+                <span class="result-category category-tag-{{ story.category }}">{{ story.category | title }}</span>
+            </div>
+            <h3><a href="/newsroom/{{ story.slug }}">{{ story.title }}</a></h3>
+            {% if story.summary %}
+            <p class="result-summary">{{ story.summary[:200] }}{% if story.summary|length > 200 %}...{% endif %}</p>
+            {% endif %}
+            <p class="trending-meta">
+                <span class="source">via {{ story.source_name }}</span>
+                {% if story.published_at %}
+                <span class="date" data-time="{{ story.published_at.isoformat() }}">{{ story.published_at.strftime('%Y-%m-%d') }}</span>
+                {% endif %}
+            </p>
+        </article>
+        {% endfor %}
+    </div>
+
+    {% if pages > 1 %}
+    <nav class="pagination">
+        {% if page > 1 %}
+        <a href="/newsroom?page={{ page - 1 }}" class="page-link">&laquo; Prev</a>
+        {% endif %}
+        {% for p in range(1, pages + 1) %}
+        <a href="/newsroom?page={{ p }}" class="page-link {% if p == page %}active{% endif %}">{{ p }}</a>
+        {% endfor %}
+        {% if page < pages %}
+        <a href="/newsroom?page={{ page + 1 }}" class="page-link">Next &raquo;</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <div class="no-results">
+        <h2>No stories yet</h2>
+        <p>NewsRoom Bob hasn't written any stories yet. Hit the "Bob, Write This" button on any article to get him started.</p>
+        <a href="/" class="btn btn-primary">Back to Home</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

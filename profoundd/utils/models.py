@@ -241,6 +241,46 @@ class AdminRankingAction(db.Model):
         }
 
 
+class BobStory(db.Model):
+    """AI-generated stories by NewsRoom Bob, based on original articles."""
+    __tablename__ = "bob_stories"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(500), nullable=False)
+    slug = db.Column(db.String(300), unique=True, nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    summary = db.Column(db.Text)
+    seo_keywords = db.Column(db.String(500))
+    seo_description = db.Column(db.String(300))
+    category = db.Column(db.String(50), index=True)
+    image_url = db.Column(db.String(1000))
+
+    # Link back to the original source
+    source_article_url = db.Column(db.String(1000), nullable=False)
+    source_article_title = db.Column(db.String(500))
+    source_name = db.Column(db.String(200))
+
+    status = db.Column(db.String(20), default="published")  # draft, published
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    published_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def to_es_doc(self):
+        """Convert to Elasticsearch document format for indexing."""
+        return {
+            "title": self.title,
+            "summary": self.summary or self.title,
+            "content": self.content,
+            "author": "NewsRoom Bob",
+            "category": self.category or "news",
+            "source_name": "Profoundd NewsRoom",
+            "source_credibility": 8,
+            "url": f"profoundd://bob/{self.slug}",
+            "tags": [t.strip() for t in (self.seo_keywords or "").split(",") if t.strip()],
+            "published_at": self.published_at.isoformat() if self.published_at else datetime.now(timezone.utc).isoformat(),
+            "crawled_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+
 class ArticleVote(db.Model):
     """Public thumbs up/down votes on search results."""
     __tablename__ = "article_votes"

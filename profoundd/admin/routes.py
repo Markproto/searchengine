@@ -10,7 +10,7 @@ from functools import wraps
 import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory
 from profoundd.config.settings import get_config
 from profoundd.config.sources import ALL_SOURCES, CATEGORIES
 from profoundd.search.engine import SearchEngine
@@ -918,3 +918,112 @@ def the_man():
                            demotes=demotes,
                            decisions=decisions,
                            run_error=run_error)
+
+
+# --- NewsRoom Bob ---
+
+@admin_bp.route("/bob/write", methods=["POST"])
+def bob_write():
+    """Trigger NewsRoom Bob to write a story based on an article. AJAX endpoint."""
+    if not session.get("admin_logged_in"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    article_url = data.get("url", "").strip()
+    article_title = data.get("title", "").strip()
+    source_name = data.get("source_name", "").strip()
+    category = data.get("category", "news").strip()
+    summary = data.get("summary", "").strip()
+
+    if not article_url or not article_title:
+        return jsonify({"error": "Article URL and title are required"}), 400
+
+    # Check if Bob already wrote about this
+    existing = db.session.query(BobStory).filter_by(source_article_url=article_url).first()
+    if existing:
+        return jsonify({
+            "success": True,
+            "already_exists": True,
+            "slug": existing.slug,
+            "message": "Bob already wrote this one!",
+        })
+
+    # Get API key
+    api_key = SiteSetting.get("ai_anthropic_key", "")
+    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+    if not api_key:
+        return jsonify({"error": "No AI API key configured. Go to Admin > AI Settings."}), 400
+
+    # If we have a URL, try to fetch more content for Bob to work with
+    content_for_bob = summary
+    if article_url and not article_url.startswith("profoundd://"):
+        try:
+            from profoundd.search.ai_analyzer import fetch_url_content
+            fetched, fetch_err = fetch_url_content(article_url)
+            if fetched and fetched.get("text"):
+                content_for_bob = fetched["text"]
+        except Exception:
+            pass  # Fall back to summary
+
+    # Generate the story
+    from profoundd.search.newsroom_bob import generate_bob_story, make_slug
+
+    article_data = {
+        "title": article_title,
+        "url": article_url,
+        "source_name": source_name,
+        "category": category,
+        "content": content_for_bob,
+        "summary": summary,
+    }
+
+    result, error = generate_bob_story(article_data, api_key, model)
+    if error:
+        return jsonify({"error": error}), 500
+
+    # Try to grab an image from the original article
+    image_url = None
+    if article_url and not article_url.startswith("profoundd://"):
+        image_url = fetch_og_image(article_url)
+
+    # Create the slug and ensure uniqueness
+    slug = make_slug(result["headline"] or article_title)
+    base_slug = slug
+    counter = 1
+    while db.session.query(BobStory).filter_by(slug=slug).first():
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+    # Save to database
+    story = BobStory(
+        title=result["headline"] or article_title,
+        slug=slug,
+        content=result["body"],
+        summary=result["summary"],
+        seo_keywords=result["seo_keywords"],
+        seo_description=result["seo_description"],
+        category=category,
+        image_url=image_url,
+        source_article_url=article_url,
+        source_article_title=article_title,
+        source_name=source_name,
+    )
+    db.session.add(story)
+    db.session.commit()
+
+    # Index to Elasticsearch
+    try:
+        engine = SearchEngine(config.ELASTICSEARCH_URL)
+        engine.index_article(story.to_es_doc())
+    except Exception as e:
+        logger.warning("Could not index Bob story to ES: %s", e)
+
+    return jsonify({
+        "success": True,
+        "slug": slug,
+        "title": story.title,
+        "message": "Bob wrote it!",
+    })

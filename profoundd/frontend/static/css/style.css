@@ -1796,3 +1796,106 @@ body,
 .boost-value.negative { color: #f44336; }
 .boost-value.neutral { color: rgba(255,255,255,0.5); }
 
+/* =========================================
+   NewsRoom Bob
+   ========================================= */
+
+/* Bob Write This button */
+.bob-write-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #fff;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+.bob-write-btn:hover {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+.bob-write-btn.bob-working {
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    animation: bob-pulse 1.5s ease-in-out infinite;
+    cursor: wait;
+}
+.bob-write-btn.bob-done {
+    background: linear-gradient(135deg, #10b981, #22c55e);
+    cursor: pointer;
+}
+@keyframes bob-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* NewsRoom listing page */
+.newsroom-page { padding-top: 1.5rem; }
+.newsroom-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+.newsroom-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+}
+.newsroom-byline {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+/* Bob story cards */
+.bob-story-card .bob-card-image {
+    margin: -1rem -1rem 0.75rem -1rem;
+    border-radius: var(--radius) var(--radius) 0 0;
+    overflow: hidden;
+    max-height: 180px;
+}
+.bob-story-card .bob-card-image img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    display: block;
+}
+
+/* Bob story detail page */
+.bob-story-page .bob-byline {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.bob-story-page .bob-source-credit {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+.bob-content p {
+    margin-bottom: 1rem;
+    line-height: 1.75;
+    color: var(--text);
+    font-size: 1.05rem;
+}
+.bob-original-source {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.bob-source-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+

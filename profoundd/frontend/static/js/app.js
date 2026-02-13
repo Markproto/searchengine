@@ -345,3 +345,51 @@ document.addEventListener('click', function(e) {
 document.querySelectorAll('.boost-value').forEach(function(el) {
     updateBoostDisplay(el, parseInt(el.textContent, 10) || 5);
 });
+
+/* NewsRoom Bob - "Bob, Write This" button handler */
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.bob-write-btn');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Prevent double-click
+    if (btn.disabled) return;
+    btn.disabled = true;
+    var origText = btn.textContent;
+    btn.textContent = 'Bob is writing...';
+    btn.classList.add('bob-working');
+
+    var data = {
+        url: btn.getAttribute('data-url'),
+        title: btn.getAttribute('data-title'),
+        source_name: btn.getAttribute('data-source'),
+        category: btn.getAttribute('data-category'),
+        summary: btn.getAttribute('data-summary')
+    };
+
+    fetch('/admin/bob/write', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    })
+    .then(function(r) {
+        if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Failed'); });
+        return r.json();
+    })
+    .then(function(result) {
+        btn.classList.remove('bob-working');
+        btn.classList.add('bob-done');
+        if (result.already_exists) {
+            btn.innerHTML = '<a href="/newsroom/' + result.slug + '" style="color:inherit;text-decoration:none">Already Written &rarr;</a>';
+        } else {
+            btn.innerHTML = '<a href="/newsroom/' + result.slug + '" style="color:inherit;text-decoration:none">Read Bob\'s Story &rarr;</a>';
+        }
+    })
+    .catch(function(err) {
+        btn.classList.remove('bob-working');
+        btn.disabled = false;
+        btn.textContent = origText;
+        alert('Bob failed: ' + err.message);
+    });
+});

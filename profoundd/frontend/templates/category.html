@@ -74,6 +74,17 @@
                 {% if article.published_at %}
                 <span class="date" data-time="{{ article.published_at }}">{{ article.published_at[:10] }}</span>
                 {% endif %}
+                {% if session.get('admin_logged_in') %}
+                <button type="button" class="bob-write-btn"
+                        data-url="{{ article.url }}"
+                        data-title="{{ article.title }}"
+                        data-source="{{ article.source_name }}"
+                        data-category="{{ article.category }}"
+                        data-summary="{{ (article.summary or '')[:500] }}"
+                        title="Have NewsRoom Bob write a story about this">
+                    Bob, Write This
+                </button>
+                {% endif %}
             </p>
         </article>
         {% endfor %}
