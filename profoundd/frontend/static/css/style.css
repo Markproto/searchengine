@@ -1882,10 +1882,13 @@ body,
     font-size: 0.9rem;
 }
 .bob-content p {
-    margin-bottom: 1rem;
-    line-height: 1.75;
+    margin: 0 0 0.75rem 0;
+    line-height: 1.7;
     color: var(--text);
     font-size: 1.05rem;
+}
+.bob-content p:last-child {
+    margin-bottom: 0;
 }
 .bob-original-source {
     display: flex;

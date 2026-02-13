@@ -83,9 +83,10 @@
 
         {% if story.content %}
         <div class="article-content bob-content">
-            {% for paragraph in story.content.split('\n') %}
-                {% if paragraph.strip() %}
-                <p>{{ paragraph.strip() }}</p>
+            {% for paragraph in story.content.split('\n\n') %}
+                {% set text = paragraph.strip().replace('\n', ' ') %}
+                {% if text %}
+                <p>{{ text }}</p>
                 {% endif %}
             {% endfor %}
         </div>
