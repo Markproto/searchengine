@@ -66,7 +66,7 @@
                 </span>
                 {% endif %}
             </div>
-            <h3>{% if article.url.startswith('profoundd://') %}<a href="/article/{{ article.url.split('/')[-1] }}">{{ article.title }}</a>{% else %}<a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a>{% endif %}</h3>
+            <h3>{% if article.url.startswith('profoundd://bob/') %}<a href="/newsroom/{{ article.url.split('/')[-1] }}">{{ article.title }}</a>{% elif article.url.startswith('profoundd://') %}<a href="/article/{{ article.url.split('/')[-1] }}">{{ article.title }}</a>{% else %}<a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a>{% endif %}</h3>
             {% if article.summary %}
             <p class="result-summary">{{ article.summary[:200] }}{% if article.summary|length > 200 %}...{% endif %}</p>
             {% endif %}
