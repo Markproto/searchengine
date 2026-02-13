@@ -116,6 +116,7 @@ def dashboard():
     sources_count = db.session.query(Source).count()
     active_sources = db.session.query(Source).filter_by(is_active=True).count()
     articles_count = db.session.query(Article).count()
+    bob_stories_count = db.session.query(BobStory).filter_by(status="published").count()
     recent_searches = db.session.query(SearchLog).order_by(SearchLog.searched_at.desc()).limit(20).all()
 
     # Category breakdown
@@ -130,6 +131,7 @@ def dashboard():
                            sources_count=sources_count,
                            active_sources=active_sources,
                            articles_count=articles_count,
+                           bob_stories_count=bob_stories_count,
                            recent_searches=recent_searches,
                            category_stats=category_stats,
                            categories=CATEGORIES)
@@ -1027,3 +1029,36 @@ def bob_write():
         "title": story.title,
         "message": "Bob wrote it!",
     })
+
+
+@admin_bp.route("/bob/stories")
+@login_required
+def bob_stories_list():
+    """Admin page listing all NewsRoom Bob stories."""
+    stories = db.session.query(BobStory).order_by(BobStory.published_at.desc()).all()
+    return render_template("admin/bob_stories.html", stories=stories)
+
+
+@admin_bp.route("/bob/stories/<int:story_id>/delete", methods=["POST"])
+@login_required
+def bob_story_delete(story_id):
+    """Delete a Bob story from DB and ES."""
+    story = db.session.query(BobStory).get(story_id)
+    if not story:
+        flash("Story not found.", "error")
+        return redirect(url_for("admin.bob_stories_list"))
+
+    # Remove from Elasticsearch
+    try:
+        import hashlib
+        engine = SearchEngine(config.ELASTICSEARCH_URL)
+        es_url = f"profoundd://bob/{story.slug}"
+        es_id = hashlib.md5(es_url.encode()).hexdigest()
+        engine.es.delete(index=engine.index_name, id=es_id, ignore=[404])
+    except Exception as e:
+        logger.warning("Could not remove Bob story from ES: %s", e)
+
+    db.session.delete(story)
+    db.session.commit()
+    flash(f"Deleted: {story.title}", "success")
+    return redirect(url_for("admin.bob_stories_list"))

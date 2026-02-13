@@ -28,6 +28,11 @@
             <h3>Articles (DB)</h3>
             <p class="stat-value">{{ articles_count }}</p>
         </div>
+        <div class="stat-card">
+            <h3>Bob Stories</h3>
+            <p class="stat-value">{{ bob_stories_count }}</p>
+            <p class="stat-detail"><a href="{{ url_for('admin.bob_stories_list') }}">Manage</a></p>
+        </div>
     </div>
 
     <!-- Category Breakdown -->
@@ -85,6 +90,7 @@
             <a href="{{ url_for('admin.analyze_url') }}" class="btn btn-secondary">Analyze URL (AI)</a>
             <a href="{{ url_for('admin.ai_settings') }}" class="btn btn-secondary">AI Settings</a>
             <a href="{{ url_for('admin.the_man') }}" class="btn btn-secondary">The Man</a>
+            <a href="{{ url_for('admin.bob_stories_list') }}" class="btn btn-secondary">NewsRoom Bob</a>
         </div>
     </div>
 
