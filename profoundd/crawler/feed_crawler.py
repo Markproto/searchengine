@@ -13,7 +13,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from profoundd.config.settings import get_config
-from profoundd.config.sources import ALL_SOURCES
+from profoundd.config.sources import ALL_SOURCES, SPECIAL_SECTION_KEYWORDS
 from profoundd.search.engine import SearchEngine
 
 logger = logging.getLogger(__name__)
@@ -35,6 +35,19 @@ class FeedCrawler:
         self._seen_urls = set()
         # Statistics
         self.stats = {"found": 0, "new": 0, "duplicate": 0, "errors": 0}
+
+    @staticmethod
+    def _match_special_category(title, summary):
+        """Check if title/summary matches any special section keywords.
+
+        Returns the special category key if matched, otherwise None.
+        Articles from ANY feed that mention these keywords get auto-tagged.
+        """
+        text = f"{title} {summary}".lower()
+        for cat_key, keywords in SPECIAL_SECTION_KEYWORDS.items():
+            if any(kw in text for kw in keywords):
+                return cat_key
+        return None
 
     def _is_duplicate(self, url):
         """Check if URL has already been seen in this crawl run or exists in ES."""
@@ -115,13 +128,16 @@ class FeedCrawler:
         if hasattr(entry, "tags") and entry.tags:
             tags = [t.get("term", "") for t in entry.tags[:5]]
 
+        # Determine category — check for special section keyword matches
+        category = self._match_special_category(title, summary) or source["category"]
+
         return {
             "title": title,
             "url": link,
             "summary": summary,
             "content": content or summary,
             "author": author,
-            "category": source["category"],
+            "category": category,
             "source_name": source["name"],
             "source_credibility": source.get("credibility", 5),
             "published_at": published.isoformat(),

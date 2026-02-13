@@ -12,7 +12,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 
 from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory
 from profoundd.config.settings import get_config
-from profoundd.config.sources import ALL_SOURCES, CATEGORIES
+from profoundd.config.sources import ALL_SOURCES, CATEGORIES, SPECIAL_SECTION_KEYWORDS
 from profoundd.search.engine import SearchEngine
 from profoundd.crawler.feed_crawler import FeedCrawler
 
@@ -1065,17 +1065,6 @@ def bob_story_delete(story_id):
 
 
 # --- Special Section Re-categorization ---
-
-SPECIAL_SECTION_KEYWORDS = {
-    "epstein-files": [
-        "epstein", "jeffrey epstein", "ghislaine maxwell", "epstein files",
-        "epstein island", "epstein list", "epstein documents", "epstein client",
-    ],
-    "charlie-kirk": [
-        "charlie kirk", "turning point usa", "turning point",
-    ],
-}
-
 
 @admin_bp.route("/recategorize-sections", methods=["POST"])
 @login_required

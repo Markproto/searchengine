@@ -162,11 +162,46 @@ MARKETS_SOURCES = [
     {"name": "Blockworks", "url": "https://blockworks.co/feed", "category": "markets", "credibility": 7, "feed_type": "rss"},
 ]
 
+EPSTEIN_SOURCES = [
+    # --- Epstein Files / Case Coverage ---
+    {"name": "Courthouse News (Epstein)", "url": "https://www.courthousenews.com/feed/", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "Lawfare (Epstein)", "url": "https://www.lawfaremedia.org/feed", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "Reuters Legal (Epstein)", "url": "https://www.reuters.com/legal/rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "Daily Mail US", "url": "https://www.dailymail.co.uk/articles.rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "New York Post", "url": "https://nypost.com/feed/", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "Insider (Epstein)", "url": "https://www.businessinsider.com/sai/rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "Unlimited Hangout", "url": "https://unlimitedhangout.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
+    {"name": "MintPress News", "url": "https://www.mintpressnews.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
+]
+
+CHARLIE_KIRK_SOURCES = [
+    # --- Charlie Kirk / Turning Point USA ---
+    {"name": "Charlie Kirk Show", "url": "https://feeds.megaphone.fm/charliekirkshow", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
+    {"name": "Turning Point USA", "url": "https://www.tpusa.com/feed", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
+    {"name": "Daily Wire", "url": "https://www.dailywire.com/feeds/rss.xml", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
+    {"name": "Breitbart (Kirk)", "url": "https://feeds.feedburner.com/breitbart", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
+    {"name": "The Federalist", "url": "https://thefederalist.com/feed/", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
+    {"name": "Campus Reform", "url": "https://www.campusreform.org/rss/CampusReform.rss", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
+]
+
 ALL_SOURCES = (
     NEWS_SOURCES + MEDICAL_SOURCES + LEGAL_SOURCES + TECH_SOURCES +
     FINANCE_SOURCES + SCIENCE_SOURCES + EDUCATION_SOURCES +
-    ENVIRONMENT_SOURCES + POLITICS_SOURCES + MARKETS_SOURCES
+    ENVIRONMENT_SOURCES + POLITICS_SOURCES + MARKETS_SOURCES +
+    EPSTEIN_SOURCES + CHARLIE_KIRK_SOURCES
 )
+
+# Keywords that trigger automatic re-categorization from any feed.
+# Articles from ANY source matching these keywords get moved to the special category.
+SPECIAL_SECTION_KEYWORDS = {
+    "epstein-files": [
+        "epstein", "jeffrey epstein", "ghislaine maxwell", "epstein files",
+        "epstein island", "epstein list", "epstein documents", "epstein client",
+    ],
+    "charlie-kirk": [
+        "charlie kirk", "turning point usa", "turning point",
+    ],
+}
 
 CATEGORIES = {
     "news": {"label": "News", "description": "General & World News", "icon": "newspaper", "color": "#3b82f6"},
