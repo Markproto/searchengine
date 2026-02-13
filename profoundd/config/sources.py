@@ -170,6 +170,8 @@ ALL_SOURCES = (
 
 CATEGORIES = {
     "news": {"label": "News", "description": "General & World News", "icon": "newspaper", "color": "#3b82f6"},
+    "epstein-files": {"label": "Epstein Files", "description": "Jeffrey Epstein Case Documents & Coverage", "icon": "folder-open", "color": "#b91c1c"},
+    "charlie-kirk": {"label": "Charlie Kirk", "description": "Charlie Kirk Coverage & Commentary", "icon": "megaphone", "color": "#1d4ed8"},
     "medical": {"label": "Medical", "description": "Health, Medicine & Research", "icon": "heartbeat", "color": "#ef4444"},
     "legal": {"label": "Legal", "description": "Law, Courts & Regulations", "icon": "gavel", "color": "#a855f7"},
     "tech": {"label": "Technology", "description": "Innovation, AI & Digital Frontier", "icon": "microchip", "color": "#06b6d4"},

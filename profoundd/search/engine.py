@@ -570,6 +570,33 @@ class SearchEngine:
             logger.error("Failed to delete old articles: %s", e)
             return 0
 
+    def recategorize_by_keywords(self, keywords, new_category):
+        """Re-categorize all articles matching any of the keywords to a new category."""
+        should_clauses = []
+        for kw in keywords:
+            should_clauses.append({"match_phrase": {"title": kw}})
+            should_clauses.append({"match_phrase": {"summary": kw}})
+            should_clauses.append({"match_phrase": {"content": kw}})
+        try:
+            result = self.es.update_by_query(
+                index=self.index_name,
+                body={
+                    "query": {"bool": {"should": should_clauses, "minimum_should_match": 1}},
+                    "script": {
+                        "source": "ctx._source.category = params.cat",
+                        "lang": "painless",
+                        "params": {"cat": new_category},
+                    },
+                },
+                refresh=True,
+            )
+            updated = result.get("updated", 0)
+            logger.info("Recategorized %d articles to '%s'", updated, new_category)
+            return updated
+        except Exception as e:
+            logger.error("Failed to recategorize to '%s': %s", new_category, e)
+            return 0
+
     # Sub-topic guarantees: ensure minimum representation of specific topics
     # within a category.  Keys = category name, values = list of
     # (min_count, keywords_list) tuples.

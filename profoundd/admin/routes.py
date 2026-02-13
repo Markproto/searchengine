@@ -1062,3 +1062,38 @@ def bob_story_delete(story_id):
     db.session.commit()
     flash(f"Deleted: {story.title}", "success")
     return redirect(url_for("admin.bob_stories_list"))
+
+
+# --- Special Section Re-categorization ---
+
+SPECIAL_SECTION_KEYWORDS = {
+    "epstein-files": [
+        "epstein", "jeffrey epstein", "ghislaine maxwell", "epstein files",
+        "epstein island", "epstein list", "epstein documents", "epstein client",
+    ],
+    "charlie-kirk": [
+        "charlie kirk", "turning point usa", "turning point",
+    ],
+}
+
+
+@admin_bp.route("/recategorize-sections", methods=["POST"])
+@login_required
+def recategorize_sections():
+    """Re-categorize existing articles into special sections based on keywords."""
+    engine = SearchEngine(config.ELASTICSEARCH_URL)
+    total = 0
+    for cat_key, keywords in SPECIAL_SECTION_KEYWORDS.items():
+        updated = engine.recategorize_by_keywords(keywords, cat_key)
+        total += updated
+
+    # Also update BobStory records in the database
+    for cat_key, keywords in SPECIAL_SECTION_KEYWORDS.items():
+        for story in db.session.query(BobStory).filter_by(status="published").all():
+            text = f"{story.title} {story.summary or ''}".lower()
+            if any(kw in text for kw in keywords):
+                story.category = cat_key
+    db.session.commit()
+
+    flash(f"Re-categorized {total} articles into special sections.", "success")
+    return redirect(url_for("admin.dashboard"))

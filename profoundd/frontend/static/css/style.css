@@ -1077,6 +1077,10 @@ main { flex: 1; }
 .category-politics:hover { border-color: #8b5cf6; }
 .category-markets .category-icon, .category-tag-markets { color: #f97316; }
 .category-markets:hover { border-color: #f97316; }
+.category-epstein-files .category-icon, .category-tag-epstein-files { color: #b91c1c; }
+.category-epstein-files:hover { border-color: #b91c1c; }
+.category-charlie-kirk .category-icon, .category-tag-charlie-kirk { color: #1d4ed8; }
+.category-charlie-kirk:hover { border-color: #1d4ed8; }
 
 /* --- Search Suggestions Dropdown --- */
 .suggestions-dropdown {
