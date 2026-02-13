@@ -9,12 +9,12 @@
 
 {% block og_type %}article{% endblock %}
 {% block og_title %}{{ story.title }}{% endblock %}
-{% block og_description %}{{ story.seo_description or (story.summary or story.title)[:200] }}{% endblock %}
+{% block og_description %}{{ story.seo_description or (story.summary or story.title)[:200] }} | Found on Profoundd{% endblock %}
 {% block og_image_url %}{{ story.image_url or og_image }}{% endblock %}
 
 {% block twitter_card %}summary_large_image{% endblock %}
 {% block twitter_title %}{{ story.title }}{% endblock %}
-{% block twitter_description %}{{ story.seo_description or (story.summary or story.title)[:200] }}{% endblock %}
+{% block twitter_description %}{{ story.seo_description or (story.summary or story.title)[:200] }} | Found on Profoundd{% endblock %}
 {% block twitter_image %}{{ story.image_url or og_image }}{% endblock %}
 
 {% block structured_data %}

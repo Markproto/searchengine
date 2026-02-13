@@ -2,14 +2,18 @@
 
 function copyShareLink(btn) {
     var url = window.location.href;
+    // Build share text: article title + "Found on Profoundd" + link
+    var title = document.querySelector('h1');
+    var shareText = (title ? title.textContent.trim() + '\n' : '') +
+                    'Found on Profoundd\n' + url;
     if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(function() {
+        navigator.clipboard.writeText(shareText).then(function() {
             showCopied(btn);
         });
     } else {
         // Fallback for older browsers / non-HTTPS
         var tmp = document.createElement('textarea');
-        tmp.value = url;
+        tmp.value = shareText;
         tmp.style.position = 'fixed';
         tmp.style.opacity = '0';
         document.body.appendChild(tmp);

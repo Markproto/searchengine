@@ -4,12 +4,12 @@
 
 {% block og_type %}article{% endblock %}
 {% block og_title %}{{ article.title }}{% endblock %}
-{% block og_description %}{{ (article.summary or article.title)[:200] }} | Read more on Profoundd{% endblock %}
+{% block og_description %}{{ (article.summary or article.title)[:200] }} | Found on Profoundd{% endblock %}
 {% block og_image_url %}{{ article.image_url or og_image }}{% endblock %}
 
 {% block twitter_card %}summary{% endblock %}
 {% block twitter_title %}{{ article.title }}{% endblock %}
-{% block twitter_description %}{{ (article.summary or article.title)[:200] }} | Read more on Profoundd{% endblock %}
+{% block twitter_description %}{{ (article.summary or article.title)[:200] }} | Found on Profoundd{% endblock %}
 {% block twitter_image %}{{ article.image_url or og_image }}{% endblock %}
 
 {% block structured_data %}
