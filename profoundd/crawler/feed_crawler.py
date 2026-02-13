@@ -37,13 +37,14 @@ class FeedCrawler:
         self.stats = {"found": 0, "new": 0, "duplicate": 0, "errors": 0}
 
     @staticmethod
-    def _match_special_category(title, summary):
-        """Check if title/summary matches any special section keywords.
+    def _match_special_category(title, summary, content="", tags=None):
+        """Check if article text matches any special section keywords.
 
         Returns the special category key if matched, otherwise None.
-        Articles from ANY feed that mention these keywords get auto-tagged.
+        Checks title, summary, content, and tags for keyword matches.
         """
-        text = f"{title} {summary}".lower()
+        tag_text = " ".join(tags) if tags else ""
+        text = f"{title} {summary} {content} {tag_text}".lower()
         for cat_key, keywords in SPECIAL_SECTION_KEYWORDS.items():
             if any(kw in text for kw in keywords):
                 return cat_key
@@ -132,7 +133,7 @@ class FeedCrawler:
         # For articles from any feed, if keywords match a special section, re-categorize.
         # _matched_special is also used by crawl_source to filter out non-matching
         # articles from feeds assigned to special categories.
-        matched_special = self._match_special_category(title, summary)
+        matched_special = self._match_special_category(title, summary, content, tags)
         category = matched_special or source["category"]
 
         return {
@@ -173,7 +174,8 @@ class FeedCrawler:
                 # unrelated articles from general feeds like Daily Mail.
                 if source_is_special:
                     keyword_matched = self._match_special_category(
-                        article["title"], article["summary"]
+                        article["title"], article["summary"],
+                        article.get("content", ""), article.get("tags", [])
                     )
                     if not keyword_matched:
                         continue

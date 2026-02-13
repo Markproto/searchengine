@@ -164,24 +164,40 @@ MARKETS_SOURCES = [
 
 EPSTEIN_SOURCES = [
     # --- Epstein Files / Case Coverage ---
+    # Investigative & Legal
     {"name": "Courthouse News (Epstein)", "url": "https://www.courthousenews.com/feed/", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
     {"name": "Lawfare (Epstein)", "url": "https://www.lawfaremedia.org/feed", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
     {"name": "Reuters Legal (Epstein)", "url": "https://www.reuters.com/legal/rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
-    {"name": "Daily Mail US", "url": "https://www.dailymail.co.uk/articles.rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
-    {"name": "New York Post", "url": "https://nypost.com/feed/", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "ProPublica (Epstein)", "url": "https://www.propublica.org/feeds/propublica/main", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "The Intercept", "url": "https://theintercept.com/feed/?rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    # Tabloid / High-volume news
+    {"name": "Daily Mail US (Epstein)", "url": "https://www.dailymail.co.uk/articles.rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "New York Post (Epstein)", "url": "https://nypost.com/feed/", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
     {"name": "Insider (Epstein)", "url": "https://www.businessinsider.com/sai/rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "Fox News (Epstein)", "url": "https://moxie.foxnews.com/google-publisher/latest.xml", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    # Independent investigative
     {"name": "Unlimited Hangout", "url": "https://unlimitedhangout.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
     {"name": "MintPress News", "url": "https://www.mintpressnews.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
+    {"name": "The Grayzone", "url": "https://thegrayzone.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
+    {"name": "Consortium News", "url": "https://consortiumnews.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
+    {"name": "Zero Hedge (Epstein)", "url": "https://feeds.feedburner.com/zerohedge/feed", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
+    {"name": "Gateway Pundit (Epstein)", "url": "https://www.thegatewaypundit.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
 ]
 
 CHARLIE_KIRK_SOURCES = [
-    # --- Charlie Kirk / Turning Point USA ---
+    # --- Charlie Kirk / Turning Point USA / Conservative Movement ---
     {"name": "Charlie Kirk Show", "url": "https://feeds.megaphone.fm/charliekirkshow", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
     {"name": "Turning Point USA", "url": "https://www.tpusa.com/feed", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
-    {"name": "Daily Wire", "url": "https://www.dailywire.com/feeds/rss.xml", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
+    {"name": "Daily Wire (Kirk)", "url": "https://www.dailywire.com/feeds/rss.xml", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
     {"name": "Breitbart (Kirk)", "url": "https://feeds.feedburner.com/breitbart", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
-    {"name": "The Federalist", "url": "https://thefederalist.com/feed/", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
+    {"name": "The Federalist (Kirk)", "url": "https://thefederalist.com/feed/", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
     {"name": "Campus Reform", "url": "https://www.campusreform.org/rss/CampusReform.rss", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
+    {"name": "Fox News (Kirk)", "url": "https://moxie.foxnews.com/google-publisher/latest.xml", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
+    {"name": "New York Post (Kirk)", "url": "https://nypost.com/feed/", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
+    {"name": "Newsmax (Kirk)", "url": "https://www.newsmax.com/rss/Newsfront/1/", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
+    {"name": "The Blaze (Kirk)", "url": "https://www.theblaze.com/rss", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
+    {"name": "Epoch Times (Kirk)", "url": "https://www.theepochtimes.com/feed", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
+    {"name": "Washington Examiner (Kirk)", "url": "https://www.washingtonexaminer.com/feed", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
 ]
 
 ALL_SOURCES = (
@@ -195,11 +211,27 @@ ALL_SOURCES = (
 # Articles from ANY source matching these keywords get moved to the special category.
 SPECIAL_SECTION_KEYWORDS = {
     "epstein-files": [
-        "epstein", "jeffrey epstein", "ghislaine maxwell", "epstein files",
-        "epstein island", "epstein list", "epstein documents", "epstein client",
+        "epstein", "jeffrey epstein", "ghislaine maxwell",
+        "epstein files", "epstein documents", "epstein list",
+        "epstein island", "epstein client", "epstein victim",
+        "epstein associate", "epstein flight", "lolita express",
+        "little st. james", "little saint james",
+        "jean-luc brunel", "brunel", "les wexner", "wexner",
+        "epstein sealed", "epstein unsealed", "epstein deposition",
+        "epstein trafficking", "epstein coverup", "epstein cover-up",
+        "epstein conspiracy", "epstein blackmail", "epstein suicide",
+        "epstein murder", "epstein plea deal", "epstein settlement",
+        "virginia giuffre", "giuffre", "sarah ransome",
+        "courtney wild", "epstein accuser", "epstein survivor",
     ],
     "charlie-kirk": [
-        "charlie kirk", "turning point usa", "turning point",
+        "charlie kirk", "charliekirk",
+        "turning point usa", "turning point action", "tpusa",
+        "amfest", "americafest",
+        "kirk conservative", "kirk maga", "kirk trump",
+        "kirk campus", "kirk university", "kirk students",
+        "kirk podcast", "kirk show", "kirk rally",
+        "kirk interview", "kirk debate", "kirk speech",
     ],
 }
 

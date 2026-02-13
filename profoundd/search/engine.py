@@ -577,6 +577,7 @@ class SearchEngine:
             should_clauses.append({"match_phrase": {"title": kw}})
             should_clauses.append({"match_phrase": {"summary": kw}})
             should_clauses.append({"match_phrase": {"content": kw}})
+            should_clauses.append({"match_phrase": {"tags": kw}})
         try:
             result = self.es.update_by_query(
                 index=self.index_name,
