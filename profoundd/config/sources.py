@@ -30,6 +30,9 @@ NEWS_SOURCES = [
     {"name": "Hagmann Report", "url": "https://www.hagmannreport.com/feed/", "category": "news", "credibility": 8, "feed_type": "rss"},
     {"name": "Zuby", "url": "https://realtalkwithzuby.substack.com/feed", "category": "news", "credibility": 8, "feed_type": "rss"},
 
+    # --- Unbiased / Centrist ---
+    {"name": "Straight Arrow News", "url": "https://san.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
+
     # --- Business News ---
     {"name": "CNBC", "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114", "category": "news", "credibility": 7, "feed_type": "rss"},
     {"name": "Bloomberg", "url": "https://feeds.bloomberg.com/markets/news.rss", "category": "news", "credibility": 7, "feed_type": "rss"},
@@ -147,6 +150,7 @@ MARKETS_SOURCES = [
     {"name": "OilPrice.com", "url": "https://oilprice.com/rss/main", "category": "markets", "credibility": 7, "feed_type": "rss"},
 
     # --- Markets & Trading ---
+    {"name": "Benzinga", "url": "https://feeds.benzinga.com/benzinga", "category": "markets", "credibility": 7, "feed_type": "rss"},
     {"name": "Zero Hedge (Markets)", "url": "https://feeds.feedburner.com/zerohedge/feed", "category": "markets", "credibility": 8, "feed_type": "rss"},
     {"name": "Wolf Street", "url": "https://wolfstreet.com/feed/", "category": "markets", "credibility": 8, "feed_type": "rss"},
     {"name": "Mish Talk", "url": "https://mishtalk.com/feed", "category": "markets", "credibility": 8, "feed_type": "rss"},
