@@ -222,9 +222,9 @@ class FeedCrawler:
 
                 self.stats["found"] += 1
 
-                # Skip ads / sponsored content
-                if self._is_ad_content(article["title"], article["summary"]):
-                    logger.debug("Skipping ad content: %s", article["title"])
+                # Skip ads / sponsored content (Redacted YouTube feed only)
+                if source["name"] == "Redacted" and self._is_ad_content(article["title"], article["summary"]):
+                    logger.debug("Skipping ad content from Redacted: %s", article["title"])
                     continue
 
                 # For special-category sources, only keep articles whose keywords
