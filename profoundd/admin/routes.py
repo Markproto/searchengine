@@ -10,7 +10,7 @@ from functools import wraps
 import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote, PageView
 from profoundd.config.settings import get_config
 from profoundd.config.sources import ALL_SOURCES, CATEGORIES, SPECIAL_SECTION_KEYWORDS
 from profoundd.search.engine import SearchEngine
@@ -135,6 +135,75 @@ def dashboard():
                            recent_searches=recent_searches,
                            category_stats=category_stats,
                            categories=CATEGORIES)
+
+
+@admin_bp.route("/analytics")
+@login_required
+def analytics():
+    """Visitor analytics dashboard."""
+    from sqlalchemy import func, distinct
+
+    days = request.args.get("days", 7, type=int)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+    # Total page views in period
+    total_views = db.session.query(func.count(PageView.id)).filter(
+        PageView.viewed_at >= cutoff
+    ).scalar() or 0
+
+    # Unique visitors in period
+    unique_visitors = db.session.query(func.count(distinct(PageView.visitor_id))).filter(
+        PageView.viewed_at >= cutoff
+    ).scalar() or 0
+
+    # Views per day
+    daily_views = db.session.query(
+        func.date(PageView.viewed_at).label("day"),
+        func.count(PageView.id).label("views"),
+        func.count(distinct(PageView.visitor_id)).label("visitors"),
+    ).filter(
+        PageView.viewed_at >= cutoff
+    ).group_by(func.date(PageView.viewed_at)).order_by(func.date(PageView.viewed_at)).all()
+
+    # Top pages
+    top_pages = db.session.query(
+        PageView.path,
+        func.count(PageView.id).label("views"),
+        func.count(distinct(PageView.visitor_id)).label("visitors"),
+    ).filter(
+        PageView.viewed_at >= cutoff
+    ).group_by(PageView.path).order_by(func.count(PageView.id).desc()).limit(20).all()
+
+    # Top referrers (excluding empty)
+    top_referrers = db.session.query(
+        PageView.referrer,
+        func.count(PageView.id).label("views"),
+    ).filter(
+        PageView.viewed_at >= cutoff,
+        PageView.referrer != "",
+        PageView.referrer.isnot(None),
+    ).group_by(PageView.referrer).order_by(func.count(PageView.id).desc()).limit(15).all()
+
+    # Recent visitors (last 50)
+    recent_views = db.session.query(PageView).order_by(
+        PageView.viewed_at.desc()
+    ).limit(50).all()
+
+    # All-time totals
+    total_all_time = db.session.query(func.count(PageView.id)).scalar() or 0
+    unique_all_time = db.session.query(func.count(distinct(PageView.visitor_id))).scalar() or 0
+
+    return render_template("admin/analytics.html",
+                           categories=CATEGORIES,
+                           days=days,
+                           total_views=total_views,
+                           unique_visitors=unique_visitors,
+                           daily_views=daily_views,
+                           top_pages=top_pages,
+                           top_referrers=top_referrers,
+                           recent_views=recent_views,
+                           total_all_time=total_all_time,
+                           unique_all_time=unique_all_time)
 
 
 @admin_bp.route("/sources")

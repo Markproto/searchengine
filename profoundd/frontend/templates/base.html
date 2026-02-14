@@ -132,9 +132,24 @@
             </div>
             <div class="footer-bottom">
                 <p>&copy; 2026 Profoundd (profoundd.com). Open-source search engine.</p>
+                <p class="footer-privacy"><a href="#" onclick="document.getElementById('cookieConsent').style.display='flex';return false;">Cookie Settings</a></p>
             </div>
         </div>
     </footer>
+
+    <!-- Cookie Consent Banner (GDPR + US/CCPA compliant) -->
+    <div id="cookieConsent" class="cookie-banner" style="display:none;">
+        <div class="cookie-banner-inner">
+            <div class="cookie-banner-text">
+                <p><strong>We value your privacy.</strong> We use cookies to understand how visitors use this site so we can improve it. No personal data is sold or shared with third parties. By clicking "Accept," you consent to analytics cookies. You can decline and still use the site fully.</p>
+                <p class="cookie-banner-legal">See our <a href="/about">About</a> page for details. EU/EEA visitors: per GDPR Art. 6(1)(a), consent is required. US visitors: per CCPA, you may opt out at any time.</p>
+            </div>
+            <div class="cookie-banner-actions">
+                <button type="button" id="cookieAccept" class="btn btn-primary cookie-btn">Accept</button>
+                <button type="button" id="cookieDecline" class="btn btn-secondary cookie-btn">Decline</button>
+            </div>
+        </div>
+    </div>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     {% block scripts %}{% endblock %}

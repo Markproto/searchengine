@@ -296,6 +296,20 @@ class ArticleVote(db.Model):
     )
 
 
+class PageView(db.Model):
+    """Tracks individual page views for analytics."""
+    __tablename__ = "page_views"
+
+    id = db.Column(db.Integer, primary_key=True)
+    path = db.Column(db.String(1000), nullable=False, index=True)
+    visitor_id = db.Column(db.String(64), index=True)  # cookie-based anonymous ID
+    ip_address = db.Column(db.String(45))
+    user_agent = db.Column(db.String(500))
+    referrer = db.Column(db.String(1000))
+    country = db.Column(db.String(10))  # optional, from IP
+    viewed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+
 class NewsroomNote(db.Model):
     """Editorial notes added by admin to any article, visible to readers."""
     __tablename__ = "newsroom_notes"

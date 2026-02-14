@@ -2,16 +2,17 @@
 Main Flask application for Profoundd search engine.
 """
 import os
+import uuid
 import logging
 from datetime import datetime, timezone
 
-from flask import Flask, render_template, request, jsonify, flash, redirect, Response, url_for
+from flask import Flask, render_template, request, jsonify, flash, redirect, Response, url_for, make_response
 from flask_cors import CORS
 from flask_login import LoginManager
 
 from profoundd.config.settings import get_config
 from profoundd.config.sources import CATEGORIES
-from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting, BobStory, NewsroomNote, SourceNote
+from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting, BobStory, NewsroomNote, SourceNote, PageView
 from profoundd.search.engine import SearchEngine
 from profoundd.admin.routes import admin_bp
 from profoundd.utils.logging_config import setup_logging
@@ -104,6 +105,50 @@ def create_app(config_override=None):
             "get_newsroom_note": get_newsroom_note,
             "get_source_note": get_source_note,
         }
+
+    # --- Analytics: record page views when cookies are accepted ---
+    @app.after_request
+    def track_page_view(response):
+        # Only track HTML pages, skip static/API/admin/health
+        path = request.path
+        if (
+            request.method != "GET"
+            or path.startswith(("/static", "/api/", "/admin", "/health", "/robots", "/sitemap"))
+            or response.status_code >= 400
+        ):
+            return response
+
+        # Check if the visitor has accepted analytics cookies
+        consent = request.cookies.get("cookie_consent")
+        if consent != "accepted":
+            return response
+
+        # Get or assign a visitor ID cookie
+        visitor_id = request.cookies.get("profoundd_vid")
+        if not visitor_id:
+            visitor_id = uuid.uuid4().hex
+            response.set_cookie(
+                "profoundd_vid", visitor_id,
+                max_age=365 * 24 * 3600,  # 1 year
+                httponly=True,
+                samesite="Lax",
+                secure=request.is_secure,
+            )
+
+        try:
+            pv = PageView(
+                path=path[:1000],
+                visitor_id=visitor_id,
+                ip_address=request.remote_addr,
+                user_agent=(request.user_agent.string or "")[:500],
+                referrer=(request.referrer or "")[:1000],
+            )
+            db.session.add(pv)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+        return response
 
     # Initialize search engine
     search_engine = SearchEngine(app.config.get("ELASTICSEARCH_URL", "http://localhost:9200"))

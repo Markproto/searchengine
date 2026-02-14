@@ -2321,3 +2321,126 @@ body,
     font-size: 0.85rem;
 }
 
+/* --- Cookie Consent Banner --- */
+.cookie-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10000;
+    background: var(--bg-card);
+    border-top: 2px solid var(--primary);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+    padding: 0;
+    display: flex;
+    justify-content: center;
+}
+.cookie-banner-inner {
+    max-width: 960px;
+    width: 100%;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+.cookie-banner-text {
+    flex: 1;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: var(--text);
+}
+.cookie-banner-text p {
+    margin: 0 0 6px;
+}
+.cookie-banner-legal {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+.cookie-banner-legal a {
+    color: var(--primary);
+}
+.cookie-banner-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+.cookie-btn {
+    padding: 10px 22px;
+    font-size: 0.9rem;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+@media (max-width: 640px) {
+    .cookie-banner-inner {
+        flex-direction: column;
+        padding: 16px;
+        gap: 14px;
+    }
+    .cookie-banner-actions {
+        width: 100%;
+    }
+    .cookie-btn {
+        flex: 1;
+    }
+}
+.footer-privacy {
+    margin-top: 6px;
+    font-size: 0.82rem;
+}
+.footer-privacy a {
+    color: var(--text-muted);
+    text-decoration: underline;
+}
+
+/* --- Analytics page --- */
+.analytics-period {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+.analytics-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.chart-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.chart-label {
+    width: 90px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    text-align: right;
+    flex-shrink: 0;
+}
+.chart-bar-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-input);
+    border-radius: 4px;
+    height: 26px;
+    overflow: hidden;
+    position: relative;
+}
+.chart-bar {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 4px 0 0 4px;
+    min-width: 2px;
+    transition: width 0.3s ease;
+}
+.chart-value {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    padding-right: 8px;
+    white-space: nowrap;
+}
+

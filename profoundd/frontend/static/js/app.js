@@ -740,3 +740,47 @@ function showSourceNoteEditor(wrapper, existingText, stance) {
         editor.remove();
     });
 }
+
+/* =========================================
+   Cookie Consent Banner
+   ========================================= */
+(function() {
+    var banner = document.getElementById('cookieConsent');
+    var acceptBtn = document.getElementById('cookieAccept');
+    var declineBtn = document.getElementById('cookieDecline');
+    if (!banner) return;
+
+    // Show banner if no consent decision has been made
+    var consent = getCookie('cookie_consent');
+    if (!consent) {
+        banner.style.display = 'flex';
+    }
+
+    if (acceptBtn) {
+        acceptBtn.addEventListener('click', function() {
+            setCookie('cookie_consent', 'accepted', 365);
+            banner.style.display = 'none';
+        });
+    }
+
+    if (declineBtn) {
+        declineBtn.addEventListener('click', function() {
+            setCookie('cookie_consent', 'declined', 365);
+            banner.style.display = 'none';
+            // Remove the visitor ID cookie if it exists
+            setCookie('profoundd_vid', '', -1);
+        });
+    }
+
+    function getCookie(name) {
+        var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? match[2] : null;
+    }
+
+    function setCookie(name, value, days) {
+        var d = new Date();
+        d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
+        var secure = location.protocol === 'https:' ? ';Secure' : '';
+        document.cookie = name + '=' + value + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax' + secure;
+    }
+})();
