@@ -164,40 +164,40 @@ MARKETS_SOURCES = [
 EPSTEIN_SOURCES = [
     # --- Epstein Files / Case Coverage ---
     # Investigative & Legal
-    {"name": "Courthouse News (Epstein)", "url": "https://www.courthousenews.com/feed/", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
-    {"name": "Lawfare (Epstein)", "url": "https://www.lawfaremedia.org/feed", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
-    {"name": "Reuters Legal (Epstein)", "url": "https://www.reuters.com/legal/rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
-    {"name": "ProPublica (Epstein)", "url": "https://www.propublica.org/feeds/propublica/main", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "Courthouse News", "url": "https://www.courthousenews.com/feed/", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "Lawfare", "url": "https://www.lawfaremedia.org/feed", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "Reuters Legal", "url": "https://www.reuters.com/legal/rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "ProPublica", "url": "https://www.propublica.org/feeds/propublica/main", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
     {"name": "The Intercept", "url": "https://theintercept.com/feed/?rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
     # Tabloid / High-volume news
-    {"name": "Daily Mail US (Epstein)", "url": "https://www.dailymail.co.uk/articles.rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
-    {"name": "New York Post (Epstein)", "url": "https://nypost.com/feed/", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
-    {"name": "Insider (Epstein)", "url": "https://www.businessinsider.com/sai/rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
-    {"name": "Fox News (Epstein)", "url": "https://moxie.foxnews.com/google-publisher/latest.xml", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "Daily Mail US", "url": "https://www.dailymail.co.uk/articles.rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "New York Post", "url": "https://nypost.com/feed/", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "Insider", "url": "https://www.businessinsider.com/sai/rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
+    {"name": "Fox News", "url": "https://moxie.foxnews.com/google-publisher/latest.xml", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
     # Independent investigative
     {"name": "Andrew Murphy (Substack)", "url": "https://andrewmurphy950923.substack.com/feed", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
     {"name": "Unlimited Hangout", "url": "https://unlimitedhangout.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
     {"name": "MintPress News", "url": "https://www.mintpressnews.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
     {"name": "The Grayzone", "url": "https://thegrayzone.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
     {"name": "Consortium News", "url": "https://consortiumnews.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
-    {"name": "Zero Hedge (Epstein)", "url": "https://feeds.feedburner.com/zerohedge/feed", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
-    {"name": "Gateway Pundit (Epstein)", "url": "https://www.thegatewaypundit.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
+    {"name": "Zero Hedge", "url": "https://feeds.feedburner.com/zerohedge/feed", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
+    {"name": "Gateway Pundit", "url": "https://www.thegatewaypundit.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
 ]
 
 CHARLIE_KIRK_SOURCES = [
     # --- Charlie Kirk / Turning Point USA / Conservative Movement ---
     {"name": "Charlie Kirk Show", "url": "https://feeds.megaphone.fm/charliekirkshow", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
     {"name": "Turning Point USA", "url": "https://www.tpusa.com/feed", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
-    {"name": "Daily Wire (Kirk)", "url": "https://www.dailywire.com/feeds/rss.xml", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
-    {"name": "Breitbart (Kirk)", "url": "https://feeds.feedburner.com/breitbart", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
-    {"name": "The Federalist (Kirk)", "url": "https://thefederalist.com/feed/", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
+    {"name": "Daily Wire", "url": "https://www.dailywire.com/feeds/rss.xml", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
+    {"name": "Breitbart", "url": "https://feeds.feedburner.com/breitbart", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
+    {"name": "The Federalist", "url": "https://thefederalist.com/feed/", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
     {"name": "Campus Reform", "url": "https://www.campusreform.org/rss/CampusReform.rss", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
-    {"name": "Fox News (Kirk)", "url": "https://moxie.foxnews.com/google-publisher/latest.xml", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
-    {"name": "New York Post (Kirk)", "url": "https://nypost.com/feed/", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
-    {"name": "Newsmax (Kirk)", "url": "https://www.newsmax.com/rss/Newsfront/1/", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
-    {"name": "The Blaze (Kirk)", "url": "https://www.theblaze.com/rss", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
-    {"name": "Epoch Times (Kirk)", "url": "https://www.theepochtimes.com/feed", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
-    {"name": "Washington Examiner (Kirk)", "url": "https://www.washingtonexaminer.com/feed", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
+    {"name": "Fox News", "url": "https://moxie.foxnews.com/google-publisher/latest.xml", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
+    {"name": "New York Post", "url": "https://nypost.com/feed/", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
+    {"name": "Newsmax", "url": "https://www.newsmax.com/rss/Newsfront/1/", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
+    {"name": "The Blaze", "url": "https://www.theblaze.com/rss", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
+    {"name": "Epoch Times", "url": "https://www.theepochtimes.com/feed", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
+    {"name": "Washington Examiner", "url": "https://www.washingtonexaminer.com/feed", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
 ]
 
 ALL_SOURCES = (
