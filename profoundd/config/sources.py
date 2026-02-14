@@ -176,6 +176,7 @@ EPSTEIN_SOURCES = [
     {"name": "Insider (Epstein)", "url": "https://www.businessinsider.com/sai/rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
     {"name": "Fox News (Epstein)", "url": "https://moxie.foxnews.com/google-publisher/latest.xml", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
     # Independent investigative
+    {"name": "Andrew Murphy (Substack)", "url": "https://andrewmurphy950923.substack.com/feed", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
     {"name": "Unlimited Hangout", "url": "https://unlimitedhangout.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
     {"name": "MintPress News", "url": "https://www.mintpressnews.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
     {"name": "The Grayzone", "url": "https://thegrayzone.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
