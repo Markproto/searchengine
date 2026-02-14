@@ -19,6 +19,25 @@ from profoundd.search.engine import SearchEngine
 logger = logging.getLogger(__name__)
 config = get_config()
 
+# Patterns that indicate an entry is an ad / sponsored content.
+# Checked case-insensitively against the title and summary.
+AD_FILTER_PATTERNS = [
+    "#ad",
+    "#sponsored",
+    "sponsored by",
+    "brought to you by",
+    "paid promotion",
+    "paid partnership",
+    "this video is sponsored",
+    "thanks to our sponsor",
+    "use code ",
+    "use my code",
+    "use my link",
+    "check out our sponsor",
+    "affiliate link",
+    "promo code",
+]
+
 
 class FeedCrawler:
     """Crawls RSS/Atom feeds and indexes articles."""
@@ -35,6 +54,12 @@ class FeedCrawler:
         self._seen_urls = set()
         # Statistics
         self.stats = {"found": 0, "new": 0, "duplicate": 0, "errors": 0}
+
+    @staticmethod
+    def _is_ad_content(title, summary=""):
+        """Return True if the title or summary matches known ad/sponsored patterns."""
+        text = f"{title} {summary}".lower()
+        return any(pattern in text for pattern in AD_FILTER_PATTERNS)
 
     @staticmethod
     def _match_special_category(title, summary, content="", tags=None):
@@ -196,6 +221,11 @@ class FeedCrawler:
                     continue
 
                 self.stats["found"] += 1
+
+                # Skip ads / sponsored content
+                if self._is_ad_content(article["title"], article["summary"]):
+                    logger.debug("Skipping ad content: %s", article["title"])
+                    continue
 
                 # For special-category sources, only keep articles whose keywords
                 # actually matched.  When no keyword matches, extract_article falls
