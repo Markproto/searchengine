@@ -43,7 +43,7 @@
     <article class="article-detail">
         <header class="article-header">
             <div class="article-meta-bar">
-                <span class="result-source">{{ article.source_name or "Profoundd Research" }}</span>
+                <span class="result-source">{{ article.source_name or "Profoundd Research" }}{% with src_name=article.source_name or "Profoundd Research" %}{% include '_source_note.html' %}{% endwith %}</span>
                 {% if article.category %}
                 <span class="result-category category-tag-{{ article.category }}">{{ article.category | title }}</span>
                 {% endif %}

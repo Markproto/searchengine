@@ -11,7 +11,7 @@ from flask_login import LoginManager
 
 from profoundd.config.settings import get_config
 from profoundd.config.sources import CATEGORIES
-from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting, BobStory, NewsroomNote
+from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting, BobStory, NewsroomNote, SourceNote
 from profoundd.search.engine import SearchEngine
 from profoundd.admin.routes import admin_bp
 from profoundd.utils.logging_config import setup_logging
@@ -85,6 +85,12 @@ def create_app(config_override=None):
                 return None
             return db.session.query(NewsroomNote).filter_by(article_url=url).first()
 
+        def get_source_note(source_name):
+            """Look up a credibility note for a content source."""
+            if not source_name:
+                return None
+            return db.session.query(SourceNote).filter_by(source_name=source_name).first()
+
         return {
             "categories": CATEGORIES,
             "seo_title": seo_title,
@@ -96,6 +102,7 @@ def create_app(config_override=None):
             "gsc_verification": gsc_verification,
             "is_admin": request.path.startswith("/admin"),
             "get_newsroom_note": get_newsroom_note,
+            "get_source_note": get_source_note,
         }
 
     # Initialize search engine

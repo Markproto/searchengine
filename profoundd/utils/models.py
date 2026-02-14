@@ -306,3 +306,15 @@ class NewsroomNote(db.Model):
     note_text = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class SourceNote(db.Model):
+    """Editorial notes on content sources — why they are or aren't trustworthy."""
+    __tablename__ = "source_notes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    source_name = db.Column(db.String(200), nullable=False, unique=True, index=True)
+    note_text = db.Column(db.Text, nullable=False)
+    stance = db.Column(db.String(20), default="neutral")  # "trustworthy", "caution", "neutral"
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

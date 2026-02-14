@@ -10,7 +10,7 @@ from functools import wraps
 import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote
 from profoundd.config.settings import get_config
 from profoundd.config.sources import ALL_SOURCES, CATEGORIES, SPECIAL_SECTION_KEYWORDS
 from profoundd.search.engine import SearchEngine
@@ -939,6 +939,117 @@ def delete_newsroom_note():
         return jsonify({"error": "URL is required"}), 400
 
     note = db.session.query(NewsroomNote).filter_by(article_url=article_url).first()
+    if note:
+        db.session.delete(note)
+        db.session.commit()
+
+    return jsonify({"success": True})
+
+
+# --- Source Notes (credibility notes on content sources) ---
+
+@admin_bp.route("/api/source-note", methods=["POST"])
+@login_required
+def save_source_note():
+    """Add or update a credibility note on a content source."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    source_name = data.get("source_name", "").strip()
+    note_text = data.get("note_text", "").strip()
+    stance = data.get("stance", "neutral").strip()
+
+    if not source_name or not note_text:
+        return jsonify({"error": "Source name and note text are required"}), 400
+    if stance not in ("trustworthy", "caution", "neutral"):
+        stance = "neutral"
+
+    note = db.session.query(SourceNote).filter_by(source_name=source_name).first()
+    if note:
+        note.note_text = note_text
+        note.stance = stance
+        note.updated_at = datetime.now(timezone.utc)
+    else:
+        note = SourceNote(source_name=source_name, note_text=note_text, stance=stance)
+        db.session.add(note)
+
+    db.session.commit()
+    return jsonify({"success": True, "note_id": note.id, "note_text": note.note_text, "stance": note.stance})
+
+
+@admin_bp.route("/api/source-note/research", methods=["POST"])
+@login_required
+def research_source_note():
+    """Use AI to research a source's credibility and find evidence."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    source_name = data.get("source_name", "").strip()
+    admin_claim = data.get("claim", "").strip()
+
+    if not source_name:
+        return jsonify({"error": "Source name is required"}), 400
+
+    api_key = SiteSetting.get("ai_anthropic_key", "")
+    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+    if not api_key:
+        return jsonify({"error": "No AI API key configured."}), 400
+
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+
+        if admin_claim:
+            prompt = (
+                f"You are a media credibility researcher for Profoundd, a news search engine. "
+                f"An editor has a claim about the news source '{source_name}': \"{admin_claim}\"\n\n"
+                f"Research this claim. Write a concise credibility note (3-5 sentences) that:\n"
+                f"1. Addresses whether the claim is supported by known facts\n"
+                f"2. Mentions specific incidents, lawsuits, retractions, or awards if relevant\n"
+                f"3. Includes URLs to evidence where possible (use real, well-known URLs only)\n"
+                f"4. Is fair and factual — acknowledge both strengths and weaknesses\n\n"
+                f"Format: Write the note as plain text. Include links inline like: "
+                f"(source: https://example.com/article). Do NOT use markdown."
+            )
+        else:
+            prompt = (
+                f"You are a media credibility researcher for Profoundd, a news search engine. "
+                f"Write a concise credibility assessment (3-5 sentences) for the news source '{source_name}'.\n\n"
+                f"Include:\n"
+                f"1. What kind of outlet it is (legacy media, tabloid, independent, etc.)\n"
+                f"2. Notable credibility issues OR strengths (retractions, awards, lawsuits, bias ratings)\n"
+                f"3. Include URLs to evidence where possible (use real, well-known URLs only)\n"
+                f"4. Be fair — acknowledge both strengths and weaknesses\n\n"
+                f"Format: Write the note as plain text. Include links inline like: "
+                f"(source: https://example.com/article). Do NOT use markdown."
+            )
+
+        message = client.messages.create(
+            model=model,
+            max_tokens=500,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        research = message.content[0].text.strip()
+        return jsonify({"success": True, "research_text": research})
+    except Exception as e:
+        return jsonify({"error": f"AI research failed: {e}"}), 500
+
+
+@admin_bp.route("/api/source-note", methods=["DELETE"])
+@login_required
+def delete_source_note():
+    """Delete a credibility note from a source."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    source_name = data.get("source_name", "").strip()
+    if not source_name:
+        return jsonify({"error": "Source name is required"}), 400
+
+    note = db.session.query(SourceNote).filter_by(source_name=source_name).first()
     if note:
         db.session.delete(note)
         db.session.commit()

@@ -90,7 +90,7 @@
             {% endif %}
             <div class="result-body">
             <div class="result-header">
-                <span class="result-source">{{ article.source_name }}</span>
+                <span class="result-source">{{ article.source_name }}{% with src_name=article.source_name %}{% include '_source_note.html' %}{% endwith %}</span>
                 <span class="result-category category-tag-{{ article.category }}">{{ article.category | title }}</span>
                 {% if article.source_credibility and article._provider != 'searxng' %}
                 {% if session.get('admin_logged_in') %}

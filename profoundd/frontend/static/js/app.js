@@ -531,3 +531,179 @@ document.addEventListener('click', function(e) {
     })
     .catch(function(err) { alert('Delete failed: ' + err.message); });
 });
+
+/* --- Source Notes (credibility notes on content sources) --- */
+
+// Toggle source note popup
+document.addEventListener('click', function(e) {
+    var badge = e.target.closest('.source-note-badge');
+    if (!badge) return;
+    var wrapper = badge.closest('.source-note-wrapper');
+    var popup = wrapper.querySelector('.source-note-popup');
+    if (popup) popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+});
+
+// Close popup
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.source-note-close');
+    if (!btn) return;
+    btn.closest('.source-note-popup').style.display = 'none';
+});
+
+// Add source note (admin)
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.srcnote-add-btn');
+    if (!btn) return;
+    var wrapper = btn.closest('.source-note-wrapper');
+    if (wrapper) showSourceNoteEditor(wrapper, '', 'neutral');
+});
+
+// Edit source note (admin)
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.srcnote-edit-btn');
+    if (!btn) return;
+    var wrapper = btn.closest('.source-note-wrapper');
+    if (!wrapper) return;
+    var body = wrapper.querySelector('.source-note-body');
+    var stanceLabel = wrapper.querySelector('.source-note-stance-label');
+    var stance = 'neutral';
+    if (stanceLabel) {
+        if (stanceLabel.classList.contains('source-stance-trustworthy')) stance = 'trustworthy';
+        else if (stanceLabel.classList.contains('source-stance-caution')) stance = 'caution';
+    }
+    var popup = wrapper.querySelector('.source-note-popup');
+    if (popup) popup.style.display = 'none';
+    showSourceNoteEditor(wrapper, body ? body.textContent.trim() : '', stance);
+});
+
+// Delete source note (admin)
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.srcnote-delete-btn');
+    if (!btn) return;
+    if (!confirm('Delete this source note?')) return;
+    var wrapper = btn.closest('.source-note-wrapper');
+    if (!wrapper) return;
+    var srcName = wrapper.getAttribute('data-source');
+    fetch('/admin/api/source-note', {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({source_name: srcName})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.error) throw new Error(data.error);
+        var popup = wrapper.querySelector('.source-note-popup');
+        var badge = wrapper.querySelector('.source-note-badge');
+        if (popup) popup.remove();
+        if (badge) badge.remove();
+        // Show add button for admin
+        wrapper.innerHTML = '<button type="button" class="srcnote-add-btn" title="Add source credibility note">&#9432;</button>';
+        wrapper.setAttribute('data-source', srcName);
+    })
+    .catch(function(err) { alert('Delete failed: ' + err.message); });
+});
+
+function showSourceNoteEditor(wrapper, existingText, stance) {
+    var old = wrapper.querySelector('.srcnote-editor');
+    if (old) old.remove();
+
+    var srcName = wrapper.getAttribute('data-source');
+    var editor = document.createElement('div');
+    editor.className = 'srcnote-editor';
+    editor.innerHTML =
+        '<div class="srcnote-editor-title">Source Note: ' + srcName + '</div>' +
+        '<textarea class="srcnote-textarea" placeholder="Why is this source trustworthy or not? Include evidence...">' + (existingText || '') + '</textarea>' +
+        '<div class="srcnote-stance-row">' +
+        '<label>Stance:</label>' +
+        '<select class="srcnote-stance">' +
+        '<option value="neutral"' + (stance === 'neutral' ? ' selected' : '') + '>Neutral</option>' +
+        '<option value="trustworthy"' + (stance === 'trustworthy' ? ' selected' : '') + '>Trustworthy</option>' +
+        '<option value="caution"' + (stance === 'caution' ? ' selected' : '') + '>Use Caution</option>' +
+        '</select>' +
+        '</div>' +
+        '<div class="srcnote-editor-actions">' +
+        '<button type="button" class="srcnote-save">Save</button>' +
+        '<button type="button" class="srcnote-research">AI Research This Source</button>' +
+        '<button type="button" class="srcnote-research-claim">AI Find Evidence</button>' +
+        '<button type="button" class="srcnote-cancel">Cancel</button>' +
+        '</div>';
+
+    // Position near the wrapper
+    wrapper.appendChild(editor);
+    editor.querySelector('.srcnote-textarea').focus();
+
+    // Save
+    editor.querySelector('.srcnote-save').addEventListener('click', function() {
+        var text = editor.querySelector('.srcnote-textarea').value.trim();
+        var st = editor.querySelector('.srcnote-stance').value;
+        if (!text) return alert('Note cannot be empty.');
+        this.disabled = true;
+        this.textContent = 'Saving...';
+        fetch('/admin/api/source-note', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({source_name: srcName, note_text: text, stance: st})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) throw new Error(data.error);
+            location.reload();
+        })
+        .catch(function(err) { alert('Save failed: ' + err.message); });
+    });
+
+    // AI Research (general)
+    editor.querySelector('.srcnote-research').addEventListener('click', function() {
+        this.disabled = true;
+        this.textContent = 'Researching...';
+        var resBtn = this;
+        fetch('/admin/api/source-note/research', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({source_name: srcName})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) throw new Error(data.error);
+            editor.querySelector('.srcnote-textarea').value = data.research_text;
+            resBtn.disabled = false;
+            resBtn.textContent = 'AI Research This Source';
+        })
+        .catch(function(err) {
+            resBtn.disabled = false;
+            resBtn.textContent = 'AI Research This Source';
+            alert('Research failed: ' + err.message);
+        });
+    });
+
+    // AI Find Evidence (with admin's claim)
+    editor.querySelector('.srcnote-research-claim').addEventListener('click', function() {
+        var claim = editor.querySelector('.srcnote-textarea').value.trim();
+        if (!claim) return alert('Write your claim first (e.g. "This source has been caught fabricating quotes"), then click this button to find evidence.');
+        this.disabled = true;
+        this.textContent = 'Finding evidence...';
+        var evidBtn = this;
+        fetch('/admin/api/source-note/research', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({source_name: srcName, claim: claim})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) throw new Error(data.error);
+            editor.querySelector('.srcnote-textarea').value = data.research_text;
+            evidBtn.disabled = false;
+            evidBtn.textContent = 'AI Find Evidence';
+        })
+        .catch(function(err) {
+            evidBtn.disabled = false;
+            evidBtn.textContent = 'AI Find Evidence';
+            alert('Research failed: ' + err.message);
+        });
+    });
+
+    // Cancel
+    editor.querySelector('.srcnote-cancel').addEventListener('click', function() {
+        editor.remove();
+    });
+}
