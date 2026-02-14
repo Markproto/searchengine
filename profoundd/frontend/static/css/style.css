@@ -2104,6 +2104,45 @@ body,
     cursor: pointer;
 }
 .srcnote-cancel:hover { color: var(--text, #f1f5f9); }
+.srcnote-guidance-row {
+    margin: 0.4rem 0;
+}
+.srcnote-guidance-row label {
+    display: block;
+    font-size: 0.72rem;
+    color: #8b5cf6;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+.srcnote-guidance-row label small {
+    font-weight: 400;
+    color: var(--text-muted, #475569);
+}
+.srcnote-guidance {
+    width: 100%;
+    min-height: 38px;
+    background: var(--bg-secondary, #1e293b);
+    border: 1px solid #6366f1;
+    color: var(--text, #f1f5f9);
+    border-radius: var(--radius, 6px);
+    padding: 0.4rem;
+    font-size: 0.78rem;
+    font-family: inherit;
+    resize: vertical;
+}
+.srcnote-guidance:focus {
+    outline: none;
+    border-color: #8b5cf6;
+}
+.srcnote-guidelines-hint {
+    margin-top: 0.4rem;
+    font-size: 0.68rem;
+    color: var(--text-muted, #475569);
+}
+.srcnote-guidelines-hint a {
+    color: #6366f1;
+    text-decoration: underline;
+}
 
 /* NewsRoom Notes */
 .newsroom-note-wrapper {

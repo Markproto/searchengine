@@ -549,6 +549,7 @@ def ai_settings():
         SiteSetting.set("ai_xai_model", request.form.get("xai_model", "grok-2-latest"))
         SiteSetting.set("ai_default_provider", request.form.get("default_ai_provider", "anthropic"))
         SiteSetting.set("searxng_url", request.form.get("searxng_url", "").strip().rstrip("/"))
+        SiteSetting.set("source_research_guidelines", request.form.get("source_research_guidelines", "").strip())
         flash("Settings saved.", "success")
         return redirect(url_for("admin.ai_settings"))
 
@@ -559,6 +560,7 @@ def ai_settings():
                            xai_model=SiteSetting.get("ai_xai_model", "grok-2-latest"),
                            default_provider=SiteSetting.get("ai_default_provider", "anthropic"),
                            searxng_url=SiteSetting.get("searxng_url", ""),
+                           source_research_guidelines=SiteSetting.get("source_research_guidelines", ""),
                            categories=CATEGORIES)
 
 
@@ -988,6 +990,7 @@ def research_source_note():
 
     source_name = data.get("source_name", "").strip()
     admin_claim = data.get("claim", "").strip()
+    admin_guidance = data.get("guidance", "").strip()
 
     if not source_name:
         return jsonify({"error": "Source name is required"}), 400
@@ -997,39 +1000,60 @@ def research_source_note():
     if not api_key:
         return jsonify({"error": "No AI API key configured."}), 400
 
+    # Load the site-wide editorial constitution
+    constitution = SiteSetting.get("source_research_guidelines", "").strip()
+
     try:
         import anthropic
         client = anthropic.Anthropic(api_key=api_key)
 
+        # Build the system prompt with the editorial constitution
+        system_parts = [
+            "You are a media credibility researcher for Profoundd, a news search engine. "
+            "Your job is to help editors evaluate the credibility and trustworthiness of news sources."
+        ]
+        if constitution:
+            system_parts.append(
+                f"\n\n--- EDITORIAL GUIDELINES (follow these carefully) ---\n{constitution}\n--- END GUIDELINES ---"
+            )
+        system_prompt = "".join(system_parts)
+
+        # Build the user prompt based on what the admin is asking for
         if admin_claim:
-            prompt = (
-                f"You are a media credibility researcher for Profoundd, a news search engine. "
+            user_prompt = (
                 f"An editor has a claim about the news source '{source_name}': \"{admin_claim}\"\n\n"
                 f"Research this claim. Write a concise credibility note (3-5 sentences) that:\n"
                 f"1. Addresses whether the claim is supported by known facts\n"
                 f"2. Mentions specific incidents, lawsuits, retractions, or awards if relevant\n"
                 f"3. Includes URLs to evidence where possible (use real, well-known URLs only)\n"
-                f"4. Is fair and factual — acknowledge both strengths and weaknesses\n\n"
-                f"Format: Write the note as plain text. Include links inline like: "
-                f"(source: https://example.com/article). Do NOT use markdown."
+                f"4. Is fair and factual — acknowledge both strengths and weaknesses\n"
             )
         else:
-            prompt = (
-                f"You are a media credibility researcher for Profoundd, a news search engine. "
+            user_prompt = (
                 f"Write a concise credibility assessment (3-5 sentences) for the news source '{source_name}'.\n\n"
                 f"Include:\n"
                 f"1. What kind of outlet it is (legacy media, tabloid, independent, etc.)\n"
                 f"2. Notable credibility issues OR strengths (retractions, awards, lawsuits, bias ratings)\n"
                 f"3. Include URLs to evidence where possible (use real, well-known URLs only)\n"
-                f"4. Be fair — acknowledge both strengths and weaknesses\n\n"
-                f"Format: Write the note as plain text. Include links inline like: "
-                f"(source: https://example.com/article). Do NOT use markdown."
+                f"4. Be fair — acknowledge both strengths and weaknesses\n"
             )
+
+        # Add per-request guidance from the admin
+        if admin_guidance:
+            user_prompt += (
+                f"\n\nAdditional direction from the editor for this specific research:\n\"{admin_guidance}\""
+            )
+
+        user_prompt += (
+            "\n\nFormat: Write the note as plain text. Include links inline like: "
+            "(source: https://example.com/article). Do NOT use markdown."
+        )
 
         message = client.messages.create(
             model=model,
-            max_tokens=500,
-            messages=[{"role": "user", "content": prompt}],
+            max_tokens=600,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}],
         )
         research = message.content[0].text.strip()
         return jsonify({"success": True, "research_text": research})

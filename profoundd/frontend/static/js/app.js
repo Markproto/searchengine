@@ -621,12 +621,17 @@ function showSourceNoteEditor(wrapper, existingText, stance) {
         '<option value="caution"' + (stance === 'caution' ? ' selected' : '') + '>Use Caution</option>' +
         '</select>' +
         '</div>' +
+        '<div class="srcnote-guidance-row">' +
+        '<label>Guide the AI <small>(optional — tell the AI what to focus on for this source)</small></label>' +
+        '<textarea class="srcnote-guidance" rows="2" placeholder="e.g. Focus on their track record with fact-checking. Look at their retraction policy. Check if they were involved in the 2022 defamation lawsuit..."></textarea>' +
+        '</div>' +
         '<div class="srcnote-editor-actions">' +
         '<button type="button" class="srcnote-save">Save</button>' +
         '<button type="button" class="srcnote-research">AI Research This Source</button>' +
         '<button type="button" class="srcnote-research-claim">AI Find Evidence</button>' +
         '<button type="button" class="srcnote-cancel">Cancel</button>' +
-        '</div>';
+        '</div>' +
+        '<div class="srcnote-guidelines-hint">Site-wide AI guidelines are set in <a href="/admin/ai-settings" target="_blank">AI Settings</a></div>';
 
     // Position near the wrapper
     wrapper.appendChild(editor);
@@ -657,10 +662,11 @@ function showSourceNoteEditor(wrapper, existingText, stance) {
         this.disabled = true;
         this.textContent = 'Researching...';
         var resBtn = this;
+        var guidance = editor.querySelector('.srcnote-guidance').value.trim();
         fetch('/admin/api/source-note/research', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({source_name: srcName})
+            body: JSON.stringify({source_name: srcName, guidance: guidance})
         })
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -683,10 +689,11 @@ function showSourceNoteEditor(wrapper, existingText, stance) {
         this.disabled = true;
         this.textContent = 'Finding evidence...';
         var evidBtn = this;
+        var guidance = editor.querySelector('.srcnote-guidance').value.trim();
         fetch('/admin/api/source-note/research', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({source_name: srcName, claim: claim})
+            body: JSON.stringify({source_name: srcName, claim: claim, guidance: guidance})
         })
         .then(function(r) { return r.json(); })
         .then(function(data) {
