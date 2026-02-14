@@ -845,3 +845,51 @@ class SearchEngine:
             return {b["key"]: b["doc_count"] for b in buckets}
         except Exception:
             return {}
+
+    def get_topic_feed(self, keywords, categories=None, hours=72, size=30):
+        """Get recent articles matching topic keywords, optionally filtered by categories.
+
+        Used by the /api/feed/ endpoints to serve topic-specific feeds
+        (e.g. stocks, crypto, metals) from the existing article index.
+        """
+        filter_clauses = [
+            {"range": {"published_at": {"gte": f"now-{hours}h"}}},
+        ]
+        if categories:
+            filter_clauses.append({"terms": {"category": categories}})
+
+        # Match any of the keywords in title, summary, or content
+        should_clauses = []
+        for kw in keywords:
+            should_clauses.append({"match_phrase": {"title": {"query": kw, "boost": 3}}})
+            should_clauses.append({"match_phrase": {"summary": {"query": kw, "boost": 2}}})
+            should_clauses.append({"match_phrase": {"content": kw}})
+
+        # Also match source names known to be topic-specific
+        body = {
+            "query": {
+                "bool": {
+                    "must": [
+                        {"bool": {"should": should_clauses, "minimum_should_match": 1}},
+                    ],
+                    "filter": filter_clauses,
+                }
+            },
+            "sort": [
+                {"published_at": {"order": "desc"}},
+            ],
+            "collapse": {"field": "title.raw"},
+            "size": size,
+            "_source": [
+                "title", "summary", "url", "source_name", "source_credibility",
+                "category", "published_at", "image_url", "tags",
+            ],
+        }
+
+        try:
+            result = self.es.search(index=self.index_name, body=body)
+            articles = [hit["_source"] for hit in result["hits"]["hits"]]
+            return self._dedup_by_title(articles, size)
+        except Exception as e:
+            logger.error("get_topic_feed failed: %s", e)
+            return []

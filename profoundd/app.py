@@ -339,6 +339,165 @@ def create_app(config_override=None):
             cat_data[key] = {"label": cat["label"], "sources": count}
         return jsonify({"categories": cat_data})
 
+    # --- Feed API: topic-specific JSON feeds for external sites ---
+    # Keyword lists that define each sub-topic within the markets/finance universe.
+    FEED_TOPICS = {
+        "stocks": {
+            "label": "Stocks & Equities",
+            "keywords": [
+                "stock market", "stocks", "S&P 500", "Dow Jones", "Nasdaq",
+                "NYSE", "equities", "equity market", "stock price",
+                "earnings report", "IPO", "bull market", "bear market",
+                "Wall Street", "stock rally", "stock crash", "shares",
+                "dividend", "market cap", "trading", "stock exchange",
+                "Russell 2000", "blue chip", "tech stocks", "growth stocks",
+            ],
+            "categories": ["markets", "finance"],
+        },
+        "crypto": {
+            "label": "Cryptocurrency",
+            "keywords": [
+                "bitcoin", "ethereum", "crypto", "cryptocurrency",
+                "blockchain", "altcoin", "defi", "NFT", "web3",
+                "binance", "coinbase", "solana", "XRP", "ripple",
+                "dogecoin", "stablecoin", "USDT", "USDC",
+                "crypto exchange", "crypto regulation", "crypto market",
+                "mining", "halving", "satoshi", "BTC", "ETH",
+                "token", "smart contract", "decentralized",
+            ],
+            "categories": ["markets"],
+        },
+        "metals": {
+            "label": "Precious Metals",
+            "keywords": [
+                "gold", "silver", "platinum", "palladium",
+                "precious metals", "bullion", "gold price", "silver price",
+                "gold spot", "silver spot", "comex", "gold mining",
+                "silver mining", "gold reserve", "gold standard",
+                "gold ETF", "silver ETF", "gold futures", "troy ounce",
+                "numismatic", "gold bar", "silver bar", "gold coin",
+                "central bank gold", "gold demand", "gold supply",
+            ],
+            "categories": ["markets", "finance"],
+        },
+        "markets": {
+            "label": "All Markets",
+            "keywords": [],  # empty = return all articles in these categories
+            "categories": ["markets", "finance"],
+        },
+    }
+
+    @app.route("/api/feed/<topic>")
+    def api_feed(topic):
+        """JSON feed for a specific topic (stocks, crypto, metals, markets).
+
+        Designed for import by external sites like privacyfolio.com.
+
+        Params:
+            hours  - lookback window (default 72, max 720)
+            limit  - max articles (default 30, max 100)
+            format - 'json' (default) or 'rss'
+        """
+        topic_config = FEED_TOPICS.get(topic)
+
+        # Also allow any existing category as a feed
+        if not topic_config and topic in CATEGORIES:
+            topic_config = {
+                "label": CATEGORIES[topic]["label"],
+                "keywords": [],
+                "categories": [topic],
+            }
+
+        if not topic_config:
+            available = list(FEED_TOPICS.keys()) + list(CATEGORIES.keys())
+            return jsonify({
+                "error": f"Unknown topic '{topic}'",
+                "available_topics": list(FEED_TOPICS.keys()),
+                "available_categories": list(CATEGORIES.keys()),
+            }), 404
+
+        hours = min(request.args.get("hours", 72, type=int), 720)
+        limit = min(request.args.get("limit", 30, type=int), 100)
+        fmt = request.args.get("format", "json")
+
+        keywords = topic_config["keywords"]
+        categories = topic_config["categories"]
+
+        if keywords:
+            articles = search_engine.get_topic_feed(
+                keywords=keywords,
+                categories=categories,
+                hours=hours,
+                size=limit,
+            )
+        else:
+            # No keywords = just get latest from the category
+            articles = []
+            for cat in categories:
+                articles.extend(search_engine.get_trending(category=cat, hours=hours, size=limit))
+            # Sort by date descending and trim
+            articles.sort(key=lambda a: a.get("published_at", ""), reverse=True)
+            articles = articles[:limit]
+
+        # Clean articles for export (strip internal fields)
+        clean = []
+        for a in articles:
+            clean.append({
+                "title": a.get("title", ""),
+                "summary": a.get("summary", ""),
+                "url": a.get("url", ""),
+                "source_name": a.get("source_name", ""),
+                "source_credibility": a.get("source_credibility", 5),
+                "category": a.get("category", ""),
+                "published_at": a.get("published_at", ""),
+                "image_url": a.get("image_url", ""),
+            })
+
+        if fmt == "rss":
+            return _build_rss_feed(topic, topic_config["label"], clean)
+
+        return jsonify({
+            "topic": topic,
+            "label": topic_config["label"],
+            "count": len(clean),
+            "hours": hours,
+            "articles": clean,
+        })
+
+    def _build_rss_feed(topic, label, articles):
+        """Build an RSS 2.0 XML feed from article list."""
+        domain = app.config.get("DOMAIN", "profoundd.com")
+        items = []
+        for a in articles:
+            pub_date = a.get("published_at", "")
+            items.append(f"""    <item>
+      <title>{_xml_escape(a['title'])}</title>
+      <link>{_xml_escape(a['url'])}</link>
+      <description>{_xml_escape(a['summary'][:500])}</description>
+      <source>{_xml_escape(a['source_name'])}</source>
+      <category>{_xml_escape(a['category'])}</category>
+      {f'<pubDate>{pub_date}</pubDate>' if pub_date else ''}
+    </item>""")
+
+        xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Profoundd - {_xml_escape(label)}</title>
+    <link>https://{domain}/category/markets</link>
+    <description>{_xml_escape(label)} feed from Profoundd</description>
+    <language>en-us</language>
+{''.join(items)}
+  </channel>
+</rss>"""
+        return Response(xml, mimetype="application/rss+xml")
+
+    def _xml_escape(text):
+        """Escape XML special characters."""
+        if not text:
+            return ""
+        return (text.replace("&", "&amp;").replace("<", "&lt;")
+                    .replace(">", "&gt;").replace('"', "&quot;"))
+
     @app.route("/health")
     def health_check():
         """Health check endpoint for monitoring."""

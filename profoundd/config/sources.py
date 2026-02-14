@@ -247,5 +247,5 @@ CATEGORIES = {
     "education": {"label": "Education", "description": "Higher Ed, Research & Learning", "icon": "graduation-cap", "color": "#ec4899"},
     "environment": {"label": "Environment", "description": "Climate, Energy & Conservation", "icon": "leaf", "color": "#10b981"},
     "politics": {"label": "Politics", "description": "Policy, Government & Analysis", "icon": "landmark", "color": "#8b5cf6"},
-    "markets": {"label": "Markets", "description": "Stocks, Crypto & Trading", "icon": "coins", "color": "#f97316"},
+    "markets": {"label": "Markets", "description": "Stocks, Crypto, Precious Metals & Trading", "icon": "coins", "color": "#f97316"},
 }
