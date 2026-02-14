@@ -48,6 +48,7 @@
                 <img src="{{ article.image_url }}" alt="" loading="lazy" onerror="this.parentElement.remove()">
             </div>
             {% endif %}
+            <div class="result-body">
             <div class="result-header">
                 <span class="result-source">{{ article.source_name }}{% with src_name=article.source_name %}{% include '_source_note.html' %}{% endwith %}</span>
                 {% if article.source_credibility %}
@@ -94,6 +95,7 @@
                 </button>
                 {% endif %}
             </p>
+            </div>{# /result-body #}
         </article>
         {% endfor %}
     </div>
