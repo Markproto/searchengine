@@ -28,6 +28,7 @@ ARTICLE_MAPPING = {
             "source_credibility": {"type": "integer"},
             "admin_boost": {"type": "integer"},
             "url": {"type": "keyword"},
+            "image_url": {"type": "keyword", "ignore_above": 2000},
             "tags": {"type": "keyword"},
             "published_at": {"type": "date"},
             "crawled_at": {"type": "date"},

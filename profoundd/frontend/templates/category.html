@@ -42,7 +42,12 @@
     <h2 class="section-title">Latest Articles</h2>
     <div class="articles-grid">
         {% for article in articles %}
-        <article class="trending-card">
+        <article class="trending-card {% if article.image_url %}has-thumb{% endif %}">
+            {% if article.image_url %}
+            <div class="result-thumb">
+                <img src="{{ article.image_url }}" alt="" loading="lazy" onerror="this.parentElement.remove()">
+            </div>
+            {% endif %}
             <div class="result-header">
                 <span class="result-source">{{ article.source_name }}</span>
                 {% if article.source_credibility %}

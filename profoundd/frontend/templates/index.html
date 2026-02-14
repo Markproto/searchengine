@@ -88,7 +88,12 @@
         <h2 class="section-title">Trending Now</h2>
         <div class="trending-grid">
             {% for article in trending %}
-            <article class="trending-card">
+            <article class="trending-card {% if article.image_url %}has-thumb{% endif %}">
+                {% if article.image_url %}
+                <div class="result-thumb">
+                    <img src="{{ article.image_url }}" alt="" loading="lazy" onerror="this.parentElement.remove()">
+                </div>
+                {% endif %}
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
                     <span class="trending-category category-tag-{{ article.category }}">{{ article.category | title }}</span>
                     {% if session.get('admin_logged_in') %}

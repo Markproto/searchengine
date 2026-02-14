@@ -124,6 +124,34 @@ class FeedCrawler:
 
         author = getattr(entry, "author", source["name"])
 
+        # Extract image URL from feed metadata (no images stored on server)
+        image_url = ""
+        # 1. media:content (most common in RSS)
+        if hasattr(entry, "media_content") and entry.media_content:
+            for mc in entry.media_content:
+                if mc.get("medium") == "image" or (mc.get("type", "").startswith("image")):
+                    image_url = mc.get("url", "")
+                    break
+            if not image_url:
+                image_url = entry.media_content[0].get("url", "")
+        # 2. media:thumbnail
+        if not image_url and hasattr(entry, "media_thumbnail") and entry.media_thumbnail:
+            image_url = entry.media_thumbnail[0].get("url", "")
+        # 3. enclosures (podcasts/media feeds)
+        if not image_url and hasattr(entry, "enclosures") and entry.enclosures:
+            for enc in entry.enclosures:
+                if enc.get("type", "").startswith("image"):
+                    image_url = enc.get("href", "") or enc.get("url", "")
+                    break
+        # 4. <image> tag in entry or feed-level image in summary/content HTML
+        if not image_url:
+            html_to_check = getattr(entry, "summary", "") or ""
+            if html_to_check:
+                soup = BeautifulSoup(html_to_check, "html.parser")
+                img_tag = soup.find("img", src=True)
+                if img_tag and img_tag["src"].startswith("http"):
+                    image_url = img_tag["src"]
+
         # Extract tags/keywords if available
         tags = []
         if hasattr(entry, "tags") and entry.tags:
@@ -145,6 +173,7 @@ class FeedCrawler:
             "category": category,
             "source_name": source["name"],
             "source_credibility": source.get("credibility", 5),
+            "image_url": image_url,
             "published_at": published.isoformat(),
             "crawled_at": datetime.now(timezone.utc).isoformat(),
             "tags": tags,
