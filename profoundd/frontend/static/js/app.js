@@ -231,11 +231,37 @@ document.addEventListener('click', function(e) {
         if (data.success) {
             btn.innerHTML = '&#10003;';
             btn.classList.add('saved');
-            // Update badge color class
-            badge.className = badge.className.replace(/credibility-(high|medium|low)/g, '');
-            if (val >= 8) badge.classList.add('credibility-high');
-            else if (val >= 5) badge.classList.add('credibility-medium');
-            else badge.classList.add('credibility-low');
+            // Update ALL visible badges for this source on the page
+            var srcName = data.source_name;
+            if (srcName) {
+                document.querySelectorAll('.admin-editable-cred').forEach(function(b) {
+                    var bInput = b.querySelector('.cred-input');
+                    // Find the source name near this badge
+                    var card = b.closest('article, .article-detail, .result-card, .trending-card');
+                    if (!card) return;
+                    var srcEl = card.querySelector('.result-source, .source');
+                    if (!srcEl) return;
+                    // Check if this card's source matches
+                    var cardSrc = srcEl.textContent.trim().split('\n')[0].trim();
+                    if (cardSrc === srcName || cardSrc.indexOf(srcName) === 0) {
+                        bInput.value = val;
+                        b.className = b.className.replace(/credibility-(high|medium|low)/g, '');
+                        if (val >= 8) b.classList.add('credibility-high');
+                        else if (val >= 5) b.classList.add('credibility-medium');
+                        else b.classList.add('credibility-low');
+                    }
+                });
+            } else {
+                // Fallback: just update this one badge
+                badge.className = badge.className.replace(/credibility-(high|medium|low)/g, '');
+                if (val >= 8) badge.classList.add('credibility-high');
+                else if (val >= 5) badge.classList.add('credibility-medium');
+                else badge.classList.add('credibility-low');
+            }
+            var msg = data.articles_updated
+                ? data.articles_updated + ' articles from ' + srcName + ' updated'
+                : 'Updated';
+            btn.title = msg;
             setTimeout(function() { btn.classList.remove('saved'); }, 2000);
         } else {
             btn.textContent = '!';

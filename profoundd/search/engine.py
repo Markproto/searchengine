@@ -115,6 +115,29 @@ class SearchEngine:
             logger.error("Failed to update credibility for %s: %s", article_url, e)
             return False
 
+    def update_credibility_by_source(self, source_name, credibility):
+        """Update source_credibility on ALL articles from a given source."""
+        try:
+            result = self.es.update_by_query(
+                index=self.index_name,
+                body={
+                    "query": {"term": {"source_name": source_name}},
+                    "script": {
+                        "source": "ctx._source.source_credibility = params.cred",
+                        "lang": "painless",
+                        "params": {"cred": credibility},
+                    },
+                },
+                refresh=True,
+            )
+            updated = result.get("updated", 0)
+            logger.info("Updated credibility to %d for %d articles from '%s'",
+                        credibility, updated, source_name)
+            return updated
+        except Exception as e:
+            logger.error("Failed to bulk-update credibility for '%s': %s", source_name, e)
+            return 0
+
     def get_article(self, article_url):
         """Fetch an article from ES by its URL."""
         es_id = hashlib.md5(article_url.encode()).hexdigest()

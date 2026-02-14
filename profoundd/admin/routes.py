@@ -184,6 +184,7 @@ def edit_source(source_id):
         return "Not found", 404
 
     if request.method == "POST":
+        old_credibility = source.credibility
         source.name = request.form["name"]
         source.url = request.form["url"]
         source.category = request.form["category"]
@@ -196,7 +197,17 @@ def edit_source(source_id):
         source.relevance_weight = float(request.form.get("relevance_weight", 0.3))
         source.is_active = "is_active" in request.form
         db.session.commit()
-        flash(f"Source '{source.name}' updated.", "success")
+
+        # If credibility changed, propagate to all articles in Elasticsearch
+        if source.credibility != old_credibility:
+            engine = SearchEngine(config.ELASTICSEARCH_URL)
+            if engine.is_available():
+                count = engine.update_credibility_by_source(source.name, source.credibility)
+                flash(f"Source '{source.name}' updated. Credibility synced to {count} articles.", "success")
+            else:
+                flash(f"Source '{source.name}' updated. (ES unavailable — articles not synced)", "warning")
+        else:
+            flash(f"Source '{source.name}' updated.", "success")
         return redirect(url_for("admin.sources_list"))
 
     return render_template("admin/source_form.html", source=source, categories=CATEGORIES)
@@ -775,16 +786,23 @@ def historical_crawl_status(source_id):
 @admin_bp.route("/api/update-credibility", methods=["POST"])
 @login_required
 def api_update_credibility():
-    """AJAX endpoint to update an article's credibility in Elasticsearch."""
+    """Update credibility for ALL articles from a source (not just one article).
+
+    Accepts either an article URL (looks up its source_name) or a direct
+    source_name.  Updates every article from that source in Elasticsearch
+    and syncs the credibility to the Source database record so future
+    crawls inherit the new value.
+    """
     data = request.get_json()
     if not data:
         return jsonify({"error": "Invalid request"}), 400
 
     article_url = data.get("url", "").strip()
+    source_name = data.get("source_name", "").strip()
     credibility = data.get("credibility")
 
-    if not article_url:
-        return jsonify({"error": "URL is required"}), 400
+    if not article_url and not source_name:
+        return jsonify({"error": "URL or source_name is required"}), 400
     try:
         credibility = int(credibility)
     except (TypeError, ValueError):
@@ -796,9 +814,31 @@ def api_update_credibility():
     if not engine.is_available():
         return jsonify({"error": "Elasticsearch not available"}), 503
 
-    if engine.update_credibility(article_url, credibility):
-        return jsonify({"success": True, "credibility": credibility})
-    return jsonify({"error": "Failed to update"}), 500
+    # Resolve the source name from the article if not provided directly
+    if not source_name and article_url:
+        article = engine.get_article(article_url)
+        if not article:
+            return jsonify({"error": "Article not found"}), 404
+        source_name = article.get("source_name", "")
+
+    if not source_name:
+        return jsonify({"error": "Could not determine source name"}), 400
+
+    # Update ALL articles from this source in Elasticsearch
+    updated = engine.update_credibility_by_source(source_name, credibility)
+
+    # Sync to the Source database record so future crawls use the new value
+    db_source = db.session.query(Source).filter_by(name=source_name).first()
+    if db_source:
+        db_source.credibility = credibility
+        db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "credibility": credibility,
+        "source_name": source_name,
+        "articles_updated": updated,
+    })
 
 
 @admin_bp.route("/api/update-boost", methods=["POST"])
