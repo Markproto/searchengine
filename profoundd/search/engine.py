@@ -299,8 +299,8 @@ class SearchEngine:
             # Score-based filtering: drop articles scoring far below the top result.
             # Catches remaining noise from stemming false positives
             # (e.g. "electr" matching both "electric" and "electricity").
+            top_score = raw_articles[0]["_score"] if raw_articles else 0
             if query and raw_articles:
-                top_score = raw_articles[0]["_score"]
                 min_score = top_score * 0.3
                 raw_articles = [a for a in raw_articles if a["_score"] >= min_score]
                 total = len(raw_articles)
@@ -319,6 +319,7 @@ class SearchEngine:
                 "pages": (total + per_page - 1) // per_page,
                 "query": query,
                 "category": category,
+                "top_score": top_score,
             }
         except Exception as e:
             logger.error("Search failed: %s", e)

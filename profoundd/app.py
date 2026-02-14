@@ -166,10 +166,15 @@ def create_app(config_override=None):
                         insert_pos += 1
                 results["enhanced_providers"] = list(enhanced_providers)
 
-            # Web fallback: when local index has few relevant results, search the web
-            # Try SearXNG first, fall back to Brave web search if SearXNG fails
+            # Web fallback: supplement with outside news when local results are
+            # insufficient OR when relevance is weak (top score below threshold).
+            # This ensures searches like "Lindsey Graham loses House" still show
+            # relevant external articles even if 6 loosely-related local results exist.
             local_count = len(results.get("articles", []))
-            if local_count < 5:
+            top_score = results.get("top_score", 0)
+            LOW_RELEVANCE_THRESHOLD = 15  # ES scores below this indicate weak matches
+            needs_web = local_count < 5 or top_score < LOW_RELEVANCE_THRESHOLD
+            if needs_web:
                 web_results = []
                 searxng_url = SiteSetting.get("searxng_url", "")
                 if searxng_url:
