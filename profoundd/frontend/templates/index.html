@@ -109,6 +109,9 @@
                     {% endif %}
                 </div>
                 <h3><a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
+                {% with note_url=article.url, note_title=article.title, note_summary='' %}
+                {% include '_newsroom_note.html' %}
+                {% endwith %}
                 <p class="trending-meta">
                     <span class="source">{{ article.source_name }}</span>
                     {% if article.published_at %}

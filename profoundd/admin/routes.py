@@ -10,7 +10,7 @@ from functools import wraps
 import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote
 from profoundd.config.settings import get_config
 from profoundd.config.sources import ALL_SOURCES, CATEGORIES, SPECIAL_SECTION_KEYWORDS
 from profoundd.search.engine import SearchEngine
@@ -845,6 +845,105 @@ def api_update_boost():
     db.session.commit()
 
     return jsonify({"success": True, "boost": new_boost})
+
+
+# --- Newsroom Notes ---
+
+@admin_bp.route("/api/newsroom-note", methods=["POST"])
+@login_required
+def save_newsroom_note():
+    """Add or update an editorial note on an article."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    article_url = data.get("url", "").strip()
+    note_text = data.get("note_text", "").strip()
+    article_title = data.get("article_title", "").strip()
+
+    if not article_url or not note_text:
+        return jsonify({"error": "URL and note text are required"}), 400
+
+    note = db.session.query(NewsroomNote).filter_by(article_url=article_url).first()
+    if note:
+        note.note_text = note_text
+        note.updated_at = datetime.now(timezone.utc)
+    else:
+        note = NewsroomNote(
+            article_url=article_url,
+            article_title=article_title,
+            note_text=note_text,
+        )
+        db.session.add(note)
+
+    db.session.commit()
+    return jsonify({"success": True, "note_id": note.id, "note_text": note.note_text})
+
+
+@admin_bp.route("/api/newsroom-note/enhance", methods=["POST"])
+@login_required
+def enhance_newsroom_note():
+    """Use AI to improve/expand an editorial note."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    note_text = data.get("note_text", "").strip()
+    article_title = data.get("article_title", "").strip()
+    article_summary = data.get("article_summary", "").strip()
+
+    if not note_text:
+        return jsonify({"error": "Note text is required"}), 400
+
+    api_key = SiteSetting.get("ai_anthropic_key", "")
+    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+    if not api_key:
+        return jsonify({"error": "No AI API key configured."}), 400
+
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+
+        prompt = (
+            f"You are NewsRoom Bob, an AI journalist for Profoundd search engine. "
+            f"An editor has written a short note about an article. Rewrite this note in your voice — "
+            f"direct, informative, and clear. Keep the editor's intent and opinion intact but make it "
+            f"read like a professional editorial note. Keep it concise (2-4 sentences max). "
+            f"Do NOT add any preamble, just return the improved note.\n\n"
+            f"Article title: {article_title}\n"
+            f"Article summary: {article_summary[:500]}\n\n"
+            f"Editor's note: {note_text}"
+        )
+
+        message = client.messages.create(
+            model=model,
+            max_tokens=300,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        enhanced = message.content[0].text.strip()
+        return jsonify({"success": True, "enhanced_text": enhanced})
+    except Exception as e:
+        return jsonify({"error": f"AI enhancement failed: {e}"}), 500
+
+
+@admin_bp.route("/api/newsroom-note", methods=["DELETE"])
+@login_required
+def delete_newsroom_note():
+    """Delete an editorial note from an article."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    article_url = data.get("url", "").strip()
+    if not article_url:
+        return jsonify({"error": "URL is required"}), 400
+
+    note = db.session.query(NewsroomNote).filter_by(article_url=article_url).first()
+    if note:
+        db.session.delete(note)
+        db.session.commit()
+
+    return jsonify({"success": True})
 
 
 @admin_bp.route("/the-man", methods=["GET", "POST"])

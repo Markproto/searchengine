@@ -44,11 +44,21 @@
             <div class="result-header">
                 <span class="result-source">NewsRoom Bob</span>
                 <span class="result-category category-tag-{{ story.category }}">{{ story.category | title }}</span>
+                {% if session.get('admin_logged_in') %}
+                <span class="admin-boost-controls" data-url="profoundd://bob/{{ story.slug }}" data-boost="5">
+                    <button type="button" class="boost-btn boost-up" title="Promote">&#9650;</button>
+                    <span class="boost-value">5</span>
+                    <button type="button" class="boost-btn boost-down" title="Demote">&#9660;</button>
+                </span>
+                {% endif %}
             </div>
             <h3><a href="/newsroom/{{ story.slug }}">{{ story.title }}</a></h3>
             {% if story.summary %}
             <p class="result-summary">{{ story.summary[:200] }}{% if story.summary|length > 200 %}...{% endif %}</p>
             {% endif %}
+            {% with note_url='profoundd://bob/' ~ story.slug, note_title=story.title, note_summary=story.summary or '' %}
+            {% include '_newsroom_note.html' %}
+            {% endwith %}
             <p class="trending-meta">
                 <span class="source">via {{ story.source_name }}</span>
                 {% if story.published_at %}

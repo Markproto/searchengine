@@ -1846,6 +1846,115 @@ body,
     50% { opacity: 0.7; }
 }
 
+/* NewsRoom Notes */
+.newsroom-note-wrapper {
+    margin: 0.5rem 0;
+}
+.newsroom-note {
+    background: var(--bg-secondary, #1e293b);
+    border-left: 3px solid #f59e0b;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0 var(--radius, 6px) var(--radius, 6px) 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+.newsroom-note-label {
+    font-weight: 700;
+    color: #f59e0b;
+    margin-right: 0.5rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.newsroom-note-text {
+    color: var(--text-secondary, #94a3b8);
+}
+.newsroom-note-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+.note-add-btn, .note-edit-btn {
+    background: none;
+    border: 1px dashed var(--text-muted, #475569);
+    color: var(--text-muted, #475569);
+    font-size: 0.7rem;
+    padding: 1px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.note-add-btn:hover, .note-edit-btn:hover {
+    border-color: #f59e0b;
+    color: #f59e0b;
+}
+.note-delete-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted, #475569);
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 1px 4px;
+}
+.note-delete-btn:hover {
+    color: #ef4444;
+}
+.note-editor {
+    margin-top: 0.5rem;
+}
+.note-textarea {
+    width: 100%;
+    min-height: 60px;
+    background: var(--bg-secondary, #1e293b);
+    border: 1px solid var(--border, #334155);
+    color: var(--text, #f1f5f9);
+    border-radius: var(--radius, 6px);
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    font-family: inherit;
+    resize: vertical;
+}
+.note-textarea:focus {
+    outline: none;
+    border-color: #f59e0b;
+}
+.note-editor-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+}
+.note-save-btn {
+    background: #f59e0b;
+    color: #000;
+    border: none;
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.note-save-btn:hover { background: #d97706; }
+.note-bob-btn {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    border: none;
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.note-bob-btn:hover { opacity: 0.9; }
+.note-cancel-btn {
+    background: none;
+    border: 1px solid var(--border, #334155);
+    color: var(--text-muted, #475569);
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+.note-cancel-btn:hover { color: var(--text, #f1f5f9); }
+
 /* NewsRoom listing page */
 .newsroom-page { padding-top: 1.5rem; }
 .newsroom-header {

@@ -397,3 +397,137 @@ document.addEventListener('click', function(e) {
         alert('Bob failed: ' + err.message);
     });
 });
+
+/* NewsRoom Notes — Admin add/edit/delete/enhance */
+function showNoteEditor(wrapper, existingText) {
+    // Remove any existing editor in this wrapper
+    var old = wrapper.querySelector('.note-editor');
+    if (old) old.remove();
+
+    var url = wrapper.getAttribute('data-url');
+    var title = wrapper.getAttribute('data-title') || '';
+    var summary = wrapper.getAttribute('data-summary') || '';
+
+    var editor = document.createElement('div');
+    editor.className = 'note-editor';
+    editor.innerHTML =
+        '<textarea class="note-textarea" placeholder="Write your editorial note...">' + (existingText || '') + '</textarea>' +
+        '<div class="note-editor-actions">' +
+        '<button type="button" class="note-save-btn">Save Note</button>' +
+        '<button type="button" class="note-bob-btn" title="Have NewsRoom Bob improve this note">Bob, Improve This</button>' +
+        '<button type="button" class="note-cancel-btn">Cancel</button>' +
+        '</div>';
+    wrapper.appendChild(editor);
+
+    var textarea = editor.querySelector('.note-textarea');
+    textarea.focus();
+
+    // Save
+    editor.querySelector('.note-save-btn').addEventListener('click', function() {
+        var text = textarea.value.trim();
+        if (!text) return alert('Note cannot be empty.');
+        this.disabled = true;
+        this.textContent = 'Saving...';
+        fetch('/admin/api/newsroom-note', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({url: url, note_text: text, article_title: title})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) throw new Error(data.error);
+            // Update the display
+            var noteDiv = wrapper.querySelector('.newsroom-note');
+            if (!noteDiv) {
+                noteDiv = document.createElement('div');
+                noteDiv.className = 'newsroom-note';
+                wrapper.insertBefore(noteDiv, wrapper.firstChild);
+            }
+            noteDiv.innerHTML = '<span class="newsroom-note-label">NewsRoom Note</span><span class="newsroom-note-text">' + data.note_text + '</span>';
+            // Update controls to show edit/delete
+            var controls = wrapper.querySelector('.newsroom-note-controls');
+            if (controls) {
+                controls.innerHTML = '<button type="button" class="note-edit-btn">Edit Note</button><button type="button" class="note-delete-btn" title="Delete note">&#10005;</button>';
+            }
+            editor.remove();
+        })
+        .catch(function(err) { alert('Save failed: ' + err.message); });
+    });
+
+    // Bob enhance
+    editor.querySelector('.note-bob-btn').addEventListener('click', function() {
+        var text = textarea.value.trim();
+        if (!text) return alert('Write something first, then Bob can improve it.');
+        this.disabled = true;
+        this.textContent = 'Bob is writing...';
+        var bobBtn = this;
+        fetch('/admin/api/newsroom-note/enhance', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({note_text: text, article_title: title, article_summary: summary})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) throw new Error(data.error);
+            textarea.value = data.enhanced_text;
+            bobBtn.disabled = false;
+            bobBtn.textContent = 'Bob, Improve This';
+        })
+        .catch(function(err) {
+            bobBtn.disabled = false;
+            bobBtn.textContent = 'Bob, Improve This';
+            alert('Bob failed: ' + err.message);
+        });
+    });
+
+    // Cancel
+    editor.querySelector('.note-cancel-btn').addEventListener('click', function() {
+        editor.remove();
+    });
+}
+
+// Add Note button
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.note-add-btn');
+    if (!btn) return;
+    var wrapper = btn.closest('.newsroom-note-wrapper');
+    if (wrapper) showNoteEditor(wrapper, '');
+});
+
+// Edit Note button
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.note-edit-btn');
+    if (!btn) return;
+    var wrapper = btn.closest('.newsroom-note-wrapper');
+    if (!wrapper) return;
+    var noteText = wrapper.querySelector('.newsroom-note-text');
+    showNoteEditor(wrapper, noteText ? noteText.textContent.trim() : '');
+});
+
+// Delete Note button
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.note-delete-btn');
+    if (!btn) return;
+    if (!confirm('Delete this NewsRoom Note?')) return;
+    var wrapper = btn.closest('.newsroom-note-wrapper');
+    if (!wrapper) return;
+    var url = wrapper.getAttribute('data-url');
+    fetch('/admin/api/newsroom-note', {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({url: url})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.error) throw new Error(data.error);
+        // Remove note display
+        var noteDiv = wrapper.querySelector('.newsroom-note');
+        if (noteDiv) noteDiv.remove();
+        // Update controls to show add button
+        var controls = wrapper.querySelector('.newsroom-note-controls');
+        if (controls) {
+            controls.innerHTML = '<button type="button" class="note-add-btn">+ Add Note</button>';
+        }
+    })
+    .catch(function(err) { alert('Delete failed: ' + err.message); });
+});

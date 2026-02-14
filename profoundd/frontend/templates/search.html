@@ -146,6 +146,9 @@
                 {{ article.summary[:300] }}{% if article.summary|length > 300 %}...{% endif %}
                 {% endif %}
             </p>
+            {% with note_url=article.url, note_title=article.title, note_summary=article.summary or '' %}
+            {% include '_newsroom_note.html' %}
+            {% endwith %}
             <div class="result-footer">
                 <span class="result-url">{% if article.url.startswith('profoundd://bob/') %}<a href="/newsroom/{{ article.url.split('/')[-1] }}">NewsRoom Bob</a>{% elif article.url.startswith('profoundd://') %}<a href="/article/{{ article.url.split('/')[-1] }}">Profoundd Research</a>{% else %}{{ article.url[:80] }}{% if article.url|length > 80 %}...{% endif %}{% endif %}</span>
                 {% if article.published_at %}

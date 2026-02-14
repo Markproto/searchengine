@@ -70,6 +70,9 @@
             {% if article.summary %}
             <p class="result-summary">{{ article.summary[:200] }}{% if article.summary|length > 200 %}...{% endif %}</p>
             {% endif %}
+            {% with note_url=article.url, note_title=article.title, note_summary=article.summary or '' %}
+            {% include '_newsroom_note.html' %}
+            {% endwith %}
             <p class="trending-meta">
                 {% if article.published_at %}
                 <span class="date" data-time="{{ article.published_at }}">{{ article.published_at[:10] }}</span>

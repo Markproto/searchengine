@@ -294,3 +294,15 @@ class ArticleVote(db.Model):
     __table_args__ = (
         db.UniqueConstraint('article_url', 'ip_address', name='unique_vote_per_ip'),
     )
+
+
+class NewsroomNote(db.Model):
+    """Editorial notes added by admin to any article, visible to readers."""
+    __tablename__ = "newsroom_notes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    article_url = db.Column(db.String(1000), nullable=False, unique=True, index=True)
+    article_title = db.Column(db.String(500))
+    note_text = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
