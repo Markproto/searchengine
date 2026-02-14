@@ -1016,10 +1016,14 @@ def bob_write():
     db.session.add(story)
     db.session.commit()
 
-    # Index to Elasticsearch
+    # Index to Elasticsearch and remove the original article
     try:
         engine = SearchEngine(config.ELASTICSEARCH_URL)
         engine.index_article(story.to_es_doc())
+        # Pull the original from the index — Bob's version replaces it
+        if article_url and not article_url.startswith("profoundd://"):
+            engine.delete_article(article_url)
+            logger.info("Pulled original article from ES: %s", article_url)
     except Exception as e:
         logger.warning("Could not index Bob story to ES: %s", e)
 
@@ -1061,6 +1065,55 @@ def bob_story_delete(story_id):
     db.session.delete(story)
     db.session.commit()
     flash(f"Deleted: {story.title}", "success")
+    return redirect(url_for("admin.bob_stories_list"))
+
+
+@admin_bp.route("/bob/stories/<int:story_id>/restore-original", methods=["POST"])
+@login_required
+def bob_story_restore_original(story_id):
+    """Re-index the original source article back into Elasticsearch."""
+    story = db.session.query(BobStory).get(story_id)
+    if not story:
+        flash("Story not found.", "error")
+        return redirect(url_for("admin.bob_stories_list"))
+
+    if not story.source_article_url or story.source_article_url.startswith("profoundd://"):
+        flash("No external source URL to restore.", "error")
+        return redirect(url_for("admin.bob_stories_list"))
+
+    # Fetch content from the original URL
+    try:
+        from profoundd.search.ai_analyzer import fetch_url_content
+        fetched, fetch_err = fetch_url_content(story.source_article_url)
+        if not fetched or not fetched.get("text"):
+            flash(f"Could not fetch original article: {fetch_err or 'empty content'}", "error")
+            return redirect(url_for("admin.bob_stories_list"))
+    except Exception as e:
+        flash(f"Error fetching original: {e}", "error")
+        return redirect(url_for("admin.bob_stories_list"))
+
+    # Build an article doc and re-index it
+    article_doc = {
+        "title": story.source_article_title or fetched.get("page_title", "Untitled"),
+        "url": story.source_article_url,
+        "summary": fetched.get("meta_description") or fetched["text"][:500],
+        "content": fetched["text"],
+        "author": story.source_name or "Unknown",
+        "category": story.category or "news",
+        "source_name": story.source_name or "Unknown",
+        "source_credibility": 5,
+        "published_at": datetime.now(timezone.utc).isoformat(),
+        "crawled_at": datetime.now(timezone.utc).isoformat(),
+        "tags": [],
+    }
+
+    try:
+        engine = SearchEngine(config.ELASTICSEARCH_URL)
+        engine.index_article(article_doc)
+        flash(f"Restored original article to search index: {article_doc['title'][:60]}", "success")
+    except Exception as e:
+        flash(f"Failed to re-index original: {e}", "error")
+
     return redirect(url_for("admin.bob_stories_list"))
 
 

@@ -159,6 +159,17 @@ class SearchEngine:
             logger.error("Bulk index failed: %s", e)
             return 0
 
+    def delete_article(self, url):
+        """Delete an article from the index by its URL. Returns True if deleted."""
+        doc_id = hashlib.md5(url.encode()).hexdigest()
+        try:
+            self.es.delete(index=self.index_name, id=doc_id, ignore=[404])
+            logger.info("Deleted article from ES: %s", url)
+            return True
+        except Exception as e:
+            logger.error("Failed to delete article %s: %s", url, e)
+            return False
+
     def article_exists(self, url):
         """Check if an article with this URL already exists in the index."""
         doc_id = hashlib.md5(url.encode()).hexdigest()

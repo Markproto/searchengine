@@ -47,6 +47,12 @@
                     {% endif %}
                 </td>
                 <td>
+                    {% if story.source_article_url and not story.source_article_url.startswith('profoundd://') %}
+                    <form method="POST" action="{{ url_for('admin.bob_story_restore_original', story_id=story.id) }}"
+                          onsubmit="return confirm('Restore the original article back to the search index?');" style="display:inline;">
+                        <button type="submit" class="btn btn-secondary" style="font-size:0.75rem; padding:2px 8px;">Restore Original</button>
+                    </form>
+                    {% endif %}
                     <form method="POST" action="{{ url_for('admin.bob_story_delete', story_id=story.id) }}"
                           onsubmit="return confirm('Delete this Bob story?');" style="display:inline;">
                         <button type="submit" class="btn btn-warning" style="font-size:0.75rem; padding:2px 8px;">Delete</button>
