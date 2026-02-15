@@ -1194,8 +1194,58 @@ def delete_source_note():
 @login_required
 def source_notes_list():
     """Admin page to manage all source credibility notes."""
+    import json
     notes = db.session.query(SourceNote).order_by(SourceNote.updated_at.desc()).all()
-    return render_template("admin/source_notes.html", notes=notes, categories=CATEGORIES)
+    note_data = {n.id: {"name": n.source_name, "stance": n.stance, "text": n.note_text} for n in notes}
+    return render_template("admin/source_notes.html", notes=notes, note_data_json=json.dumps(note_data), categories=CATEGORIES)
+
+
+@admin_bp.route("/source-notes/delete/<int:note_id>", methods=["POST"])
+@login_required
+def source_note_delete(note_id):
+    """Delete a source note by ID (form-based)."""
+    note = db.session.get(SourceNote, note_id)
+    if note:
+        db.session.delete(note)
+        db.session.commit()
+        flash(f"Deleted note for {note.source_name}", "success")
+    return redirect(url_for("admin.source_notes_list"))
+
+
+@admin_bp.route("/source-notes/save", methods=["POST"])
+@login_required
+def source_note_save():
+    """Save or update a source note (form-based)."""
+    source_name = request.form.get("source_name", "").strip()
+    note_text = request.form.get("note_text", "").strip()
+    stance = request.form.get("stance", "neutral").strip()
+    orig_name = request.form.get("orig_name", "").strip()
+
+    if not source_name or not note_text:
+        flash("Source name and note text are required", "error")
+        return redirect(url_for("admin.source_notes_list"))
+
+    if stance not in ("trustworthy", "caution", "neutral"):
+        stance = "neutral"
+
+    # If renaming, delete the old one
+    if orig_name and orig_name != source_name:
+        old = db.session.query(SourceNote).filter_by(source_name=orig_name).first()
+        if old:
+            db.session.delete(old)
+
+    note = db.session.query(SourceNote).filter_by(source_name=source_name).first()
+    if note:
+        note.note_text = note_text
+        note.stance = stance
+        note.updated_at = datetime.now(timezone.utc)
+    else:
+        note = SourceNote(source_name=source_name, note_text=note_text, stance=stance)
+        db.session.add(note)
+
+    db.session.commit()
+    flash(f"Saved note for {source_name}", "success")
+    return redirect(url_for("admin.source_notes_list"))
 
 
 @admin_bp.route("/the-man", methods=["GET", "POST"])
