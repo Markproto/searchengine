@@ -1190,6 +1190,14 @@ def delete_source_note():
     return jsonify({"success": True})
 
 
+@admin_bp.route("/source-notes")
+@login_required
+def source_notes_list():
+    """Admin page to manage all source credibility notes."""
+    notes = db.session.query(SourceNote).order_by(SourceNote.updated_at.desc()).all()
+    return render_template("admin/source_notes.html", notes=notes, categories=CATEGORIES)
+
+
 @admin_bp.route("/the-man", methods=["GET", "POST"])
 @login_required
 def the_man():

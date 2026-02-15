@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% block title %}Source Notes - Admin{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>Source Notes</h1>
+        <div>
+            <button type="button" class="btn btn-primary" id="addNoteBtn">Add Note</button>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <p style="color:var(--text-secondary); margin-bottom:1rem;">{{ notes|length }} source note{{ 's' if notes|length != 1 else '' }}. These credibility badges appear next to source names across the site.</p>
+
+    <!-- Add/Edit form (hidden by default) -->
+    <div id="noteForm" style="display:none; margin-bottom:2rem; padding:1.5rem; border:1px solid var(--border, #334155); border-radius:8px; background:var(--bg-card, #1e293b);">
+        <h3 id="noteFormTitle" style="margin-bottom:1rem;">Add Source Note</h3>
+        <input type="hidden" id="noteFormOriginalName" value="">
+        <div style="margin-bottom:1rem;">
+            <label style="display:block; margin-bottom:0.25rem; font-weight:500;">Source Name</label>
+            <input type="text" id="noteSourceName" placeholder="e.g. CNBC, Reuters, Fox News" style="width:100%; padding:0.5rem; border:1px solid var(--border, #334155); border-radius:4px; background:var(--bg, #0f172a); color:var(--text, #e2e8f0);">
+        </div>
+        <div style="margin-bottom:1rem;">
+            <label style="display:block; margin-bottom:0.25rem; font-weight:500;">Stance</label>
+            <select id="noteStance" style="padding:0.5rem; border:1px solid var(--border, #334155); border-radius:4px; background:var(--bg, #0f172a); color:var(--text, #e2e8f0);">
+                <option value="neutral">Neutral</option>
+                <option value="trustworthy">Trustworthy</option>
+                <option value="caution">Use Caution</option>
+            </select>
+        </div>
+        <div style="margin-bottom:1rem;">
+            <label style="display:block; margin-bottom:0.25rem; font-weight:500;">Note Text</label>
+            <textarea id="noteText" rows="4" placeholder="Why is this source trustworthy or not? Include evidence..." style="width:100%; padding:0.5rem; border:1px solid var(--border, #334155); border-radius:4px; background:var(--bg, #0f172a); color:var(--text, #e2e8f0); resize:vertical;"></textarea>
+        </div>
+        <div style="margin-bottom:1rem;">
+            <label style="display:block; margin-bottom:0.25rem; font-weight:500;">AI Guidance <small style="color:var(--text-muted);">(optional)</small></label>
+            <textarea id="noteGuidance" rows="2" placeholder="e.g. Focus on their fact-checking track record..." style="width:100%; padding:0.5rem; border:1px solid var(--border, #334155); border-radius:4px; background:var(--bg, #0f172a); color:var(--text, #e2e8f0); resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary" id="noteFormSave">Save</button>
+            <button type="button" class="btn btn-secondary" id="noteFormResearch">AI Research</button>
+            <button type="button" class="btn btn-secondary" id="noteFormEvidence">AI Find Evidence</button>
+            <button type="button" class="btn btn-secondary" id="noteFormCancel">Cancel</button>
+        </div>
+        <div id="noteFormStatus" style="margin-top:0.75rem; display:none;"></div>
+    </div>
+
+    {% if notes %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Source</th>
+                <th>Stance</th>
+                <th>Note</th>
+                <th>Updated</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for note in notes %}
+            <tr id="note-row-{{ note.id }}">
+                <td style="font-weight:500; white-space:nowrap;">{{ note.source_name }}</td>
+                <td>
+                    {% if note.stance == 'trustworthy' %}
+                    <span style="color:#10b981; font-weight:600;">Trusted</span>
+                    {% elif note.stance == 'caution' %}
+                    <span style="color:#f59e0b; font-weight:600;">Caution</span>
+                    {% else %}
+                    <span style="color:var(--text-muted);">Neutral</span>
+                    {% endif %}
+                </td>
+                <td style="max-width:400px;">
+                    <div style="overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical;">
+                        {{ note.note_text }}
+                    </div>
+                </td>
+                <td style="white-space:nowrap;">
+                    {% if note.updated_at %}
+                    {{ note.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                    {% endif %}
+                </td>
+                <td style="white-space:nowrap;">
+                    <button type="button" class="btn btn-secondary note-edit-btn" style="font-size:0.75rem; padding:2px 8px;"
+                            data-name="{{ note.source_name }}"
+                            data-stance="{{ note.stance }}"
+                            data-text="{{ note.note_text | e }}">Edit</button>
+                    <button type="button" class="btn btn-warning note-delete-btn" style="font-size:0.75rem; padding:2px 8px;"
+                            data-name="{{ note.source_name }}">Delete</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="no-results">
+        <h2>No source notes yet</h2>
+        <p>Add credibility notes to news sources. They appear as badges next to source names on search results and articles.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    var form = document.getElementById('noteForm');
+    var nameInput = document.getElementById('noteSourceName');
+    var stanceSelect = document.getElementById('noteStance');
+    var textArea = document.getElementById('noteText');
+    var guidanceArea = document.getElementById('noteGuidance');
+    var origNameInput = document.getElementById('noteFormOriginalName');
+    var formTitle = document.getElementById('noteFormTitle');
+    var statusDiv = document.getElementById('noteFormStatus');
+
+    function showStatus(msg, isError) {
+        statusDiv.style.display = 'block';
+        statusDiv.style.color = isError ? '#ef4444' : '#10b981';
+        statusDiv.textContent = msg;
+    }
+
+    function resetForm() {
+        nameInput.value = '';
+        stanceSelect.value = 'neutral';
+        textArea.value = '';
+        guidanceArea.value = '';
+        origNameInput.value = '';
+        formTitle.textContent = 'Add Source Note';
+        statusDiv.style.display = 'none';
+        form.style.display = 'none';
+    }
+
+    // Add button
+    document.getElementById('addNoteBtn').addEventListener('click', function() {
+        resetForm();
+        form.style.display = 'block';
+        nameInput.focus();
+    });
+
+    // Cancel
+    document.getElementById('noteFormCancel').addEventListener('click', resetForm);
+
+    // Edit buttons
+    document.querySelectorAll('.note-edit-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            resetForm();
+            var name = this.getAttribute('data-name');
+            nameInput.value = name;
+            stanceSelect.value = this.getAttribute('data-stance');
+            textArea.value = this.getAttribute('data-text');
+            origNameInput.value = name;
+            formTitle.textContent = 'Edit: ' + name;
+            form.style.display = 'block';
+            textArea.focus();
+        });
+    });
+
+    // Delete buttons
+    document.querySelectorAll('.note-delete-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var name = this.getAttribute('data-name');
+            if (!confirm('Delete the note for "' + name + '"?')) return;
+            fetch('/admin/api/source-note', {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({source_name: name})
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.error) throw new Error(data.error);
+                location.reload();
+            })
+            .catch(function(err) { alert('Delete failed: ' + err.message); });
+        });
+    });
+
+    // Save
+    document.getElementById('noteFormSave').addEventListener('click', function() {
+        var name = nameInput.value.trim();
+        var text = textArea.value.trim();
+        var stance = stanceSelect.value;
+        if (!name || !text) return alert('Source name and note text are required.');
+
+        var saveBtn = this;
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+
+        // If name changed from original, delete old one first
+        var origName = origNameInput.value;
+        var chain = Promise.resolve();
+        if (origName && origName !== name) {
+            chain = fetch('/admin/api/source-note', {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({source_name: origName})
+            });
+        }
+
+        chain.then(function() {
+            return fetch('/admin/api/source-note', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({source_name: name, note_text: text, stance: stance})
+            });
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) throw new Error(data.error);
+            location.reload();
+        })
+        .catch(function(err) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save';
+            alert('Save failed: ' + err.message);
+        });
+    });
+
+    // AI Research
+    document.getElementById('noteFormResearch').addEventListener('click', function() {
+        var name = nameInput.value.trim();
+        if (!name) return alert('Enter a source name first.');
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Researching...';
+        showStatus('AI is researching ' + name + '...', false);
+
+        fetch('/admin/api/source-note/research', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({source_name: name, guidance: guidanceArea.value.trim()})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) throw new Error(data.error);
+            textArea.value = data.research_text;
+            statusDiv.style.display = 'none';
+            btn.disabled = false;
+            btn.textContent = 'AI Research';
+        })
+        .catch(function(err) {
+            btn.disabled = false;
+            btn.textContent = 'AI Research';
+            showStatus('Research failed: ' + err.message, true);
+        });
+    });
+
+    // AI Find Evidence
+    document.getElementById('noteFormEvidence').addEventListener('click', function() {
+        var name = nameInput.value.trim();
+        var claim = textArea.value.trim();
+        if (!name) return alert('Enter a source name first.');
+        if (!claim) return alert('Write your claim in the note text first, then click this to find evidence.');
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Finding evidence...';
+        showStatus('AI is finding evidence...', false);
+
+        fetch('/admin/api/source-note/research', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({source_name: name, claim: claim, guidance: guidanceArea.value.trim()})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) throw new Error(data.error);
+            textArea.value = data.research_text;
+            statusDiv.style.display = 'none';
+            btn.disabled = false;
+            btn.textContent = 'AI Find Evidence';
+        })
+        .catch(function(err) {
+            btn.disabled = false;
+            btn.textContent = 'AI Find Evidence';
+            showStatus('Research failed: ' + err.message, true);
+        });
+    });
+})();
+</script>
+{% endblock %}
