@@ -91,7 +91,7 @@
             <article class="trending-card {% if article.image_url %}has-thumb{% endif %}">
                 {% if article.image_url %}
                 <div class="result-thumb">
-                    <img src="{{ article.image_url }}" alt="" loading="lazy" onerror="this.parentElement.remove()">
+                    <img src="{{ article.image_url }}" alt="" loading="lazy" decoding="async" onerror="this.parentElement.remove()">
                 </div>
                 {% endif %}
                 <div class="result-body">

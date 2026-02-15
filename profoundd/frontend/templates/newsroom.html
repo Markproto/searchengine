@@ -37,7 +37,7 @@
             {% if story.image_url %}
             <div class="bob-card-image">
                 <a href="/newsroom/{{ story.slug }}">
-                    <img src="{{ story.image_url }}" alt="{{ story.title }}" loading="lazy">
+                    <img src="{{ story.image_url }}" alt="{{ story.title }}" loading="lazy" decoding="async">
                 </a>
             </div>
             {% endif %}

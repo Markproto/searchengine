@@ -77,7 +77,7 @@
 
         {% if story.image_url %}
         <div class="article-hero-image">
-            <img src="{{ story.image_url }}" alt="{{ story.title }}" loading="lazy">
+            <img src="{{ story.image_url }}" alt="{{ story.title }}" loading="lazy" decoding="async">
         </div>
         {% endif %}
 
