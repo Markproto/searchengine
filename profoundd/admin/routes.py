@@ -408,6 +408,19 @@ def cleanup_old():
     return redirect(url_for("admin.dashboard"))
 
 
+@admin_bp.route("/deduplicate", methods=["POST"])
+@login_required
+def deduplicate():
+    """Remove duplicate articles by title, keeping earliest version."""
+    engine = SearchEngine(config.ELASTICSEARCH_URL)
+    if not engine.is_available():
+        flash("Elasticsearch is not available.", "error")
+        return redirect(url_for("admin.dashboard"))
+    deleted, groups = engine.deduplicate_titles()
+    flash(f"Dedup complete: removed {deleted} duplicates across {groups} title groups.", "info")
+    return redirect(url_for("admin.dashboard"))
+
+
 @admin_bp.route("/crawl-history")
 @login_required
 def crawl_history():

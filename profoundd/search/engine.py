@@ -908,3 +908,66 @@ class SearchEngine:
         except Exception as e:
             logger.error("get_topic_feed failed: %s", e)
             return []
+
+    def deduplicate_titles(self):
+        """Remove duplicate articles by title, keeping the earliest crawled version.
+
+        First-come-first-serve cleanup: for each title that appears more than
+        once, the oldest article (by crawled_at) is kept and all others are
+        deleted from the index.
+        """
+        try:
+            body = {
+                "size": 0,
+                "aggs": {
+                    "dup_titles": {
+                        "terms": {
+                            "field": "title.raw",
+                            "min_doc_count": 2,
+                            "size": 10000,
+                        },
+                        "aggs": {
+                            "keep": {
+                                "top_hits": {
+                                    "size": 1,
+                                    "sort": [{"crawled_at": {"order": "asc"}}],
+                                    "_source": ["url"],
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            result = self.es.search(index=self.index_name, body=body)
+            buckets = result["aggregations"]["dup_titles"]["buckets"]
+
+            total_deleted = 0
+            for bucket in buckets:
+                title = bucket["key"]
+                keep_id = bucket["keep"]["hits"]["hits"][0]["_id"]
+
+                del_result = self.es.delete_by_query(
+                    index=self.index_name,
+                    body={
+                        "query": {
+                            "bool": {
+                                "must": [{"term": {"title.raw": title}}],
+                                "must_not": [{"ids": {"values": [keep_id]}}],
+                            }
+                        }
+                    },
+                )
+                deleted = del_result.get("deleted", 0)
+                total_deleted += deleted
+                if deleted > 0:
+                    logger.info("Dedup: kept 1, deleted %d for: %s", deleted, title[:80])
+
+            if total_deleted:
+                self.es.indices.refresh(index=self.index_name)
+            logger.info("Title dedup complete: %d duplicate groups, %d articles removed",
+                        len(buckets), total_deleted)
+            return total_deleted, len(buckets)
+        except Exception as e:
+            logger.error("deduplicate_titles failed: %s", e)
+            return 0, 0

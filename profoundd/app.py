@@ -307,22 +307,33 @@ def create_app(config_override=None):
 
     @app.route("/category/<category_name>")
     def category_page(category_name):
-        """Browse a specific category."""
+        """Browse a specific category with pagination."""
         if category_name not in CATEGORIES:
             return render_template("404.html", categories=CATEGORIES), 404
 
-        trending = []
+        page = request.args.get("page", 1, type=int)
+        per_page = 20
+
+        articles = []
+        total = 0
+        pages = 0
         if search_engine.is_available():
-            trending = search_engine.get_trending(category=category_name, size=20, hours=72)
-            if not trending:
-                trending = search_engine.get_trending(category=category_name, size=20, hours=720)
-            if not trending:
-                # Final fallback: just get latest articles, no time filter
-                trending = search_engine.get_latest(category=category_name, size=20)
+            results = search_engine.search(
+                query="",
+                category=category_name,
+                page=page,
+                per_page=per_page,
+                sort_by="date",
+            )
+            articles = results.get("articles", [])
+            total = results.get("total", 0)
+            pages = results.get("pages", 0)
 
         cat_info = CATEGORIES[category_name]
         return render_template("category.html", category_name=category_name,
-                               category=cat_info, articles=trending, categories=CATEGORIES)
+                               category=cat_info, articles=articles,
+                               page=page, pages=pages, total=total,
+                               categories=CATEGORIES)
 
     @app.route("/article/<doc_id>")
     def article_detail(doc_id):
