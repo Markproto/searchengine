@@ -760,6 +760,14 @@ function showSourceNoteEditor(wrapper, existingText, stance) {
         acceptBtn.addEventListener('click', function() {
             setCookie('cookie_consent', 'accepted', 365);
             banner.style.display = 'none';
+            // Record this page view immediately via beacon
+            try {
+                fetch('/api/analytics/beacon', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({path: location.pathname, referrer: document.referrer})
+                });
+            } catch(e) {}
         });
     }
 

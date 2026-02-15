@@ -146,9 +146,48 @@ def create_app(config_override=None):
             db.session.add(pv)
             db.session.commit()
         except Exception:
+            logger.exception("Failed to record page view for %s", path)
             db.session.rollback()
 
         return response
+
+    # --- Beacon endpoint: record the page view when cookies are accepted ---
+    @app.route("/api/analytics/beacon", methods=["POST"])
+    def analytics_beacon():
+        """Record a page view via JS beacon (fires on cookie accept)."""
+        data = request.get_json(silent=True) or {}
+        page_path = (data.get("path") or "/")[:1000]
+        referrer = (data.get("referrer") or "")[:1000]
+
+        visitor_id = request.cookies.get("profoundd_vid")
+        if not visitor_id:
+            visitor_id = uuid.uuid4().hex
+
+        try:
+            pv = PageView(
+                path=page_path,
+                visitor_id=visitor_id,
+                ip_address=request.remote_addr,
+                user_agent=(request.user_agent.string or "")[:500],
+                referrer=referrer,
+            )
+            db.session.add(pv)
+            db.session.commit()
+        except Exception:
+            logger.exception("Failed to record beacon page view")
+            db.session.rollback()
+            return jsonify(ok=False), 500
+
+        resp = jsonify(ok=True)
+        if not request.cookies.get("profoundd_vid"):
+            resp.set_cookie(
+                "profoundd_vid", visitor_id,
+                max_age=365 * 24 * 3600,
+                httponly=True,
+                samesite="Lax",
+                secure=request.is_secure,
+            )
+        return resp
 
     # Initialize search engine
     search_engine = SearchEngine(app.config.get("ELASTICSEARCH_URL", "http://localhost:9200"))
