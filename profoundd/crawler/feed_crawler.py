@@ -31,8 +31,9 @@ class FeedCrawler:
         self.max_per_feed = config.MAX_ARTICLES_PER_FEED
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": self.user_agent})
-        # Deduplication: track seen URLs within a crawl run
+        # Deduplication: track seen URLs and titles within a crawl run
         self._seen_urls = set()
+        self._seen_titles = set()
         # Statistics
         self.stats = {"found": 0, "new": 0, "duplicate": 0, "errors": 0}
 
@@ -45,6 +46,22 @@ class FeedCrawler:
         # Also check Elasticsearch — skip articles already indexed
         if self.search_engine.article_exists(url):
             return True
+        return False
+
+    def _is_title_duplicate(self, title):
+        """Check if an article with this title was already seen or indexed.
+
+        First-come-first-serve: the first source to publish a headline wins.
+        Later sources with the same headline are skipped entirely.
+        """
+        normalized = title.strip().lower()
+        if normalized in self._seen_titles:
+            return True
+        # Check ES for articles indexed in previous crawl runs
+        if self.search_engine.title_exists(title):
+            self._seen_titles.add(normalized)
+            return True
+        self._seen_titles.add(normalized)
         return False
 
     def fetch_feed(self, source):
@@ -145,6 +162,12 @@ class FeedCrawler:
 
                 if self._is_duplicate(article["url"]):
                     self.stats["duplicate"] += 1
+                    continue
+
+                if self._is_title_duplicate(article["title"]):
+                    self.stats["duplicate"] += 1
+                    logger.debug("Title duplicate skipped: '%s' from %s",
+                                 article["title"], article["source_name"])
                     continue
 
                 self.stats["new"] += 1

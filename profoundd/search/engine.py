@@ -127,6 +127,21 @@ class SearchEngine:
         except Exception:
             return False
 
+    def title_exists(self, title):
+        """Check if an article with this exact title already exists in the index.
+
+        Uses the title.raw keyword field for exact matching — first article
+        indexed with a given headline wins (first-come-first-serve dedup).
+        """
+        try:
+            result = self.es.count(
+                index=self.index_name,
+                query={"term": {"title.raw": title}},
+            )
+            return result["count"] > 0
+        except Exception:
+            return False
+
     def search(self, query, category=None, page=1, per_page=20, sort_by="relevance",
                source_filter=None, date_from=None, date_to=None):
         """
