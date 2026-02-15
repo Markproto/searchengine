@@ -13,11 +13,30 @@ import requests
 from bs4 import BeautifulSoup
 
 from profoundd.config.settings import get_config
-from profoundd.config.sources import ALL_SOURCES
+from profoundd.config.sources import ALL_SOURCES, SPECIAL_SECTION_KEYWORDS
 from profoundd.search.engine import SearchEngine
 
 logger = logging.getLogger(__name__)
 config = get_config()
+
+# Patterns that indicate an entry is an ad / sponsored content.
+# Checked case-insensitively against the title and summary.
+AD_FILTER_PATTERNS = [
+    "#ad",
+    "#sponsored",
+    "sponsored by",
+    "brought to you by",
+    "paid promotion",
+    "paid partnership",
+    "this video is sponsored",
+    "thanks to our sponsor",
+    "use code ",
+    "use my code",
+    "use my link",
+    "check out our sponsor",
+    "affiliate link",
+    "promo code",
+]
 
 
 class FeedCrawler:
@@ -36,6 +55,26 @@ class FeedCrawler:
         self._seen_titles = set()
         # Statistics
         self.stats = {"found": 0, "new": 0, "duplicate": 0, "errors": 0}
+
+    @staticmethod
+    def _is_ad_content(title, summary=""):
+        """Return True if the title or summary matches known ad/sponsored patterns."""
+        text = f"{title} {summary}".lower()
+        return any(pattern in text for pattern in AD_FILTER_PATTERNS)
+
+    @staticmethod
+    def _match_special_category(title, summary, content="", tags=None):
+        """Check if article text matches any special section keywords.
+
+        Returns the special category key if matched, otherwise None.
+        Checks title, summary, content, and tags for keyword matches.
+        """
+        tag_text = " ".join(tags) if tags else ""
+        text = f"{title} {summary} {content} {tag_text}".lower()
+        for cat_key, keywords in SPECIAL_SECTION_KEYWORDS.items():
+            if any(kw in text for kw in keywords):
+                return cat_key
+        return None
 
     def _is_duplicate(self, url):
         """Check if URL has already been seen in this crawl run or exists in ES."""
@@ -127,10 +166,45 @@ class FeedCrawler:
 
         author = getattr(entry, "author", source["name"])
 
+        # Extract image URL from feed metadata (no images stored on server)
+        image_url = ""
+        # 1. media:content (most common in RSS)
+        if hasattr(entry, "media_content") and entry.media_content:
+            for mc in entry.media_content:
+                if mc.get("medium") == "image" or (mc.get("type", "").startswith("image")):
+                    image_url = mc.get("url", "")
+                    break
+            if not image_url:
+                image_url = entry.media_content[0].get("url", "")
+        # 2. media:thumbnail
+        if not image_url and hasattr(entry, "media_thumbnail") and entry.media_thumbnail:
+            image_url = entry.media_thumbnail[0].get("url", "")
+        # 3. enclosures (podcasts/media feeds)
+        if not image_url and hasattr(entry, "enclosures") and entry.enclosures:
+            for enc in entry.enclosures:
+                if enc.get("type", "").startswith("image"):
+                    image_url = enc.get("href", "") or enc.get("url", "")
+                    break
+        # 4. <image> tag in entry or feed-level image in summary/content HTML
+        if not image_url:
+            html_to_check = getattr(entry, "summary", "") or ""
+            if html_to_check:
+                soup = BeautifulSoup(html_to_check, "html.parser")
+                img_tag = soup.find("img", src=True)
+                if img_tag and img_tag["src"].startswith("http"):
+                    image_url = img_tag["src"]
+
         # Extract tags/keywords if available
         tags = []
         if hasattr(entry, "tags") and entry.tags:
             tags = [t.get("term", "") for t in entry.tags[:5]]
+
+        # Determine category — check for special section keyword matches.
+        # For articles from any feed, if keywords match a special section, re-categorize.
+        # _matched_special is also used by crawl_source to filter out non-matching
+        # articles from feeds assigned to special categories.
+        matched_special = self._match_special_category(title, summary, content, tags)
+        category = matched_special or source["category"]
 
         return {
             "title": title,
@@ -138,9 +212,10 @@ class FeedCrawler:
             "summary": summary,
             "content": content or summary,
             "author": author,
-            "category": source["category"],
+            "category": category,
             "source_name": source["name"],
             "source_credibility": source.get("credibility", 5),
+            "image_url": image_url,
             "published_at": published.isoformat(),
             "crawled_at": datetime.now(timezone.utc).isoformat(),
             "tags": tags,
@@ -151,6 +226,10 @@ class FeedCrawler:
         logger.info("Crawling: %s (%s)", source["name"], source["category"])
         entries = self.fetch_feed(source)
         articles = []
+        # If this source is assigned to a special category, only keep articles
+        # that actually match the keywords — otherwise the whole general feed
+        # (e.g. Daily Mail) would flood the special section with irrelevant stories.
+        source_is_special = source["category"] in SPECIAL_SECTION_KEYWORDS
 
         for entry in entries:
             try:
@@ -159,6 +238,23 @@ class FeedCrawler:
                     continue
 
                 self.stats["found"] += 1
+
+                # Skip ads / sponsored content (Redacted YouTube feed only)
+                if source["name"] == "Redacted" and self._is_ad_content(article["title"], article["summary"]):
+                    logger.debug("Skipping ad content from Redacted: %s", article["title"])
+                    continue
+
+                # For special-category sources, only keep articles whose keywords
+                # actually matched.  When no keyword matches, extract_article falls
+                # back to source["category"] — but that would flood the section with
+                # unrelated articles from general feeds like Daily Mail.
+                if source_is_special:
+                    keyword_matched = self._match_special_category(
+                        article["title"], article["summary"],
+                        article.get("content", ""), article.get("tags", [])
+                    )
+                    if not keyword_matched:
+                        continue
 
                 if self._is_duplicate(article["url"]):
                     self.stats["duplicate"] += 1

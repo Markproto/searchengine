@@ -42,24 +42,60 @@
     <h2 class="section-title">Latest Articles</h2>
     <div class="articles-grid">
         {% for article in articles %}
-        <article class="trending-card">
+        <article class="trending-card {% if article.image_url %}has-thumb{% endif %}">
+            {% if article.image_url %}
+            <div class="result-thumb">
+                <img src="{{ article.image_url }}" alt="" loading="lazy" decoding="async" onerror="this.parentElement.remove()">
+            </div>
+            {% endif %}
+            <div class="result-body">
             <div class="result-header">
-                <span class="result-source">{{ article.source_name }}</span>
+                <span class="result-source">{{ article.source_name }}{% with src_name=article.source_name %}{% include '_source_note.html' %}{% endwith %}</span>
                 {% if article.source_credibility %}
+                {% if session.get('admin_logged_in') %}
+                <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }} admin-editable-cred" data-url="{{ article.url }}">
+                    <input type="number" class="cred-input" value="{{ article.source_credibility }}" min="1" max="10" title="Edit credibility (admin)">
+                    <span class="cred-label">/10</span>
+                    <button class="cred-save-btn" title="Save">&#10003;</button>
+                </span>
+                {% else %}
                 <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }}">
                     {{ article.source_credibility }}/10 <span class="credibility-help" title="This credibility rating is an opinion">?</span>
                 </span>
                 {% endif %}
+                {% endif %}
+                {% if session.get('admin_logged_in') %}
+                <span class="admin-boost-controls" data-url="{{ article.url }}" data-boost="{{ article.admin_boost or 5 }}">
+                    <button type="button" class="boost-btn boost-up" title="Promote">&#9650;</button>
+                    <span class="boost-value">{{ article.admin_boost or 5 }}</span>
+                    <button type="button" class="boost-btn boost-down" title="Demote">&#9660;</button>
+                </span>
+                {% endif %}
             </div>
-            <h3><a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
+            <h3>{% if article.url.startswith('profoundd://bob/') %}<a href="/newsroom/{{ article.url.split('/')[-1] }}">{{ article.title }}</a>{% elif article.url.startswith('profoundd://') %}<a href="/article/{{ article.url.split('/')[-1] }}">{{ article.title }}</a>{% else %}<a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a>{% endif %}</h3>
             {% if article.summary %}
             <p class="result-summary">{{ article.summary[:200] }}{% if article.summary|length > 200 %}...{% endif %}</p>
             {% endif %}
+            {% with note_url=article.url, note_title=article.title, note_summary=article.summary or '' %}
+            {% include '_newsroom_note.html' %}
+            {% endwith %}
             <p class="trending-meta">
                 {% if article.published_at %}
                 <span class="date" data-time="{{ article.published_at }}">{{ article.published_at[:10] }}</span>
                 {% endif %}
+                {% if session.get('admin_logged_in') %}
+                <button type="button" class="bob-write-btn"
+                        data-url="{{ article.url }}"
+                        data-title="{{ article.title }}"
+                        data-source="{{ article.source_name }}"
+                        data-category="{{ article.category }}"
+                        data-summary="{{ (article.summary or '')[:500] }}"
+                        title="Have NewsRoom Bob write a story about this">
+                    Bob, Write This
+                </button>
+                {% endif %}
             </p>
+            </div>{# /result-body #}
         </article>
         {% endfor %}
     </div>

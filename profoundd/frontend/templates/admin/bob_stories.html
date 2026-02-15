@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}NewsRoom Bob - Admin{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>NewsRoom Bob Stories</h1>
+        <div>
+            <a href="/newsroom" class="btn btn-secondary" target="_blank">View Public NewsRoom</a>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+
+    {% if stories %}
+    <p style="color:var(--text-secondary); margin-bottom:1rem;">{{ stories|length }} stories published. Click a title to view it live.</p>
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Source</th>
+                <th>Published</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for story in stories %}
+            <tr>
+                <td>
+                    <a href="/newsroom/{{ story.slug }}" target="_blank" style="font-weight:500;">
+                        {{ story.title[:80] }}{% if story.title|length > 80 %}...{% endif %}
+                    </a>
+                    {% if story.seo_keywords %}
+                    <br><small style="color:var(--text-muted);">{{ story.seo_keywords[:60] }}{% if story.seo_keywords|length > 60 %}...{% endif %}</small>
+                    {% endif %}
+                </td>
+                <td><span class="category-tag-{{ story.category }}">{{ story.category | title }}</span></td>
+                <td>
+                    <small>{{ story.source_name or 'Unknown' }}</small>
+                    {% if story.source_article_url %}
+                    <br><a href="{{ story.source_article_url }}" target="_blank" rel="noopener" style="font-size:0.75rem; color:var(--text-muted);">original</a>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if story.published_at %}
+                    {{ story.published_at.strftime('%Y-%m-%d %H:%M') }}
+                    {% endif %}
+                </td>
+                <td>
+                    {% if story.source_article_url and not story.source_article_url.startswith('profoundd://') %}
+                    <form method="POST" action="{{ url_for('admin.bob_story_restore_original', story_id=story.id) }}"
+                          onsubmit="return confirm('Restore the original article back to the search index?');" style="display:inline;">
+                        <button type="submit" class="btn btn-secondary" style="font-size:0.75rem; padding:2px 8px;">Restore Original</button>
+                    </form>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('admin.bob_story_delete', story_id=story.id) }}"
+                          onsubmit="return confirm('Delete this Bob story?');" style="display:inline;">
+                        <button type="submit" class="btn btn-warning" style="font-size:0.75rem; padding:2px 8px;">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="no-results">
+        <h2>No stories yet</h2>
+        <p>Hit the "Bob, Write This" button on any article across the site to generate a story.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

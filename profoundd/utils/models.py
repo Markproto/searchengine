@@ -188,11 +188,13 @@ class ResearchDocument(db.Model):
     category = db.Column(db.String(50), default="news")
     source_name = db.Column(db.String(200), default="Profoundd Research")
     doc_url = db.Column(db.String(500), unique=True, nullable=False)
+    source_url = db.Column(db.String(1000))  # original source article link
+    image_url = db.Column(db.String(1000))   # image from source (og:image or manual)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def to_es_doc(self):
         """Convert to Elasticsearch document format for indexing."""
-        return {
+        doc = {
             "title": self.title,
             "summary": self.summary or self.title,
             "content": self.content,
@@ -202,6 +204,79 @@ class ResearchDocument(db.Model):
             "source_credibility": 9,
             "url": self.doc_url,
             "published_at": self.created_at.isoformat() if self.created_at else datetime.now(timezone.utc).isoformat(),
+            "crawled_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if self.source_url:
+            doc["source_url"] = self.source_url
+        if self.image_url:
+            doc["image_url"] = self.image_url
+        return doc
+
+
+class AdminRankingAction(db.Model):
+    """Logs admin promote/demote actions on articles for AI training."""
+    __tablename__ = "admin_ranking_actions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    article_url = db.Column(db.String(1000), nullable=False, index=True)
+    article_title = db.Column(db.String(500))
+    source_name = db.Column(db.String(200))
+    category = db.Column(db.String(50))
+    action = db.Column(db.String(20), nullable=False)  # "promote" or "demote"
+    old_boost = db.Column(db.Integer, default=0)
+    new_boost = db.Column(db.Integer, default=0)
+    search_query = db.Column(db.String(500))  # what the admin was searching when they acted
+    acted_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def to_training_dict(self):
+        """Format for AI training: what the admin decided and why context."""
+        return {
+            "action": self.action,
+            "article_title": self.article_title,
+            "source_name": self.source_name,
+            "category": self.category,
+            "boost_change": f"{self.old_boost} -> {self.new_boost}",
+            "search_context": self.search_query,
+            "timestamp": self.acted_at.isoformat() if self.acted_at else None,
+        }
+
+
+class BobStory(db.Model):
+    """AI-generated stories by NewsRoom Bob, based on original articles."""
+    __tablename__ = "bob_stories"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(500), nullable=False)
+    slug = db.Column(db.String(300), unique=True, nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    summary = db.Column(db.Text)
+    seo_keywords = db.Column(db.String(500))
+    seo_description = db.Column(db.String(300))
+    category = db.Column(db.String(50), index=True)
+    image_url = db.Column(db.String(1000))
+
+    # Link back to the original source
+    source_article_url = db.Column(db.String(1000), nullable=False)
+    source_article_title = db.Column(db.String(500))
+    source_name = db.Column(db.String(200))
+
+    status = db.Column(db.String(20), default="published")  # draft, published
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    published_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def to_es_doc(self):
+        """Convert to Elasticsearch document format for indexing."""
+        return {
+            "title": self.title,
+            "summary": self.summary or self.title,
+            "content": self.content,
+            "author": "NewsRoom Bob",
+            "category": self.category or "news",
+            "source_name": "Profoundd NewsRoom",
+            "source_credibility": 8,
+            "url": f"profoundd://bob/{self.slug}",
+            "tags": [t.strip() for t in (self.seo_keywords or "").split(",") if t.strip()],
+            "published_at": self.published_at.isoformat() if self.published_at else datetime.now(timezone.utc).isoformat(),
             "crawled_at": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -219,3 +294,41 @@ class ArticleVote(db.Model):
     __table_args__ = (
         db.UniqueConstraint('article_url', 'ip_address', name='unique_vote_per_ip'),
     )
+
+
+class PageView(db.Model):
+    """Tracks individual page views for analytics."""
+    __tablename__ = "page_views"
+
+    id = db.Column(db.Integer, primary_key=True)
+    path = db.Column(db.String(1000), nullable=False, index=True)
+    visitor_id = db.Column(db.String(64), index=True)  # cookie-based anonymous ID
+    ip_address = db.Column(db.String(45))
+    user_agent = db.Column(db.String(500))
+    referrer = db.Column(db.String(1000))
+    country = db.Column(db.String(10))  # optional, from IP
+    viewed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+
+class NewsroomNote(db.Model):
+    """Editorial notes added by admin to any article, visible to readers."""
+    __tablename__ = "newsroom_notes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    article_url = db.Column(db.String(1000), nullable=False, unique=True, index=True)
+    article_title = db.Column(db.String(500))
+    note_text = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class SourceNote(db.Model):
+    """Editorial notes on content sources — why they are or aren't trustworthy."""
+    __tablename__ = "source_notes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    source_name = db.Column(db.String(200), nullable=False, unique=True, index=True)
+    note_text = db.Column(db.Text, nullable=False)
+    stance = db.Column(db.String(20), default="neutral")  # "trustworthy", "caution", "neutral"
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

@@ -1,0 +1,28 @@
+{# Source credibility note. Expects: src_name #}
+{% set src_note = get_source_note(src_name) %}
+{% if src_note or session.get('admin_logged_in') %}
+<div class="source-note-wrapper" data-source="{{ src_name }}">
+    {% if src_note %}
+    <button type="button" class="source-note-badge source-stance-{{ src_note.stance }}" title="Click to read">
+        {% if src_note.stance == 'trustworthy' %}&#10003;{% elif src_note.stance == 'caution' %}&#9888;{% else %}&#9432;{% endif %}
+    </button>
+    <div class="source-note-popup" style="display:none;">
+        <div class="source-note-header">
+            <span class="source-note-stance-label source-stance-{{ src_note.stance }}">
+                {% if src_note.stance == 'trustworthy' %}Trusted Source{% elif src_note.stance == 'caution' %}Use Caution{% else %}Source Note{% endif %}
+            </span>
+            <button type="button" class="source-note-close">&times;</button>
+        </div>
+        <div class="source-note-body">{{ src_note.note_text }}</div>
+        {% if session.get('admin_logged_in') %}
+        <div class="source-note-admin-controls">
+            <button type="button" class="srcnote-edit-btn">Edit</button>
+            <button type="button" class="srcnote-delete-btn">Delete</button>
+        </div>
+        {% endif %}
+    </div>
+    {% elif session.get('admin_logged_in') %}
+    <button type="button" class="srcnote-add-btn" title="Add source credibility note">&#9432;</button>
+    {% endif %}
+</div>
+{% endif %}

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Analytics - Admin{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>Visitor Analytics</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+
+    <!-- Period selector -->
+    <div class="analytics-period">
+        <span>Period:</span>
+        {% for d in [1, 7, 30, 90] %}
+        <a href="{{ url_for('admin.analytics', days=d) }}"
+           class="btn btn-sm {% if days == d %}btn-primary{% else %}btn-secondary{% endif %}">
+            {{ d }}d
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Summary cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Page Views ({{ days }}d)</h3>
+            <p class="stat-value">{{ "{:,}".format(total_views) }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Unique Visitors ({{ days }}d)</h3>
+            <p class="stat-value">{{ "{:,}".format(unique_visitors) }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>All-Time Views</h3>
+            <p class="stat-value">{{ "{:,}".format(total_all_time) }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>All-Time Visitors</h3>
+            <p class="stat-value">{{ "{:,}".format(unique_all_time) }}</p>
+        </div>
+    </div>
+
+    <!-- Daily chart (simple bar chart) -->
+    {% if daily_views %}
+    <div class="admin-section">
+        <h2>Daily Traffic</h2>
+        <div class="analytics-chart">
+            {% set max_views = daily_views | map(attribute='views') | max %}
+            {% for row in daily_views %}
+            <div class="chart-row">
+                <span class="chart-label">{{ row.day }}</span>
+                <div class="chart-bar-wrap">
+                    <div class="chart-bar" style="width: {{ (row.views / max_views * 100) if max_views else 0 }}%"></div>
+                    <span class="chart-value">{{ row.views }} views / {{ row.visitors }} visitors</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Top pages -->
+    {% if top_pages %}
+    <div class="admin-section">
+        <h2>Top Pages</h2>
+        <table class="admin-table">
+            <thead>
+                <tr><th>Page</th><th>Views</th><th>Visitors</th></tr>
+            </thead>
+            <tbody>
+                {% for row in top_pages %}
+                <tr>
+                    <td><code>{{ row.path }}</code></td>
+                    <td>{{ row.views }}</td>
+                    <td>{{ row.visitors }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Top referrers -->
+    {% if top_referrers %}
+    <div class="admin-section">
+        <h2>Top Referrers</h2>
+        <table class="admin-table">
+            <thead>
+                <tr><th>Referrer</th><th>Views</th></tr>
+            </thead>
+            <tbody>
+                {% for row in top_referrers %}
+                <tr>
+                    <td>{{ row.referrer[:100] }}{% if row.referrer|length > 100 %}...{% endif %}</td>
+                    <td>{{ row.views }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Recent views -->
+    {% if recent_views %}
+    <div class="admin-section">
+        <h2>Recent Visitors</h2>
+        <table class="admin-table">
+            <thead>
+                <tr><th>Time</th><th>Page</th><th>Visitor</th><th>IP</th><th>Referrer</th></tr>
+            </thead>
+            <tbody>
+                {% for pv in recent_views %}
+                <tr>
+                    <td>{{ pv.viewed_at.strftime('%m/%d %H:%M') if pv.viewed_at else '' }}</td>
+                    <td><code>{{ pv.path[:60] }}</code></td>
+                    <td title="{{ pv.visitor_id }}">{{ pv.visitor_id[:8] }}...</td>
+                    <td>{{ pv.ip_address }}</td>
+                    <td>{{ (pv.referrer or '')[:50] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

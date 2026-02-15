@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Source Notes - Admin{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>Source Notes</h1>
+        <div>
+            <button type="button" class="btn btn-primary" onclick="document.getElementById('noteForm').style.display='block'; document.getElementById('noteFormTitle').textContent='Add Source Note'; document.getElementById('noteSourceName').value=''; document.getElementById('noteStance').value='neutral'; document.getElementById('noteText').value=''; document.getElementById('noteOrigName').value='';">Add Note</button>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <p style="color:var(--text-secondary); margin-bottom:1rem;">{{ notes|length }} source note{{ 's' if notes|length != 1 else '' }}. Credibility badges appear next to source names across the site.</p>
+
+    <!-- Add/Edit form -->
+    <div id="noteForm" style="display:none; margin-bottom:2rem; padding:1.5rem; border:1px solid var(--border, #334155); border-radius:8px; background:var(--bg-card, #1e293b);">
+        <h3 id="noteFormTitle" style="margin-bottom:1rem;">Add Source Note</h3>
+        <form method="POST" action="{{ url_for('admin.source_note_save') }}">
+            <input type="hidden" name="orig_name" id="noteOrigName" value="">
+            <div style="margin-bottom:1rem;">
+                <label style="display:block; margin-bottom:0.25rem; font-weight:500;">Source Name</label>
+                <input type="text" name="source_name" id="noteSourceName" required
+                       placeholder="e.g. CNBC, Reuters, Fox News"
+                       style="width:100%; padding:0.5rem; border:1px solid var(--border, #334155); border-radius:4px; background:var(--bg, #0f172a); color:var(--text, #e2e8f0);">
+            </div>
+            <div style="margin-bottom:1rem;">
+                <label style="display:block; margin-bottom:0.25rem; font-weight:500;">Stance</label>
+                <select name="stance" id="noteStance" style="padding:0.5rem; border:1px solid var(--border, #334155); border-radius:4px; background:var(--bg, #0f172a); color:var(--text, #e2e8f0);">
+                    <option value="neutral">Neutral</option>
+                    <option value="trustworthy">Trustworthy</option>
+                    <option value="caution">Use Caution</option>
+                </select>
+            </div>
+            <div style="margin-bottom:1rem;">
+                <label style="display:block; margin-bottom:0.25rem; font-weight:500;">Note Text</label>
+                <textarea name="note_text" id="noteText" rows="4" required
+                          placeholder="Why is this source trustworthy or not? Include evidence..."
+                          style="width:100%; padding:0.5rem; border:1px solid var(--border, #334155); border-radius:4px; background:var(--bg, #0f172a); color:var(--text, #e2e8f0); resize:vertical;"></textarea>
+            </div>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('noteForm').style.display='none';">Cancel</button>
+            </div>
+        </form>
+    </div>
+
+    {% if notes %}
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Source</th>
+                <th>Stance</th>
+                <th>Note</th>
+                <th>Updated</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for note in notes %}
+            <tr>
+                <td style="font-weight:500; white-space:nowrap;">{{ note.source_name }}</td>
+                <td>
+                    {% if note.stance == 'trustworthy' %}
+                    <span style="color:#10b981; font-weight:600;">Trusted</span>
+                    {% elif note.stance == 'caution' %}
+                    <span style="color:#f59e0b; font-weight:600;">Caution</span>
+                    {% else %}
+                    <span style="color:var(--text-muted);">Neutral</span>
+                    {% endif %}
+                </td>
+                <td style="max-width:400px;">
+                    <div style="overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical;">
+                        {{ note.note_text }}
+                    </div>
+                </td>
+                <td style="white-space:nowrap;">
+                    {% if note.updated_at %}
+                    {{ note.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                    {% endif %}
+                </td>
+                <td style="white-space:nowrap;">
+                    <button type="button" class="btn btn-secondary" style="font-size:0.75rem; padding:2px 8px;"
+                            onclick="editNote({{ note.id }})">Edit</button>
+                    <form method="POST" action="{{ url_for('admin.source_note_delete', note_id=note.id) }}"
+                          onsubmit="return confirm('Delete note for {{ note.source_name }}?');" style="display:inline;">
+                        <button type="submit" class="btn btn-warning" style="font-size:0.75rem; padding:2px 8px;">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="no-results">
+        <h2>No source notes yet</h2>
+        <p>Add credibility notes to news sources. They appear as badges next to source names on search results and articles.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Note data for JS edit -->
+<script type="application/json" id="noteData">
+{{ note_data_json | safe }}
+</script>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+var _noteData = {};
+try { _noteData = JSON.parse(document.getElementById('noteData').textContent || '{}'); } catch(e) {}
+
+function editNote(id) {
+    var n = _noteData[id];
+    if (!n) return;
+    document.getElementById('noteFormTitle').textContent = 'Edit: ' + n.name;
+    document.getElementById('noteSourceName').value = n.name;
+    document.getElementById('noteStance').value = n.stance;
+    document.getElementById('noteText').value = n.text;
+    document.getElementById('noteOrigName').value = n.name;
+    document.getElementById('noteForm').style.display = 'block';
+    document.getElementById('noteText').focus();
+    window.scrollTo({top: 0, behavior: 'smooth'});
+}
+</script>
+{% endblock %}

@@ -26,7 +26,9 @@ ARTICLE_MAPPING = {
             "category": {"type": "keyword"},
             "source_name": {"type": "keyword"},
             "source_credibility": {"type": "integer"},
+            "admin_boost": {"type": "integer"},
             "url": {"type": "keyword"},
+            "image_url": {"type": "keyword", "ignore_above": 2000},
             "tags": {"type": "keyword"},
             "published_at": {"type": "date"},
             "crawled_at": {"type": "date"},
@@ -99,6 +101,68 @@ class SearchEngine:
             logger.error("Failed to index article: %s", e)
             return None
 
+    def update_credibility(self, article_url, credibility):
+        """Update the source_credibility of an article in ES by its URL."""
+        es_id = hashlib.md5(article_url.encode()).hexdigest()
+        try:
+            self.es.update(
+                index=self.index_name,
+                id=es_id,
+                doc={"source_credibility": credibility},
+            )
+            return True
+        except Exception as e:
+            logger.error("Failed to update credibility for %s: %s", article_url, e)
+            return False
+
+    def update_credibility_by_source(self, source_name, credibility):
+        """Update source_credibility on ALL articles from a given source."""
+        try:
+            result = self.es.update_by_query(
+                index=self.index_name,
+                body={
+                    "query": {"term": {"source_name": source_name}},
+                    "script": {
+                        "source": "ctx._source.source_credibility = params.cred",
+                        "lang": "painless",
+                        "params": {"cred": credibility},
+                    },
+                },
+                refresh=True,
+            )
+            updated = result.get("updated", 0)
+            logger.info("Updated credibility to %d for %d articles from '%s'",
+                        credibility, updated, source_name)
+            return updated
+        except Exception as e:
+            logger.error("Failed to bulk-update credibility for '%s': %s", source_name, e)
+            return 0
+
+    def get_article(self, article_url):
+        """Fetch an article from ES by its URL."""
+        es_id = hashlib.md5(article_url.encode()).hexdigest()
+        try:
+            result = self.es.get(index=self.index_name, id=es_id)
+            return result["_source"]
+        except Exception as e:
+            logger.error("Failed to get article %s: %s", article_url, e)
+            return None
+
+    def update_boost(self, article_url, boost):
+        """Update the admin_boost of an article in ES by its URL (1-10 scale, 5=neutral)."""
+        boost = max(1, min(10, boost))
+        es_id = hashlib.md5(article_url.encode()).hexdigest()
+        try:
+            self.es.update(
+                index=self.index_name,
+                id=es_id,
+                doc={"admin_boost": boost},
+            )
+            return True
+        except Exception as e:
+            logger.error("Failed to update boost for %s: %s", article_url, e)
+            return False
+
     def bulk_index(self, articles):
         """Bulk index multiple articles."""
         if not articles:
@@ -118,6 +182,17 @@ class SearchEngine:
         except Exception as e:
             logger.error("Bulk index failed: %s", e)
             return 0
+
+    def delete_article(self, url):
+        """Delete an article from the index by its URL. Returns True if deleted."""
+        doc_id = hashlib.md5(url.encode()).hexdigest()
+        try:
+            self.es.delete(index=self.index_name, id=doc_id, ignore=[404])
+            logger.info("Deleted article from ES: %s", url)
+            return True
+        except Exception as e:
+            logger.error("Failed to delete article %s: %s", url, e)
+            return False
 
     def article_exists(self, url):
         """Check if an article with this URL already exists in the index."""
@@ -199,6 +274,7 @@ class SearchEngine:
 
         # Wrap in function_score: credibility multiplies the relevance score
         # A credibility-8 source scores 8x, credibility-7 scores 7x, etc.
+        # Admin boost adds a second multiplier: 0=neutral, +5=2x, -5=0.1x
         scored_query = {
             "function_score": {
                 "query": bool_query,
@@ -210,9 +286,17 @@ class SearchEngine:
                             "modifier": "none",
                             "missing": 5,
                         }
+                    },
+                    {
+                        "script_score": {
+                            "script": {
+                                "source": "Math.max(0.1, (doc['admin_boost'].size() > 0 ? doc['admin_boost'].value : 5) / 5.0)"
+                            }
+                        }
                     }
                 ],
                 "boost_mode": "multiply",
+                "score_mode": "multiply",
             }
         }
 
@@ -265,14 +349,17 @@ class SearchEngine:
             # Score-based filtering: drop articles scoring far below the top result.
             # Catches remaining noise from stemming false positives
             # (e.g. "electr" matching both "electric" and "electricity").
+            top_score = raw_articles[0]["_score"] if raw_articles else 0
             if query and raw_articles:
-                top_score = raw_articles[0]["_score"]
                 min_score = top_score * 0.3
                 raw_articles = [a for a in raw_articles if a["_score"] >= min_score]
                 total = len(raw_articles)
 
             # Diversify: group by credibility tier, interleave 3 high then 1 lower
             articles = self._diversify_results(raw_articles, per_page)
+
+            # Final pass: admin boost shifts articles up/down in the list
+            articles = self._apply_admin_boost_reorder(articles)
 
             return {
                 "articles": articles,
@@ -282,6 +369,7 @@ class SearchEngine:
                 "pages": (total + per_page - 1) // per_page,
                 "query": query,
                 "category": category,
+                "top_score": top_score,
             }
         except Exception as e:
             logger.error("Search failed: %s", e)
@@ -361,20 +449,115 @@ class SearchEngine:
 
         return result[:limit]
 
+    @staticmethod
+    def _diversify_by_source(articles, limit):
+        """
+        Ensure no single source dominates trending results.
+        Caps each source to at most *max_per_source* articles, then
+        round-robins across sources (ordered by their best article's
+        position) to fill the remaining slots organically.
+        """
+        if not articles:
+            return []
+
+        # For small result sets (landing page) cap tighter than category pages
+        max_per_source = 2 if limit <= 10 else 3
+
+        # Group articles by source, preserving ES sort order within each group
+        source_buckets = {}
+        source_order = []
+        for a in articles:
+            src = a.get("source_name", "Unknown")
+            if src not in source_buckets:
+                source_buckets[src] = []
+                source_order.append(src)
+            source_buckets[src].append(a)
+
+        # Round-robin across sources, taking one article at a time from each
+        result = []
+        pointers = {src: 0 for src in source_order}
+        counts = {src: 0 for src in source_order}
+
+        while len(result) < limit:
+            added_this_round = False
+            for src in source_order:
+                if len(result) >= limit:
+                    break
+                idx = pointers[src]
+                if idx < len(source_buckets[src]) and counts[src] < max_per_source:
+                    result.append(source_buckets[src][idx])
+                    pointers[src] = idx + 1
+                    counts[src] += 1
+                    added_this_round = True
+            if not added_this_round:
+                break
+
+        # If we still haven't filled the page (all sources hit their cap),
+        # relax the cap and fill remaining slots in original order
+        if len(result) < limit:
+            used_urls = {a.get("url") for a in result}
+            for a in articles:
+                if len(result) >= limit:
+                    break
+                if a.get("url") not in used_urls:
+                    result.append(a)
+                    used_urls.add(a.get("url"))
+
+        return result[:limit]
+
+    @staticmethod
+    def _apply_admin_boost_reorder(articles):
+        """
+        Final pass: shift articles up/down based on admin_boost.
+        Each boost point away from 5 shifts the article by 2 positions.
+        boost 7 → moves up 4 spots, boost 3 → moves down 4 spots, boost 5 → stays.
+        """
+        if not articles:
+            return articles
+        indexed = list(enumerate(articles))
+        indexed.sort(key=lambda item: item[0] - ((item[1].get("admin_boost") or 5) - 5) * 2)
+        return [a for _, a in indexed]
+
     def get_latest(self, category=None, size=20):
         """Get latest articles with no time filter — reliable fallback."""
         filter_clauses = []
         if category and category != "all":
             filter_clauses.append({"term": {"category": category}})
 
+        inner_query = {
+            "bool": {
+                "filter": filter_clauses,
+            }
+        } if filter_clauses else {"match_all": {}}
+
         body = {
             "query": {
-                "bool": {
-                    "filter": filter_clauses,
+                "function_score": {
+                    "query": inner_query,
+                    "functions": [
+                        {
+                            "field_value_factor": {
+                                "field": "source_credibility",
+                                "factor": 1,
+                                "modifier": "none",
+                                "missing": 5,
+                            }
+                        },
+                        {
+                            "script_score": {
+                                "script": {
+                                    "source": "Math.max(0.1, (doc['admin_boost'].size() > 0 ? doc['admin_boost'].value : 5) / 5.0)"
+                                }
+                            }
+                        }
+                    ],
+                    "boost_mode": "multiply",
+                    "score_mode": "multiply",
                 }
-            } if filter_clauses else {"match_all": {}},
+            },
             "sort": [
                 {"published_at": {"order": "desc"}},
+                {"_score": {"order": "desc"}},
             ],
             "size": size * 3,  # fetch extra so dedup still fills the page
         }
@@ -382,7 +565,9 @@ class SearchEngine:
         try:
             result = self.es.search(index=self.index_name, body=body)
             raw = [hit["_source"] for hit in result["hits"]["hits"]]
-            return self._dedup_by_title(raw, size)
+            deduped = self._dedup_by_title(raw, size * 3)
+            diversified = self._diversify_by_source(deduped, size)
+            return self._apply_admin_boost_reorder(diversified)
         except Exception as e:
             logger.error("get_latest failed (category=%s): %s", category, e)
             return []
@@ -436,6 +621,34 @@ class SearchEngine:
             logger.error("Failed to delete old articles: %s", e)
             return 0
 
+    def recategorize_by_keywords(self, keywords, new_category):
+        """Re-categorize all articles matching any of the keywords to a new category."""
+        should_clauses = []
+        for kw in keywords:
+            should_clauses.append({"match_phrase": {"title": kw}})
+            should_clauses.append({"match_phrase": {"summary": kw}})
+            should_clauses.append({"match_phrase": {"content": kw}})
+            should_clauses.append({"match_phrase": {"tags": kw}})
+        try:
+            result = self.es.update_by_query(
+                index=self.index_name,
+                body={
+                    "query": {"bool": {"should": should_clauses, "minimum_should_match": 1}},
+                    "script": {
+                        "source": "ctx._source.category = params.cat",
+                        "lang": "painless",
+                        "params": {"cat": new_category},
+                    },
+                },
+                refresh=True,
+            )
+            updated = result.get("updated", 0)
+            logger.info("Recategorized %d articles to '%s'", updated, new_category)
+            return updated
+        except Exception as e:
+            logger.error("Failed to recategorize to '%s': %s", new_category, e)
+            return 0
+
     # Sub-topic guarantees: ensure minimum representation of specific topics
     # within a category.  Keys = category name, values = list of
     # (min_count, keywords_list) tuples.
@@ -447,12 +660,15 @@ class SearchEngine:
     }
 
     def get_trending(self, category=None, hours=24, size=10):
-        """Get trending/recent articles."""
+        """Get trending/recent articles with source diversity."""
         filter_clauses = [
             {"range": {"published_at": {"gte": f"now-{hours}h"}}}
         ]
         if category and category != "all":
             filter_clauses.append({"term": {"category": category}})
+
+        # Fetch extra results so source-diversity filtering still fills the page
+        fetch_size = size * 3
 
         body = {
             "query": {
@@ -470,30 +686,44 @@ class SearchEngine:
                                 "modifier": "none",
                                 "missing": 5,
                             }
+                        },
+                        {
+                            "script_score": {
+                                "script": {
+                                    "source": "Math.max(0.1, (doc['admin_boost'].size() > 0 ? doc['admin_boost'].value : 5) / 5.0)"
+                                }
+                            }
                         }
                     ],
                     "boost_mode": "multiply",
+                    "score_mode": "multiply",
                 }
             },
             "collapse": {
                 "field": "title.raw",
             },
             "sort": [
-                {"source_credibility": {"order": "desc"}},
+                {"_score": {"order": "desc"}},
                 {"published_at": {"order": "desc"}},
             ],
-            "size": size,
+            "size": fetch_size,
         }
 
         try:
             result = self.es.search(index=self.index_name, body=body)
             articles = [hit["_source"] for hit in result["hits"]["hits"]]
 
+            # Diversify: cap per-source articles so no single source dominates
+            articles = self._diversify_by_source(articles, size)
+
             # Enforce sub-topic guarantees for this category
             if category and category in self.CATEGORY_SUBTOPIC_GUARANTEES:
                 articles = self._enforce_subtopic_guarantees(
                     articles, category, filter_clauses, size
                 )
+
+            # Final pass: admin boost shifts articles up/down in the list
+            articles = self._apply_admin_boost_reorder(articles)
 
             return articles
         except Exception as e:
@@ -630,3 +860,51 @@ class SearchEngine:
             return {b["key"]: b["doc_count"] for b in buckets}
         except Exception:
             return {}
+
+    def get_topic_feed(self, keywords, categories=None, hours=72, size=30):
+        """Get recent articles matching topic keywords, optionally filtered by categories.
+
+        Used by the /api/feed/ endpoints to serve topic-specific feeds
+        (e.g. stocks, crypto, metals) from the existing article index.
+        """
+        filter_clauses = [
+            {"range": {"published_at": {"gte": f"now-{hours}h"}}},
+        ]
+        if categories:
+            filter_clauses.append({"terms": {"category": categories}})
+
+        # Match any of the keywords in title, summary, or content
+        should_clauses = []
+        for kw in keywords:
+            should_clauses.append({"match_phrase": {"title": {"query": kw, "boost": 3}}})
+            should_clauses.append({"match_phrase": {"summary": {"query": kw, "boost": 2}}})
+            should_clauses.append({"match_phrase": {"content": kw}})
+
+        # Also match source names known to be topic-specific
+        body = {
+            "query": {
+                "bool": {
+                    "must": [
+                        {"bool": {"should": should_clauses, "minimum_should_match": 1}},
+                    ],
+                    "filter": filter_clauses,
+                }
+            },
+            "sort": [
+                {"published_at": {"order": "desc"}},
+            ],
+            "collapse": {"field": "title.raw"},
+            "size": size,
+            "_source": [
+                "title", "summary", "url", "source_name", "source_credibility",
+                "category", "published_at", "image_url", "tags",
+            ],
+        }
+
+        try:
+            result = self.es.search(index=self.index_name, body=body)
+            articles = [hit["_source"] for hit in result["hits"]["hits"]]
+            return self._dedup_by_title(articles, size)
+        except Exception as e:
+            logger.error("get_topic_feed failed: %s", e)
+            return []

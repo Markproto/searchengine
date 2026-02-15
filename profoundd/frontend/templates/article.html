@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}{{ article.title }} - Profoundd{% endblock %}
+{% block description %}{{ (article.summary or article.title)[:160] }}{% endblock %}
+
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ article.title }}{% endblock %}
+{% block og_description %}{{ (article.summary or article.title)[:200] }} | Found on Profoundd{% endblock %}
+{% block og_image_url %}{{ article.image_url or og_image }}{% endblock %}
+
+{% block twitter_card %}summary{% endblock %}
+{% block twitter_title %}{{ article.title }}{% endblock %}
+{% block twitter_description %}{{ (article.summary or article.title)[:200] }} | Found on Profoundd{% endblock %}
+{% block twitter_image %}{{ article.image_url or og_image }}{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": {{ article.title | tojson }},
+    "description": {{ (article.summary or article.title) | tojson }},
+    "author": {"@type": "Organization", "name": {{ (article.source_name or "Profoundd Research") | tojson }}},
+    {% if article.image_url %}"image": {{ article.image_url | tojson }},{% endif %}
+    {% if article.published_at %}"datePublished": "{{ article.published_at[:10] }}",{% endif %}
+    "publisher": {"@type": "Organization", "name": "Profoundd"},
+    "mainEntityOfPage": "https://{{ site_domain }}/article/{{ doc_id }}"
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container article-page">
+    <nav class="article-breadcrumb">
+        <a href="/">Home</a>
+        <span class="breadcrumb-sep">/</span>
+        {% if article.category %}
+        <a href="/category/{{ article.category }}">{{ article.category | title }}</a>
+        <span class="breadcrumb-sep">/</span>
+        {% endif %}
+        <span>Article</span>
+    </nav>
+
+    <article class="article-detail">
+        <header class="article-header">
+            <div class="article-meta-bar">
+                <span class="result-source">{{ article.source_name or "Profoundd Research" }}{% with src_name=article.source_name or "Profoundd Research" %}{% include '_source_note.html' %}{% endwith %}</span>
+                {% if article.category %}
+                <span class="result-category category-tag-{{ article.category }}">{{ article.category | title }}</span>
+                {% endif %}
+                {% if article.source_credibility %}
+                {% if session.get('admin_logged_in') %}
+                <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }} admin-editable-cred" data-url="{{ article.url }}">
+                    <input type="number" class="cred-input" value="{{ article.source_credibility }}" min="1" max="10" title="Edit credibility (admin)">
+                    <span class="cred-label">/10</span>
+                    <button class="cred-save-btn" title="Save">&#10003;</button>
+                </span>
+                {% else %}
+                <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }}">
+                    {{ article.source_credibility }}/10 <span class="credibility-help" title="This credibility rating is an opinion">?</span>
+                </span>
+                {% endif %}
+                {% endif %}
+                {% if session.get('admin_logged_in') %}
+                <span class="admin-boost-controls" data-url="{{ article.url }}" data-boost="{{ article.admin_boost or 5 }}">
+                    <button type="button" class="boost-btn boost-up" title="Promote">&#9650;</button>
+                    <span class="boost-value">{{ article.admin_boost or 5 }}</span>
+                    <button type="button" class="boost-btn boost-down" title="Demote">&#9660;</button>
+                </span>
+                {% endif %}
+            </div>
+            <h1>{{ article.title }}</h1>
+            <div class="article-info">
+                {% if article.published_at %}
+                <span class="article-date">{{ article.published_at[:10] }}</span>
+                {% endif %}
+                {% if article.source_url %}
+                <a href="{{ article.source_url }}" class="article-source-link" target="_blank" rel="noopener">View Original Source</a>
+                {% endif %}
+            </div>
+        </header>
+
+        {% if article.image_url %}
+        <div class="article-hero-image">
+            <img src="{{ article.image_url }}" alt="{{ article.title }}" loading="lazy" decoding="async">
+        </div>
+        {% endif %}
+
+        {% if article.summary %}
+        <div class="article-summary">
+            {{ article.summary }}
+        </div>
+        {% endif %}
+
+        {% with note_url=article.url, note_title=article.title, note_summary=article.summary or '' %}
+        {% include '_newsroom_note.html' %}
+        {% endwith %}
+
+        {% if article.content %}
+        <div class="article-content">
+            {% for paragraph in article.content.split('\n\n') %}
+                {% set text = paragraph.strip() %}
+                {% if text %}
+                <p>{{ text }}</p>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <footer class="article-footer">
+            {% if article.source_url %}
+            <a href="{{ article.source_url }}" class="share-link-btn" target="_blank" rel="noopener" title="View the original story">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Original Source
+            </a>
+            {% endif %}
+            <button type="button" class="share-link-btn" onclick="copyShareLink(this)" title="Copy shareable link">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                Share Article
+            </button>
+            {% if session.get('admin_logged_in') %}
+            <button type="button" class="bob-write-btn"
+                    data-url="{{ article.source_url or article.url }}"
+                    data-title="{{ article.title }}"
+                    data-source="{{ article.source_name }}"
+                    data-category="{{ article.category }}"
+                    data-summary="{{ (article.summary or '')[:500] }}"
+                    title="Have NewsRoom Bob write a story about this">
+                Bob, Write This
+            </button>
+            {% endif %}
+        </footer>
+    </article>
+</div>
+{% endblock %}

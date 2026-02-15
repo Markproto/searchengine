@@ -28,6 +28,11 @@
             <h3>Articles (DB)</h3>
             <p class="stat-value">{{ articles_count }}</p>
         </div>
+        <div class="stat-card">
+            <h3>Bob Stories</h3>
+            <p class="stat-value">{{ bob_stories_count }}</p>
+            <p class="stat-detail"><a href="{{ url_for('admin.bob_stories_list') }}">Manage</a></p>
+        </div>
     </div>
 
     <!-- Category Breakdown -->
@@ -68,6 +73,11 @@
                 <button type="submit" class="btn btn-warning">Cleanup Old</button>
                 <p class="action-desc">Delete articles older than N days</p>
             </form>
+
+            <form method="POST" action="{{ url_for('admin.recategorize_sections') }}">
+                <button type="submit" class="btn btn-primary">Populate Sections</button>
+                <p class="action-desc">Move Epstein & Charlie Kirk stories into their sections</p>
+            </form>
         </div>
     </div>
 
@@ -75,6 +85,7 @@
     <div class="admin-section">
         <h2>Manage</h2>
         <div class="admin-links">
+            <a href="{{ url_for('admin.analytics') }}" class="btn btn-primary">Visitor Analytics</a>
             <a href="{{ url_for('admin.sources_list') }}" class="btn btn-secondary">Manage Sources</a>
             <a href="{{ url_for('admin.add_source') }}" class="btn btn-secondary">Add New Source</a>
             <a href="{{ url_for('admin.submissions_list') }}" class="btn btn-secondary">Source Submissions</a>
@@ -84,6 +95,9 @@
             <a href="{{ url_for('admin.research_library') }}" class="btn btn-secondary">Add Research</a>
             <a href="{{ url_for('admin.analyze_url') }}" class="btn btn-secondary">Analyze URL (AI)</a>
             <a href="{{ url_for('admin.ai_settings') }}" class="btn btn-secondary">AI Settings</a>
+            <a href="{{ url_for('admin.the_man') }}" class="btn btn-secondary">The Man</a>
+            <a href="{{ url_for('admin.bob_stories_list') }}" class="btn btn-secondary">NewsRoom Bob</a>
+            <a href="{{ url_for('admin.source_notes_list') }}" class="btn btn-secondary">Source Notes</a>
         </div>
     </div>
 

@@ -93,6 +93,13 @@ def _run_scheduled_crawl(app):
         duration = time() - start
         stats = crawler.get_stats()
 
+        # Auto-recategorize articles matching special section keywords
+        from profoundd.config.sources import SPECIAL_SECTION_KEYWORDS
+        for cat_key, keywords in SPECIAL_SECTION_KEYWORDS.items():
+            recategorized = engine.recategorize_by_keywords(keywords, cat_key)
+            if recategorized:
+                logger.info("Auto-tagged %d articles into '%s'", recategorized, cat_key)
+
         # Log the crawl with full stats
         log = CrawlLog(
             articles_found=stats.get("found", count),

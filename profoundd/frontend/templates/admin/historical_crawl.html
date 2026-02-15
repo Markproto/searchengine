@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Historical Crawl - {{ source.name }}{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>Historical Crawl</h1>
+        <div>
+            <a href="{{ url_for('admin.sources_list') }}" class="btn btn-secondary">Back to Sources</a>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Source Info -->
+    <div class="historical-source-info">
+        <h2>{{ source.name }}</h2>
+        <p class="text-muted">{{ source.url }}</p>
+        <div class="source-meta">
+            <span class="category-tag-{{ source.category }}">{{ source.category | title }}</span>
+            <span class="credibility-badge credibility-{{ 'high' if source.credibility >= 8 else ('medium' if source.credibility >= 5 else 'low') }}">
+                Credibility: {{ source.credibility }}/10
+            </span>
+        </div>
+    </div>
+
+    <!-- Crawl Form -->
+    <div class="historical-form-card">
+        <h3>Configure Historical Crawl</h3>
+        <p class="text-muted">This will scan the website's sitemap to discover and index articles from the specified date range.</p>
+
+        <form method="POST" action="{{ url_for('admin.historical_crawl', source_id=source.id) }}" id="historicalForm">
+            <div class="historical-form-grid">
+                <div class="form-group">
+                    <label for="date_from">Start Date</label>
+                    <input type="date" id="date_from" name="date_from" class="form-control"
+                           value="2020-01-01" required>
+                </div>
+                <div class="form-group">
+                    <label for="date_to">End Date</label>
+                    <input type="date" id="date_to" name="date_to" class="form-control"
+                           value="{{ now.strftime('%Y-%m-%d') if now else '2026-02-11' }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="max_pages">Max Pages</label>
+                    <input type="number" id="max_pages" name="max_pages" class="form-control"
+                           value="500" min="10" max="5000">
+                    <small class="text-muted">Maximum number of pages to crawl</small>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg" id="startBtn"
+                    {% if progress and progress.status in ('discovering', 'crawling') %}disabled{% endif %}>
+                Start Historical Crawl
+            </button>
+        </form>
+    </div>
+
+    <!-- Progress Section -->
+    <div class="historical-progress" id="progressSection"
+         {% if not progress or progress.status == 'idle' %}style="display:none"{% endif %}>
+        <h3>Crawl Progress</h3>
+
+        <div class="progress-status" id="progressStatus">
+            {% if progress %}
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressBar"
+                     style="width: {% if progress.urls_in_range > 0 %}{{ (progress.urls_processed / progress.urls_in_range * 100)|int }}{% else %}0{% endif %}%">
+                </div>
+            </div>
+            <p class="progress-message" id="progressMessage">{{ progress.message }}</p>
+
+            <div class="progress-stats">
+                <div class="stat-item">
+                    <span class="stat-value" id="statSitemapUrls">{{ progress.sitemap_urls_found }}</span>
+                    <span class="stat-label">Sitemap URLs</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="statInRange">{{ progress.urls_in_range }}</span>
+                    <span class="stat-label">In Date Range</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="statProcessed">{{ progress.urls_processed }}</span>
+                    <span class="stat-label">Processed</span>
+                </div>
+                <div class="stat-item stat-success">
+                    <span class="stat-value" id="statIndexed">{{ progress.articles_indexed }}</span>
+                    <span class="stat-label">Indexed</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" id="statSkipped">{{ progress.articles_skipped }}</span>
+                    <span class="stat-label">Duplicates</span>
+                </div>
+                <div class="stat-item stat-error">
+                    <span class="stat-value" id="statErrors">{{ progress.errors }}</span>
+                    <span class="stat-label">Errors</span>
+                </div>
+            </div>
+
+            {% if progress.status in ('done', 'error') %}
+            <div class="progress-complete {% if progress.status == 'error' %}progress-error{% endif %}">
+                <strong>{{ 'Crawl Complete' if progress.status == 'done' else 'Crawl Error' }}</strong>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="historical-info">
+        <h3>How It Works</h3>
+        <ol>
+            <li><strong>Sitemap Discovery</strong> — Scans robots.txt and common sitemap locations to find the website's sitemap files.</li>
+            <li><strong>URL Filtering</strong> — Parses sitemaps and filters URLs by the <code>lastmod</code> date within your chosen range.</li>
+            <li><strong>Content Extraction</strong> — Fetches each page, extracts the article title, content, author, and publication date.</li>
+            <li><strong>Indexing</strong> — Indexes articles into Elasticsearch, skipping any that are already in the index.</li>
+        </ol>
+        <p class="text-muted"><strong>Note:</strong> Not all websites have sitemaps, and some sitemaps may not include date information. Results depend on the website's sitemap quality. The crawler respects a polite delay between requests.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    var sourceId = {{ source.id }};
+    var progressSection = document.getElementById('progressSection');
+    var progressBar = document.getElementById('progressBar');
+    var progressMessage = document.getElementById('progressMessage');
+    var startBtn = document.getElementById('startBtn');
+    var polling = null;
+
+    function updateProgress(data) {
+        if (!data || data.status === 'idle') return;
+
+        progressSection.style.display = '';
+
+        // Update stats
+        var fields = {
+            'statSitemapUrls': data.sitemap_urls_found,
+            'statInRange': data.urls_in_range,
+            'statProcessed': data.urls_processed,
+            'statIndexed': data.articles_indexed,
+            'statSkipped': data.articles_skipped,
+            'statErrors': data.errors
+        };
+        for (var id in fields) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = fields[id];
+        }
+
+        // Update progress bar
+        if (data.urls_in_range > 0 && progressBar) {
+            var pct = Math.round(data.urls_processed / data.urls_in_range * 100);
+            progressBar.style.width = pct + '%';
+        }
+
+        // Update message
+        if (progressMessage) {
+            progressMessage.textContent = data.message;
+        }
+
+        // Handle completion
+        if (data.status === 'done' || data.status === 'error') {
+            if (polling) { clearInterval(polling); polling = null; }
+            startBtn.disabled = false;
+            startBtn.textContent = 'Start Historical Crawl';
+
+            // Add completion banner if not already there
+            var statusEl = document.getElementById('progressStatus');
+            if (statusEl && !statusEl.querySelector('.progress-complete')) {
+                var div = document.createElement('div');
+                div.className = 'progress-complete' + (data.status === 'error' ? ' progress-error' : '');
+                div.innerHTML = '<strong>' + (data.status === 'done' ? 'Crawl Complete' : 'Crawl Error') + '</strong>';
+                statusEl.appendChild(div);
+            }
+        }
+    }
+
+    function startPolling() {
+        if (polling) return;
+        polling = setInterval(function() {
+            fetch('/admin/sources/' + sourceId + '/historical-crawl/status')
+                .then(function(r) { return r.json(); })
+                .then(updateProgress)
+                .catch(function() {});
+        }, 2000);
+    }
+
+    // Start polling if a crawl is active
+    var initialStatus = '{{ progress.status if progress else "idle" }}';
+    if (initialStatus === 'discovering' || initialStatus === 'crawling') {
+        startBtn.disabled = true;
+        startBtn.textContent = 'Crawl In Progress...';
+        startPolling();
+    }
+
+    // Start polling on form submit
+    document.getElementById('historicalForm').addEventListener('submit', function() {
+        startBtn.disabled = true;
+        startBtn.textContent = 'Starting...';
+        progressSection.style.display = '';
+        setTimeout(startPolling, 3000); // Give the server a moment to start
+    });
+})();
+</script>
+{% endblock %}

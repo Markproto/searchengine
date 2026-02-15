@@ -2,16 +2,17 @@
 Main Flask application for Profoundd search engine.
 """
 import os
+import uuid
 import logging
 from datetime import datetime, timezone
 
-from flask import Flask, render_template, request, jsonify, flash, redirect, Response, url_for
+from flask import Flask, render_template, request, jsonify, flash, redirect, Response, url_for, make_response
 from flask_cors import CORS
 from flask_login import LoginManager
 
 from profoundd.config.settings import get_config
 from profoundd.config.sources import CATEGORIES
-from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting
+from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting, BobStory, NewsroomNote, SourceNote, PageView
 from profoundd.search.engine import SearchEngine
 from profoundd.admin.routes import admin_bp
 from profoundd.utils.logging_config import setup_logging
@@ -58,6 +59,8 @@ def create_app(config_override=None):
             page_key = "search"
         elif request.path.startswith("/submit"):
             page_key = "submit"
+        elif request.path.startswith("/newsroom"):
+            page_key = "newsroom"
 
         seo_title = SiteSetting.get(f"seo_{page_key}_title", "")
         seo_desc = SiteSetting.get(f"seo_{page_key}_description", "")
@@ -77,6 +80,18 @@ def create_app(config_override=None):
         # Google Search Console verification
         gsc_verification = SiteSetting.get("google_site_verification", "")
 
+        def get_newsroom_note(url):
+            """Look up an editorial note for an article URL."""
+            if not url:
+                return None
+            return db.session.query(NewsroomNote).filter_by(article_url=url).first()
+
+        def get_source_note(source_name):
+            """Look up a credibility note for a content source."""
+            if not source_name:
+                return None
+            return db.session.query(SourceNote).filter_by(source_name=source_name).first()
+
         return {
             "categories": CATEGORIES,
             "seo_title": seo_title,
@@ -86,7 +101,93 @@ def create_app(config_override=None):
             "og_image": og_image,
             "site_domain": domain,
             "gsc_verification": gsc_verification,
+            "is_admin": request.path.startswith("/admin"),
+            "get_newsroom_note": get_newsroom_note,
+            "get_source_note": get_source_note,
         }
+
+    # --- Analytics: record page views when cookies are accepted ---
+    @app.after_request
+    def track_page_view(response):
+        # Only track HTML pages, skip static/API/admin/health
+        path = request.path
+        if (
+            request.method != "GET"
+            or path.startswith(("/static", "/api/", "/admin", "/health", "/robots", "/sitemap"))
+            or response.status_code >= 400
+        ):
+            return response
+
+        # Check if the visitor has accepted analytics cookies
+        consent = request.cookies.get("cookie_consent")
+        if consent != "accepted":
+            return response
+
+        # Get or assign a visitor ID cookie
+        visitor_id = request.cookies.get("profoundd_vid")
+        if not visitor_id:
+            visitor_id = uuid.uuid4().hex
+            response.set_cookie(
+                "profoundd_vid", visitor_id,
+                max_age=365 * 24 * 3600,  # 1 year
+                httponly=True,
+                samesite="Lax",
+                secure=request.is_secure,
+            )
+
+        try:
+            pv = PageView(
+                path=path[:1000],
+                visitor_id=visitor_id,
+                ip_address=request.remote_addr,
+                user_agent=(request.user_agent.string or "")[:500],
+                referrer=(request.referrer or "")[:1000],
+            )
+            db.session.add(pv)
+            db.session.commit()
+        except Exception:
+            logger.exception("Failed to record page view for %s", path)
+            db.session.rollback()
+
+        return response
+
+    # --- Beacon endpoint: record the page view when cookies are accepted ---
+    @app.route("/api/analytics/beacon", methods=["POST"])
+    def analytics_beacon():
+        """Record a page view via JS beacon (fires on cookie accept)."""
+        data = request.get_json(silent=True) or {}
+        page_path = (data.get("path") or "/")[:1000]
+        referrer = (data.get("referrer") or "")[:1000]
+
+        visitor_id = request.cookies.get("profoundd_vid")
+        if not visitor_id:
+            visitor_id = uuid.uuid4().hex
+
+        try:
+            pv = PageView(
+                path=page_path,
+                visitor_id=visitor_id,
+                ip_address=request.remote_addr,
+                user_agent=(request.user_agent.string or "")[:500],
+                referrer=referrer,
+            )
+            db.session.add(pv)
+            db.session.commit()
+        except Exception:
+            logger.exception("Failed to record beacon page view")
+            db.session.rollback()
+            return jsonify(ok=False), 500
+
+        resp = jsonify(ok=True)
+        if not request.cookies.get("profoundd_vid"):
+            resp.set_cookie(
+                "profoundd_vid", visitor_id,
+                max_age=365 * 24 * 3600,
+                httponly=True,
+                samesite="Lax",
+                secure=request.is_secure,
+            )
+        return resp
 
     # Initialize search engine
     search_engine = SearchEngine(app.config.get("ELASTICSEARCH_URL", "http://localhost:9200"))
@@ -163,10 +264,15 @@ def create_app(config_override=None):
                         insert_pos += 1
                 results["enhanced_providers"] = list(enhanced_providers)
 
-            # Web fallback: when local index has few relevant results, search the web
-            # Try SearXNG first, fall back to Brave web search if SearXNG fails
+            # Web fallback: supplement with outside news when local results are
+            # insufficient OR when relevance is weak (top score below threshold).
+            # This ensures searches like "Lindsey Graham loses House" still show
+            # relevant external articles even if 6 loosely-related local results exist.
             local_count = len(results.get("articles", []))
-            if local_count < 5:
+            top_score = results.get("top_score", 0)
+            LOW_RELEVANCE_THRESHOLD = 15  # ES scores below this indicate weak matches
+            needs_web = local_count < 5 or top_score < LOW_RELEVANCE_THRESHOLD
+            if needs_web:
                 web_results = []
                 searxng_url = SiteSetting.get("searxng_url", "")
                 if searxng_url:
@@ -218,6 +324,16 @@ def create_app(config_override=None):
         return render_template("category.html", category_name=category_name,
                                category=cat_info, articles=trending, categories=CATEGORIES)
 
+    @app.route("/article/<doc_id>")
+    def article_detail(doc_id):
+        """Permalink page for Profoundd research articles."""
+        article_url = f"profoundd://research/{doc_id}"
+        article = search_engine.get_article(article_url)
+        if not article:
+            return render_template("404.html", categories=CATEGORIES), 404
+        return render_template("article.html", article=article, doc_id=doc_id,
+                               categories=CATEGORIES)
+
     # --- API Routes ---
 
     @app.route("/api/search")
@@ -261,6 +377,165 @@ def create_app(config_override=None):
             count = db.session.query(Source).filter_by(category=key, is_active=True).count()
             cat_data[key] = {"label": cat["label"], "sources": count}
         return jsonify({"categories": cat_data})
+
+    # --- Feed API: topic-specific JSON feeds for external sites ---
+    # Keyword lists that define each sub-topic within the markets/finance universe.
+    FEED_TOPICS = {
+        "stocks": {
+            "label": "Stocks & Equities",
+            "keywords": [
+                "stock market", "stocks", "S&P 500", "Dow Jones", "Nasdaq",
+                "NYSE", "equities", "equity market", "stock price",
+                "earnings report", "IPO", "bull market", "bear market",
+                "Wall Street", "stock rally", "stock crash", "shares",
+                "dividend", "market cap", "trading", "stock exchange",
+                "Russell 2000", "blue chip", "tech stocks", "growth stocks",
+            ],
+            "categories": ["markets", "finance"],
+        },
+        "crypto": {
+            "label": "Cryptocurrency",
+            "keywords": [
+                "bitcoin", "ethereum", "crypto", "cryptocurrency",
+                "blockchain", "altcoin", "defi", "NFT", "web3",
+                "binance", "coinbase", "solana", "XRP", "ripple",
+                "dogecoin", "stablecoin", "USDT", "USDC",
+                "crypto exchange", "crypto regulation", "crypto market",
+                "mining", "halving", "satoshi", "BTC", "ETH",
+                "token", "smart contract", "decentralized",
+            ],
+            "categories": ["markets"],
+        },
+        "metals": {
+            "label": "Precious Metals",
+            "keywords": [
+                "gold", "silver", "platinum", "palladium",
+                "precious metals", "bullion", "gold price", "silver price",
+                "gold spot", "silver spot", "comex", "gold mining",
+                "silver mining", "gold reserve", "gold standard",
+                "gold ETF", "silver ETF", "gold futures", "troy ounce",
+                "numismatic", "gold bar", "silver bar", "gold coin",
+                "central bank gold", "gold demand", "gold supply",
+            ],
+            "categories": ["markets", "finance"],
+        },
+        "markets": {
+            "label": "All Markets",
+            "keywords": [],  # empty = return all articles in these categories
+            "categories": ["markets", "finance"],
+        },
+    }
+
+    @app.route("/api/feed/<topic>")
+    def api_feed(topic):
+        """JSON feed for a specific topic (stocks, crypto, metals, markets).
+
+        Designed for import by external sites like privacyfolio.com.
+
+        Params:
+            hours  - lookback window (default 72, max 720)
+            limit  - max articles (default 30, max 100)
+            format - 'json' (default) or 'rss'
+        """
+        topic_config = FEED_TOPICS.get(topic)
+
+        # Also allow any existing category as a feed
+        if not topic_config and topic in CATEGORIES:
+            topic_config = {
+                "label": CATEGORIES[topic]["label"],
+                "keywords": [],
+                "categories": [topic],
+            }
+
+        if not topic_config:
+            available = list(FEED_TOPICS.keys()) + list(CATEGORIES.keys())
+            return jsonify({
+                "error": f"Unknown topic '{topic}'",
+                "available_topics": list(FEED_TOPICS.keys()),
+                "available_categories": list(CATEGORIES.keys()),
+            }), 404
+
+        hours = min(request.args.get("hours", 72, type=int), 720)
+        limit = min(request.args.get("limit", 30, type=int), 100)
+        fmt = request.args.get("format", "json")
+
+        keywords = topic_config["keywords"]
+        categories = topic_config["categories"]
+
+        if keywords:
+            articles = search_engine.get_topic_feed(
+                keywords=keywords,
+                categories=categories,
+                hours=hours,
+                size=limit,
+            )
+        else:
+            # No keywords = just get latest from the category
+            articles = []
+            for cat in categories:
+                articles.extend(search_engine.get_trending(category=cat, hours=hours, size=limit))
+            # Sort by date descending and trim
+            articles.sort(key=lambda a: a.get("published_at", ""), reverse=True)
+            articles = articles[:limit]
+
+        # Clean articles for export (strip internal fields)
+        clean = []
+        for a in articles:
+            clean.append({
+                "title": a.get("title", ""),
+                "summary": a.get("summary", ""),
+                "url": a.get("url", ""),
+                "source_name": a.get("source_name", ""),
+                "source_credibility": a.get("source_credibility", 5),
+                "category": a.get("category", ""),
+                "published_at": a.get("published_at", ""),
+                "image_url": a.get("image_url", ""),
+            })
+
+        if fmt == "rss":
+            return _build_rss_feed(topic, topic_config["label"], clean)
+
+        return jsonify({
+            "topic": topic,
+            "label": topic_config["label"],
+            "count": len(clean),
+            "hours": hours,
+            "articles": clean,
+        })
+
+    def _build_rss_feed(topic, label, articles):
+        """Build an RSS 2.0 XML feed from article list."""
+        domain = app.config.get("DOMAIN", "profoundd.com")
+        items = []
+        for a in articles:
+            pub_date = a.get("published_at", "")
+            items.append(f"""    <item>
+      <title>{_xml_escape(a['title'])}</title>
+      <link>{_xml_escape(a['url'])}</link>
+      <description>{_xml_escape(a['summary'][:500])}</description>
+      <source>{_xml_escape(a['source_name'])}</source>
+      <category>{_xml_escape(a['category'])}</category>
+      {f'<pubDate>{pub_date}</pubDate>' if pub_date else ''}
+    </item>""")
+
+        xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Profoundd - {_xml_escape(label)}</title>
+    <link>https://{domain}/category/markets</link>
+    <description>{_xml_escape(label)} feed from Profoundd</description>
+    <language>en-us</language>
+{''.join(items)}
+  </channel>
+</rss>"""
+        return Response(xml, mimetype="application/rss+xml")
+
+    def _xml_escape(text):
+        """Escape XML special characters."""
+        if not text:
+            return ""
+        return (text.replace("&", "&amp;").replace("<", "&lt;")
+                    .replace(">", "&gt;").replace('"', "&quot;"))
 
     @app.route("/health")
     def health_check():
@@ -336,6 +611,29 @@ def create_app(config_override=None):
         about_html = SiteSetting.get("about_page_html", "")
         return render_template("about.html", categories=CATEGORIES, about_html=about_html)
 
+    # --- NewsRoom Bob public routes ---
+
+    @app.route("/newsroom")
+    def newsroom():
+        """Public newsroom page listing all Bob stories."""
+        page = request.args.get("page", 1, type=int)
+        per_page = 12
+        query = db.session.query(BobStory).filter_by(status="published")\
+            .order_by(BobStory.published_at.desc())
+        total = query.count()
+        stories = query.offset((page - 1) * per_page).limit(per_page).all()
+        pages = (total + per_page - 1) // per_page
+        return render_template("newsroom.html", stories=stories, categories=CATEGORIES,
+                               page=page, pages=pages, total=total)
+
+    @app.route("/newsroom/<slug>")
+    def bob_story(slug):
+        """Individual Bob story page with full SEO."""
+        story = db.session.query(BobStory).filter_by(slug=slug, status="published").first()
+        if not story:
+            return render_template("404.html", categories=CATEGORIES), 404
+        return render_template("bob_story.html", story=story, categories=CATEGORIES)
+
     @app.route("/robots.txt")
     def robots_txt():
         """Serve robots.txt for search engine crawlers."""
@@ -344,8 +642,10 @@ def create_app(config_override=None):
 Allow: /
 Allow: /search
 Allow: /category/
+Allow: /article/
 Allow: /about
 Allow: /submit
+Allow: /newsroom
 Disallow: /admin/
 Disallow: /api/
 Disallow: /health
@@ -369,6 +669,13 @@ Sitemap: https://{domain}/sitemap.xml
         ]
         for key in CATEGORIES:
             urls.append({"loc": f"{base}/category/{key}", "changefreq": "hourly", "priority": "0.8"})
+
+        # Add NewsRoom Bob stories to sitemap
+        urls.append({"loc": base + "/newsroom", "changefreq": "daily", "priority": "0.7"})
+        bob_stories = db.session.query(BobStory).filter_by(status="published")\
+            .order_by(BobStory.published_at.desc()).limit(200).all()
+        for story in bob_stories:
+            urls.append({"loc": f"{base}/newsroom/{story.slug}", "changefreq": "weekly", "priority": "0.6"})
 
         xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>']
         xml_parts.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')

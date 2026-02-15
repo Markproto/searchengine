@@ -50,6 +50,10 @@
                 <div class="category-icon">
                     {% if key == 'news' %}
                     <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 8h16M8 4v16"/></svg>
+                    {% elif key == 'epstein-files' %}
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/><path d="M9 14h6M9 18h3"/></svg>
+                    {% elif key == 'charlie-kirk' %}
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
                     {% elif key == 'medical' %}
                     <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M4 12h16"/><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
                     {% elif key == 'legal' %}
@@ -84,15 +88,54 @@
         <h2 class="section-title">Trending Now</h2>
         <div class="trending-grid">
             {% for article in trending %}
-            <article class="trending-card">
-                <span class="trending-category category-tag-{{ article.category }}">{{ article.category | title }}</span>
+            <article class="trending-card {% if article.image_url %}has-thumb{% endif %}">
+                {% if article.image_url %}
+                <div class="result-thumb">
+                    <img src="{{ article.image_url }}" alt="" loading="lazy" decoding="async" onerror="this.parentElement.remove()">
+                </div>
+                {% endif %}
+                <div class="result-body">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+                    <span class="trending-category category-tag-{{ article.category }}">{{ article.category | title }}</span>
+                    {% if session.get('admin_logged_in') %}
+                    <div style="display:flex; align-items:center; gap:4px;">
+                        {% if article.source_credibility %}
+                        <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }} admin-editable-cred" data-url="{{ article.url }}">
+                            <input type="number" class="cred-input" value="{{ article.source_credibility }}" min="1" max="10" title="Edit credibility (admin)">
+                            <span class="cred-label">/10</span>
+                            <button class="cred-save-btn" title="Save">&#10003;</button>
+                        </span>
+                        {% endif %}
+                        <span class="admin-boost-controls" data-url="{{ article.url }}" data-boost="{{ article.admin_boost or 5 }}">
+                            <button type="button" class="boost-btn boost-up" title="Promote">&#9650;</button>
+                            <span class="boost-value">{{ article.admin_boost or 5 }}</span>
+                            <button type="button" class="boost-btn boost-down" title="Demote">&#9660;</button>
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
                 <h3><a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
+                {% with note_url=article.url, note_title=article.title, note_summary='' %}
+                {% include '_newsroom_note.html' %}
+                {% endwith %}
                 <p class="trending-meta">
-                    <span class="source">{{ article.source_name }}</span>
+                    <span class="source">{{ article.source_name }}{% with src_name=article.source_name %}{% include '_source_note.html' %}{% endwith %}</span>
                     {% if article.published_at %}
                     <span class="date" data-time="{{ article.published_at }}">{{ article.published_at[:10] }}</span>
                     {% endif %}
                 </p>
+                {% if session.get('admin_logged_in') %}
+                <button type="button" class="bob-write-btn"
+                        data-url="{{ article.url }}"
+                        data-title="{{ article.title }}"
+                        data-source="{{ article.source_name }}"
+                        data-category="{{ article.category }}"
+                        data-summary=""
+                        title="Have NewsRoom Bob write a story about this">
+                    Bob, Write This
+                </button>
+                {% endif %}
+                </div>{# /result-body #}
             </article>
             {% endfor %}
         </div>

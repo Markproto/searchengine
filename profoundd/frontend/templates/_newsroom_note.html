@@ -1,0 +1,22 @@
+{# Reusable newsroom note block. Expects: note_url, note_title, note_summary #}
+{% set nr_note = get_newsroom_note(note_url) %}
+{% if nr_note or session.get('admin_logged_in') %}
+<div class="newsroom-note-wrapper" data-url="{{ note_url }}" data-title="{{ note_title }}" data-summary="{{ (note_summary or '')[:500] }}">
+    {% if nr_note %}
+    <div class="newsroom-note">
+        <span class="newsroom-note-label">NewsRoom Note</span>
+        <span class="newsroom-note-text">{{ nr_note.note_text }}</span>
+    </div>
+    {% endif %}
+    {% if session.get('admin_logged_in') %}
+    <div class="newsroom-note-controls">
+        {% if nr_note %}
+        <button type="button" class="note-edit-btn">Edit Note</button>
+        <button type="button" class="note-delete-btn" title="Delete note">&#10005;</button>
+        {% else %}
+        <button type="button" class="note-add-btn">+ Add Note</button>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endif %}

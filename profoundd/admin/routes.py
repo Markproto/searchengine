@@ -2,19 +2,46 @@
 Admin panel routes for managing sources, rankings, and monitoring.
 """
 import logging
+import re
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from functools import wraps
 
+import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote, PageView
 from profoundd.config.settings import get_config
-from profoundd.config.sources import ALL_SOURCES, CATEGORIES
+from profoundd.config.sources import ALL_SOURCES, CATEGORIES, SPECIAL_SECTION_KEYWORDS
 from profoundd.search.engine import SearchEngine
 from profoundd.crawler.feed_crawler import FeedCrawler
 
 logger = logging.getLogger(__name__)
+
+
+def fetch_og_image(url):
+    """Try to extract the og:image from a URL. Returns the image URL or None."""
+    try:
+        resp = requests.get(url, timeout=10, headers={
+            "User-Agent": "Mozilla/5.0 (compatible; Profoundd/1.0)"
+        })
+        resp.raise_for_status()
+        # Look for <meta property="og:image" content="...">
+        match = re.search(
+            r'<meta\s+[^>]*property=["\']og:image["\']\s+[^>]*content=["\']([^"\']+)["\']',
+            resp.text, re.IGNORECASE
+        )
+        if not match:
+            # Try reversed attribute order: content before property
+            match = re.search(
+                r'<meta\s+[^>]*content=["\']([^"\']+)["\']\s+[^>]*property=["\']og:image["\']',
+                resp.text, re.IGNORECASE
+            )
+        if match:
+            return match.group(1)
+    except Exception as e:
+        logger.warning("Failed to fetch og:image from %s: %s", url, e)
+    return None
 config = get_config()
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -89,6 +116,7 @@ def dashboard():
     sources_count = db.session.query(Source).count()
     active_sources = db.session.query(Source).filter_by(is_active=True).count()
     articles_count = db.session.query(Article).count()
+    bob_stories_count = db.session.query(BobStory).filter_by(status="published").count()
     recent_searches = db.session.query(SearchLog).order_by(SearchLog.searched_at.desc()).limit(20).all()
 
     # Category breakdown
@@ -103,9 +131,79 @@ def dashboard():
                            sources_count=sources_count,
                            active_sources=active_sources,
                            articles_count=articles_count,
+                           bob_stories_count=bob_stories_count,
                            recent_searches=recent_searches,
                            category_stats=category_stats,
                            categories=CATEGORIES)
+
+
+@admin_bp.route("/analytics")
+@login_required
+def analytics():
+    """Visitor analytics dashboard."""
+    from sqlalchemy import func, distinct
+
+    days = request.args.get("days", 7, type=int)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+    # Total page views in period
+    total_views = db.session.query(func.count(PageView.id)).filter(
+        PageView.viewed_at >= cutoff
+    ).scalar() or 0
+
+    # Unique visitors in period
+    unique_visitors = db.session.query(func.count(distinct(PageView.visitor_id))).filter(
+        PageView.viewed_at >= cutoff
+    ).scalar() or 0
+
+    # Views per day
+    daily_views = db.session.query(
+        func.date(PageView.viewed_at).label("day"),
+        func.count(PageView.id).label("views"),
+        func.count(distinct(PageView.visitor_id)).label("visitors"),
+    ).filter(
+        PageView.viewed_at >= cutoff
+    ).group_by(func.date(PageView.viewed_at)).order_by(func.date(PageView.viewed_at)).all()
+
+    # Top pages
+    top_pages = db.session.query(
+        PageView.path,
+        func.count(PageView.id).label("views"),
+        func.count(distinct(PageView.visitor_id)).label("visitors"),
+    ).filter(
+        PageView.viewed_at >= cutoff
+    ).group_by(PageView.path).order_by(func.count(PageView.id).desc()).limit(20).all()
+
+    # Top referrers (excluding empty)
+    top_referrers = db.session.query(
+        PageView.referrer,
+        func.count(PageView.id).label("views"),
+    ).filter(
+        PageView.viewed_at >= cutoff,
+        PageView.referrer != "",
+        PageView.referrer.isnot(None),
+    ).group_by(PageView.referrer).order_by(func.count(PageView.id).desc()).limit(15).all()
+
+    # Recent visitors (last 50)
+    recent_views = db.session.query(PageView).order_by(
+        PageView.viewed_at.desc()
+    ).limit(50).all()
+
+    # All-time totals
+    total_all_time = db.session.query(func.count(PageView.id)).scalar() or 0
+    unique_all_time = db.session.query(func.count(distinct(PageView.visitor_id))).scalar() or 0
+
+    return render_template("admin/analytics.html",
+                           categories=CATEGORIES,
+                           days=days,
+                           total_views=total_views,
+                           unique_visitors=unique_visitors,
+                           daily_views=daily_views,
+                           top_pages=top_pages,
+                           top_referrers=top_referrers,
+                           recent_views=recent_views,
+                           total_all_time=total_all_time,
+                           unique_all_time=unique_all_time)
 
 
 @admin_bp.route("/sources")
@@ -155,6 +253,7 @@ def edit_source(source_id):
         return "Not found", 404
 
     if request.method == "POST":
+        old_credibility = source.credibility
         source.name = request.form["name"]
         source.url = request.form["url"]
         source.category = request.form["category"]
@@ -167,7 +266,17 @@ def edit_source(source_id):
         source.relevance_weight = float(request.form.get("relevance_weight", 0.3))
         source.is_active = "is_active" in request.form
         db.session.commit()
-        flash(f"Source '{source.name}' updated.", "success")
+
+        # If credibility changed, propagate to all articles in Elasticsearch
+        if source.credibility != old_credibility:
+            engine = SearchEngine(config.ELASTICSEARCH_URL)
+            if engine.is_available():
+                count = engine.update_credibility_by_source(source.name, source.credibility)
+                flash(f"Source '{source.name}' updated. Credibility synced to {count} articles.", "success")
+            else:
+                flash(f"Source '{source.name}' updated. (ES unavailable — articles not synced)", "warning")
+        else:
+            flash(f"Source '{source.name}' updated.", "success")
         return redirect(url_for("admin.sources_list"))
 
     return render_template("admin/source_form.html", source=source, categories=CATEGORIES)
@@ -452,6 +561,8 @@ def research_library():
         content = request.form.get("content", "").strip()
         category = request.form.get("category", "news")
         source_name = request.form.get("source_name", "").strip() or "Profoundd Research"
+        source_url = request.form.get("source_url", "").strip() or None
+        image_url = request.form.get("image_url", "").strip() or None
 
         if not title or not content:
             flash("Title and content are required.", "error")
@@ -462,6 +573,10 @@ def research_library():
             return redirect(url_for("admin.research_library"))
 
         engine.create_index()
+
+        # Auto-fetch og:image from source URL if no explicit image provided
+        if source_url and not image_url:
+            image_url = fetch_og_image(source_url)
 
         # Build a unique URL for this document
         import hashlib
@@ -482,6 +597,8 @@ def research_library():
                 category=category,
                 source_name=source_name,
                 doc_url=doc_url,
+                source_url=source_url,
+                image_url=image_url,
             )
             db.session.add(doc)
             db.session.commit()
@@ -512,6 +629,7 @@ def ai_settings():
         SiteSetting.set("ai_xai_model", request.form.get("xai_model", "grok-2-latest"))
         SiteSetting.set("ai_default_provider", request.form.get("default_ai_provider", "anthropic"))
         SiteSetting.set("searxng_url", request.form.get("searxng_url", "").strip().rstrip("/"))
+        SiteSetting.set("source_research_guidelines", request.form.get("source_research_guidelines", "").strip())
         flash("Settings saved.", "success")
         return redirect(url_for("admin.ai_settings"))
 
@@ -522,6 +640,7 @@ def ai_settings():
                            xai_model=SiteSetting.get("ai_xai_model", "grok-2-latest"),
                            default_provider=SiteSetting.get("ai_default_provider", "anthropic"),
                            searxng_url=SiteSetting.get("searxng_url", ""),
+                           source_research_guidelines=SiteSetting.get("source_research_guidelines", ""),
                            categories=CATEGORIES)
 
 
@@ -625,3 +744,799 @@ def analyze_url():
                            has_ai_key=has_ai_key,
                            default_provider=default_provider,
                            categories=CATEGORIES)
+
+
+# --- Historical Crawl ---
+
+# Store active historical crawlers for progress tracking
+_active_historical_crawls = {}
+
+
+@admin_bp.route("/sources/<int:source_id>/historical-crawl", methods=["GET", "POST"])
+@login_required
+def historical_crawl(source_id):
+    """Launch a historical crawl for a specific source."""
+    source = db.session.get(Source, source_id)
+    if not source:
+        flash("Source not found.", "error")
+        return redirect(url_for("admin.sources_list"))
+
+    if request.method == "POST":
+        import threading
+        from flask import current_app
+        from profoundd.crawler.historical_crawler import HistoricalCrawler
+
+        date_from_str = request.form.get("date_from", "")
+        date_to_str = request.form.get("date_to", "")
+        max_pages = int(request.form.get("max_pages", 500))
+
+        if not date_from_str or not date_to_str:
+            flash("Both start and end dates are required.", "error")
+            return redirect(url_for("admin.historical_crawl", source_id=source_id))
+
+        try:
+            date_from = datetime.strptime(date_from_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            date_to = datetime.strptime(date_to_str, "%Y-%m-%d").replace(
+                hour=23, minute=59, second=59, tzinfo=timezone.utc
+            )
+        except ValueError:
+            flash("Invalid date format.", "error")
+            return redirect(url_for("admin.historical_crawl", source_id=source_id))
+
+        if date_from > date_to:
+            flash("Start date must be before end date.", "error")
+            return redirect(url_for("admin.historical_crawl", source_id=source_id))
+
+        engine = SearchEngine(config.ELASTICSEARCH_URL)
+        if not engine.is_available():
+            flash("Elasticsearch is not available.", "error")
+            return redirect(url_for("admin.historical_crawl", source_id=source_id))
+
+        engine.create_index()
+        crawler = HistoricalCrawler(search_engine=engine)
+        _active_historical_crawls[source_id] = crawler
+
+        source_info = {
+            "name": source.name,
+            "url": source.url,
+            "category": source.category,
+            "credibility": source.credibility,
+        }
+
+        app = current_app._get_current_object()
+        sid = source_id
+
+        def run_historical():
+            with app.app_context():
+                try:
+                    count = crawler.crawl(source_info, date_from, date_to, max_pages)
+                    progress = crawler.get_progress()
+                    crawl_log = CrawlLog(
+                        articles_found=progress["urls_in_range"],
+                        articles_new=progress["articles_indexed"],
+                        articles_duplicate=progress["articles_skipped"],
+                        errors=progress["errors"],
+                        status="success" if count > 0 else "empty",
+                        trigger="historical",
+                        category=source_info["category"],
+                        duration_seconds=0,
+                    )
+                    db.session.add(crawl_log)
+                    db.session.commit()
+                except Exception as e:
+                    crawler.status = "error"
+                    crawler.progress_message = str(e)
+                    logger.error("Historical crawl failed for source %d: %s", sid, e)
+
+        threading.Thread(target=run_historical, daemon=True).start()
+        flash("Historical crawl started. Monitor progress below.", "success")
+        return redirect(url_for("admin.historical_crawl", source_id=source_id))
+
+    # Check if there's an active crawl for this source
+    active_crawler = _active_historical_crawls.get(source_id)
+    progress = active_crawler.get_progress() if active_crawler else None
+
+    return render_template("admin/historical_crawl.html",
+                           source=source,
+                           progress=progress,
+                           categories=CATEGORIES)
+
+
+@admin_bp.route("/sources/<int:source_id>/historical-crawl/status")
+@login_required
+def historical_crawl_status(source_id):
+    """AJAX endpoint for historical crawl progress."""
+    crawler = _active_historical_crawls.get(source_id)
+    if not crawler:
+        return jsonify({"status": "idle", "message": "No active crawl."})
+    return jsonify(crawler.get_progress())
+
+
+@admin_bp.route("/api/update-credibility", methods=["POST"])
+@login_required
+def api_update_credibility():
+    """Update credibility for ALL articles from a source (not just one article).
+
+    Accepts either an article URL (looks up its source_name) or a direct
+    source_name.  Updates every article from that source in Elasticsearch
+    and syncs the credibility to the Source database record so future
+    crawls inherit the new value.
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid request"}), 400
+
+    article_url = data.get("url", "").strip()
+    source_name = data.get("source_name", "").strip()
+    credibility = data.get("credibility")
+
+    if not article_url and not source_name:
+        return jsonify({"error": "URL or source_name is required"}), 400
+    try:
+        credibility = int(credibility)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Credibility must be a number"}), 400
+    if not 1 <= credibility <= 10:
+        return jsonify({"error": "Credibility must be between 1 and 10"}), 400
+
+    engine = SearchEngine(config.ELASTICSEARCH_URL)
+    if not engine.is_available():
+        return jsonify({"error": "Elasticsearch not available"}), 503
+
+    # Resolve the source name from the article if not provided directly
+    if not source_name and article_url:
+        article = engine.get_article(article_url)
+        if not article:
+            return jsonify({"error": "Article not found"}), 404
+        source_name = article.get("source_name", "")
+
+    if not source_name:
+        return jsonify({"error": "Could not determine source name"}), 400
+
+    # Update ALL articles from this source in Elasticsearch
+    updated = engine.update_credibility_by_source(source_name, credibility)
+
+    # Sync to the Source database record so future crawls use the new value
+    db_source = db.session.query(Source).filter_by(name=source_name).first()
+    if db_source:
+        db_source.credibility = credibility
+        db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "credibility": credibility,
+        "source_name": source_name,
+        "articles_updated": updated,
+    })
+
+
+@admin_bp.route("/api/update-boost", methods=["POST"])
+@login_required
+def api_update_boost():
+    """AJAX endpoint to promote/demote an article's ranking. Logs action for The Man (AI training)."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid request"}), 400
+
+    article_url = data.get("url", "").strip()
+    direction = data.get("direction")  # "promote" or "demote"
+    search_query = data.get("search_query", "").strip()
+
+    if not article_url or direction not in ("promote", "demote"):
+        return jsonify({"error": "URL and direction (promote/demote) required"}), 400
+
+    engine = SearchEngine(config.ELASTICSEARCH_URL)
+    if not engine.is_available():
+        return jsonify({"error": "Elasticsearch not available"}), 503
+
+    # Get current article data
+    article = engine.get_article(article_url)
+    if not article:
+        return jsonify({"error": "Article not found"}), 404
+
+    old_boost = article.get("admin_boost", 5) or 5
+    new_boost = old_boost + (1 if direction == "promote" else -1)
+    new_boost = max(1, min(10, new_boost))
+
+    if not engine.update_boost(article_url, new_boost):
+        return jsonify({"error": "Failed to update"}), 500
+
+    # Log the action for The Man (AI training)
+    action_log = AdminRankingAction(
+        article_url=article_url,
+        article_title=article.get("title", ""),
+        source_name=article.get("source_name", ""),
+        category=article.get("category", ""),
+        action=direction,
+        old_boost=old_boost,
+        new_boost=new_boost,
+        search_query=search_query,
+    )
+    db.session.add(action_log)
+    db.session.commit()
+
+    return jsonify({"success": True, "boost": new_boost})
+
+
+# --- Newsroom Notes ---
+
+@admin_bp.route("/api/newsroom-note", methods=["POST"])
+@login_required
+def save_newsroom_note():
+    """Add or update an editorial note on an article."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    article_url = data.get("url", "").strip()
+    note_text = data.get("note_text", "").strip()
+    article_title = data.get("article_title", "").strip()
+
+    if not article_url or not note_text:
+        return jsonify({"error": "URL and note text are required"}), 400
+
+    note = db.session.query(NewsroomNote).filter_by(article_url=article_url).first()
+    if note:
+        note.note_text = note_text
+        note.updated_at = datetime.now(timezone.utc)
+    else:
+        note = NewsroomNote(
+            article_url=article_url,
+            article_title=article_title,
+            note_text=note_text,
+        )
+        db.session.add(note)
+
+    db.session.commit()
+    return jsonify({"success": True, "note_id": note.id, "note_text": note.note_text})
+
+
+@admin_bp.route("/api/newsroom-note/enhance", methods=["POST"])
+@login_required
+def enhance_newsroom_note():
+    """Use AI to improve/expand an editorial note."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    note_text = data.get("note_text", "").strip()
+    article_title = data.get("article_title", "").strip()
+    article_summary = data.get("article_summary", "").strip()
+
+    if not note_text:
+        return jsonify({"error": "Note text is required"}), 400
+
+    api_key = SiteSetting.get("ai_anthropic_key", "")
+    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+    if not api_key:
+        return jsonify({"error": "No AI API key configured."}), 400
+
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+
+        prompt = (
+            f"You are NewsRoom Bob, an AI journalist for Profoundd search engine. "
+            f"An editor has written a short note about an article. Rewrite this note in your voice — "
+            f"direct, informative, and clear. Keep the editor's intent and opinion intact but make it "
+            f"read like a professional editorial note. Keep it concise (2-4 sentences max). "
+            f"Do NOT add any preamble, just return the improved note.\n\n"
+            f"Article title: {article_title}\n"
+            f"Article summary: {article_summary[:500]}\n\n"
+            f"Editor's note: {note_text}"
+        )
+
+        message = client.messages.create(
+            model=model,
+            max_tokens=300,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        enhanced = message.content[0].text.strip()
+        return jsonify({"success": True, "enhanced_text": enhanced})
+    except Exception as e:
+        return jsonify({"error": f"AI enhancement failed: {e}"}), 500
+
+
+@admin_bp.route("/api/newsroom-note", methods=["DELETE"])
+@login_required
+def delete_newsroom_note():
+    """Delete an editorial note from an article."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    article_url = data.get("url", "").strip()
+    if not article_url:
+        return jsonify({"error": "URL is required"}), 400
+
+    note = db.session.query(NewsroomNote).filter_by(article_url=article_url).first()
+    if note:
+        db.session.delete(note)
+        db.session.commit()
+
+    return jsonify({"success": True})
+
+
+# --- Source Notes (credibility notes on content sources) ---
+
+@admin_bp.route("/api/source-note", methods=["POST"])
+@login_required
+def save_source_note():
+    """Add or update a credibility note on a content source."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    source_name = data.get("source_name", "").strip()
+    note_text = data.get("note_text", "").strip()
+    stance = data.get("stance", "neutral").strip()
+
+    if not source_name or not note_text:
+        return jsonify({"error": "Source name and note text are required"}), 400
+    if stance not in ("trustworthy", "caution", "neutral"):
+        stance = "neutral"
+
+    note = db.session.query(SourceNote).filter_by(source_name=source_name).first()
+    if note:
+        note.note_text = note_text
+        note.stance = stance
+        note.updated_at = datetime.now(timezone.utc)
+    else:
+        note = SourceNote(source_name=source_name, note_text=note_text, stance=stance)
+        db.session.add(note)
+
+    db.session.commit()
+    return jsonify({"success": True, "note_id": note.id, "note_text": note.note_text, "stance": note.stance})
+
+
+@admin_bp.route("/api/source-note/research", methods=["POST"])
+@login_required
+def research_source_note():
+    """Use AI to research a source's credibility and find evidence."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    source_name = data.get("source_name", "").strip()
+    admin_claim = data.get("claim", "").strip()
+    admin_guidance = data.get("guidance", "").strip()
+
+    if not source_name:
+        return jsonify({"error": "Source name is required"}), 400
+
+    api_key = SiteSetting.get("ai_anthropic_key", "")
+    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+    if not api_key:
+        return jsonify({"error": "No AI API key configured."}), 400
+
+    # Load the site-wide editorial constitution
+    constitution = SiteSetting.get("source_research_guidelines", "").strip()
+
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+
+        # Build the system prompt with the editorial constitution
+        system_parts = [
+            "You are a media credibility researcher for Profoundd, a news search engine. "
+            "Your job is to help editors evaluate the credibility and trustworthiness of news sources."
+        ]
+        if constitution:
+            system_parts.append(
+                f"\n\n--- EDITORIAL GUIDELINES (follow these carefully) ---\n{constitution}\n--- END GUIDELINES ---"
+            )
+        system_prompt = "".join(system_parts)
+
+        # Build the user prompt based on what the admin is asking for
+        if admin_claim:
+            user_prompt = (
+                f"An editor has a claim about the news source '{source_name}': \"{admin_claim}\"\n\n"
+                f"Research this claim. Write a concise credibility note (3-5 sentences) that:\n"
+                f"1. Addresses whether the claim is supported by known facts\n"
+                f"2. Mentions specific incidents, lawsuits, retractions, or awards if relevant\n"
+                f"3. Includes URLs to evidence where possible (use real, well-known URLs only)\n"
+                f"4. Is fair and factual — acknowledge both strengths and weaknesses\n"
+            )
+        else:
+            user_prompt = (
+                f"Write a concise credibility assessment (3-5 sentences) for the news source '{source_name}'.\n\n"
+                f"Include:\n"
+                f"1. What kind of outlet it is (legacy media, tabloid, independent, etc.)\n"
+                f"2. Notable credibility issues OR strengths (retractions, awards, lawsuits, bias ratings)\n"
+                f"3. Include URLs to evidence where possible (use real, well-known URLs only)\n"
+                f"4. Be fair — acknowledge both strengths and weaknesses\n"
+            )
+
+        # Add per-request guidance from the admin
+        if admin_guidance:
+            user_prompt += (
+                f"\n\nAdditional direction from the editor for this specific research:\n\"{admin_guidance}\""
+            )
+
+        user_prompt += (
+            "\n\nFormat: Write the note as plain text. Include links inline like: "
+            "(source: https://example.com/article). Do NOT use markdown."
+        )
+
+        message = client.messages.create(
+            model=model,
+            max_tokens=600,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}],
+        )
+        research = message.content[0].text.strip()
+        return jsonify({"success": True, "research_text": research})
+    except Exception as e:
+        return jsonify({"error": f"AI research failed: {e}"}), 500
+
+
+@admin_bp.route("/api/source-note", methods=["DELETE"])
+@login_required
+def delete_source_note():
+    """Delete a credibility note from a source."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    source_name = data.get("source_name", "").strip()
+    if not source_name:
+        return jsonify({"error": "Source name is required"}), 400
+
+    note = db.session.query(SourceNote).filter_by(source_name=source_name).first()
+    if note:
+        db.session.delete(note)
+        db.session.commit()
+
+    return jsonify({"success": True})
+
+
+@admin_bp.route("/source-notes")
+@login_required
+def source_notes_list():
+    """Admin page to manage all source credibility notes."""
+    import json
+    notes = db.session.query(SourceNote).order_by(SourceNote.updated_at.desc()).all()
+    note_data = {n.id: {"name": n.source_name, "stance": n.stance, "text": n.note_text} for n in notes}
+    return render_template("admin/source_notes.html", notes=notes, note_data_json=json.dumps(note_data), categories=CATEGORIES)
+
+
+@admin_bp.route("/source-notes/delete/<int:note_id>", methods=["POST"])
+@login_required
+def source_note_delete(note_id):
+    """Delete a source note by ID (form-based)."""
+    note = db.session.get(SourceNote, note_id)
+    if note:
+        db.session.delete(note)
+        db.session.commit()
+        flash(f"Deleted note for {note.source_name}", "success")
+    return redirect(url_for("admin.source_notes_list"))
+
+
+@admin_bp.route("/source-notes/save", methods=["POST"])
+@login_required
+def source_note_save():
+    """Save or update a source note (form-based)."""
+    source_name = request.form.get("source_name", "").strip()
+    note_text = request.form.get("note_text", "").strip()
+    stance = request.form.get("stance", "neutral").strip()
+    orig_name = request.form.get("orig_name", "").strip()
+
+    if not source_name or not note_text:
+        flash("Source name and note text are required", "error")
+        return redirect(url_for("admin.source_notes_list"))
+
+    if stance not in ("trustworthy", "caution", "neutral"):
+        stance = "neutral"
+
+    # If renaming, delete the old one
+    if orig_name and orig_name != source_name:
+        old = db.session.query(SourceNote).filter_by(source_name=orig_name).first()
+        if old:
+            db.session.delete(old)
+
+    note = db.session.query(SourceNote).filter_by(source_name=source_name).first()
+    if note:
+        note.note_text = note_text
+        note.stance = stance
+        note.updated_at = datetime.now(timezone.utc)
+    else:
+        note = SourceNote(source_name=source_name, note_text=note_text, stance=stance)
+        db.session.add(note)
+
+    db.session.commit()
+    flash(f"Saved note for {source_name}", "success")
+    return redirect(url_for("admin.source_notes_list"))
+
+
+@admin_bp.route("/the-man", methods=["GET", "POST"])
+@login_required
+def the_man():
+    """The Man — AI editorial guidance system. View ranking history and set editorial guidelines."""
+    from profoundd.search.the_man import run_the_man
+
+    decisions = None
+    run_error = None
+
+    if request.method == "POST":
+        action = request.form.get("action", "save_guidelines")
+
+        if action == "save_guidelines":
+            SiteSetting.set("the_man_guidelines", request.form.get("guidelines", "").strip())
+            flash("Editorial guidelines saved.", "success")
+            return redirect(url_for("admin.the_man"))
+
+        elif action == "run":
+            auto_apply = request.form.get("auto_apply") == "1"
+            guidelines = SiteSetting.get("the_man_guidelines", "")
+            api_key = SiteSetting.get("ai_anthropic_key", "")
+            model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+
+            engine = SearchEngine(config.ELASTICSEARCH_URL)
+            past_actions = (db.session.query(AdminRankingAction)
+                            .order_by(AdminRankingAction.acted_at.desc())
+                            .limit(30)
+                            .all())
+
+            decisions, run_error = run_the_man(
+                engine, guidelines, past_actions, api_key, model, auto_apply=auto_apply
+            )
+
+            if run_error:
+                flash(f"The Man: {run_error}", "error")
+            elif auto_apply and decisions:
+                # Log auto-applied actions
+                applied_count = sum(1 for d in decisions if d.get("applied"))
+                for d in decisions:
+                    if d.get("applied") and d["action"] != "skip":
+                        log = AdminRankingAction(
+                            article_url=d["url"],
+                            article_title="",
+                            source_name="",
+                            category="",
+                            action=d["action"],
+                            old_boost=d.get("old_boost", 0),
+                            new_boost=d.get("new_boost", 0),
+                            search_query="[The Man auto-applied]",
+                        )
+                        db.session.add(log)
+                db.session.commit()
+                flash(f"The Man applied {applied_count} ranking changes.", "success")
+
+    guidelines = SiteSetting.get("the_man_guidelines", "")
+    recent_actions = (db.session.query(AdminRankingAction)
+                      .order_by(AdminRankingAction.acted_at.desc())
+                      .limit(100)
+                      .all())
+
+    # Summary stats
+    total_actions = db.session.query(AdminRankingAction).count()
+    promotes = db.session.query(AdminRankingAction).filter_by(action="promote").count()
+    demotes = db.session.query(AdminRankingAction).filter_by(action="demote").count()
+
+    return render_template("admin/the_man.html",
+                           guidelines=guidelines,
+                           recent_actions=recent_actions,
+                           total_actions=total_actions,
+                           promotes=promotes,
+                           demotes=demotes,
+                           decisions=decisions,
+                           run_error=run_error)
+
+
+# --- NewsRoom Bob ---
+
+@admin_bp.route("/bob/write", methods=["POST"])
+def bob_write():
+    """Trigger NewsRoom Bob to write a story based on an article. AJAX endpoint."""
+    if not session.get("admin_logged_in"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    article_url = data.get("url", "").strip()
+    article_title = data.get("title", "").strip()
+    source_name = data.get("source_name", "").strip()
+    category = data.get("category", "news").strip()
+    summary = data.get("summary", "").strip()
+
+    if not article_url or not article_title:
+        return jsonify({"error": "Article URL and title are required"}), 400
+
+    # Check if Bob already wrote about this
+    existing = db.session.query(BobStory).filter_by(source_article_url=article_url).first()
+    if existing:
+        return jsonify({
+            "success": True,
+            "already_exists": True,
+            "slug": existing.slug,
+            "message": "Bob already wrote this one!",
+        })
+
+    # Get API key
+    api_key = SiteSetting.get("ai_anthropic_key", "")
+    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+    if not api_key:
+        return jsonify({"error": "No AI API key configured. Go to Admin > AI Settings."}), 400
+
+    # If we have a URL, try to fetch more content for Bob to work with
+    content_for_bob = summary
+    if article_url and not article_url.startswith("profoundd://"):
+        try:
+            from profoundd.search.ai_analyzer import fetch_url_content
+            fetched, fetch_err = fetch_url_content(article_url)
+            if fetched and fetched.get("text"):
+                content_for_bob = fetched["text"]
+        except Exception:
+            pass  # Fall back to summary
+
+    # Generate the story
+    from profoundd.search.newsroom_bob import generate_bob_story, make_slug
+
+    article_data = {
+        "title": article_title,
+        "url": article_url,
+        "source_name": source_name,
+        "category": category,
+        "content": content_for_bob,
+        "summary": summary,
+    }
+
+    result, error = generate_bob_story(article_data, api_key, model)
+    if error:
+        return jsonify({"error": error}), 500
+
+    # Try to grab an image from the original article
+    image_url = None
+    if article_url and not article_url.startswith("profoundd://"):
+        image_url = fetch_og_image(article_url)
+
+    # Create the slug and ensure uniqueness
+    slug = make_slug(result["headline"] or article_title)
+    base_slug = slug
+    counter = 1
+    while db.session.query(BobStory).filter_by(slug=slug).first():
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+    # Save to database
+    story = BobStory(
+        title=result["headline"] or article_title,
+        slug=slug,
+        content=result["body"],
+        summary=result["summary"],
+        seo_keywords=result["seo_keywords"],
+        seo_description=result["seo_description"],
+        category=category,
+        image_url=image_url,
+        source_article_url=article_url,
+        source_article_title=article_title,
+        source_name=source_name,
+    )
+    db.session.add(story)
+    db.session.commit()
+
+    # Index to Elasticsearch and remove the original article
+    try:
+        engine = SearchEngine(config.ELASTICSEARCH_URL)
+        engine.index_article(story.to_es_doc())
+        # Pull the original from the index — Bob's version replaces it
+        if article_url and not article_url.startswith("profoundd://"):
+            engine.delete_article(article_url)
+            logger.info("Pulled original article from ES: %s", article_url)
+    except Exception as e:
+        logger.warning("Could not index Bob story to ES: %s", e)
+
+    return jsonify({
+        "success": True,
+        "slug": slug,
+        "title": story.title,
+        "message": "Bob wrote it!",
+    })
+
+
+@admin_bp.route("/bob/stories")
+@login_required
+def bob_stories_list():
+    """Admin page listing all NewsRoom Bob stories."""
+    stories = db.session.query(BobStory).order_by(BobStory.published_at.desc()).all()
+    return render_template("admin/bob_stories.html", stories=stories)
+
+
+@admin_bp.route("/bob/stories/<int:story_id>/delete", methods=["POST"])
+@login_required
+def bob_story_delete(story_id):
+    """Delete a Bob story from DB and ES."""
+    story = db.session.query(BobStory).get(story_id)
+    if not story:
+        flash("Story not found.", "error")
+        return redirect(url_for("admin.bob_stories_list"))
+
+    # Remove from Elasticsearch
+    try:
+        import hashlib
+        engine = SearchEngine(config.ELASTICSEARCH_URL)
+        es_url = f"profoundd://bob/{story.slug}"
+        es_id = hashlib.md5(es_url.encode()).hexdigest()
+        engine.es.delete(index=engine.index_name, id=es_id, ignore=[404])
+    except Exception as e:
+        logger.warning("Could not remove Bob story from ES: %s", e)
+
+    db.session.delete(story)
+    db.session.commit()
+    flash(f"Deleted: {story.title}", "success")
+    return redirect(url_for("admin.bob_stories_list"))
+
+
+@admin_bp.route("/bob/stories/<int:story_id>/restore-original", methods=["POST"])
+@login_required
+def bob_story_restore_original(story_id):
+    """Re-index the original source article back into Elasticsearch."""
+    story = db.session.query(BobStory).get(story_id)
+    if not story:
+        flash("Story not found.", "error")
+        return redirect(url_for("admin.bob_stories_list"))
+
+    if not story.source_article_url or story.source_article_url.startswith("profoundd://"):
+        flash("No external source URL to restore.", "error")
+        return redirect(url_for("admin.bob_stories_list"))
+
+    # Fetch content from the original URL
+    try:
+        from profoundd.search.ai_analyzer import fetch_url_content
+        fetched, fetch_err = fetch_url_content(story.source_article_url)
+        if not fetched or not fetched.get("text"):
+            flash(f"Could not fetch original article: {fetch_err or 'empty content'}", "error")
+            return redirect(url_for("admin.bob_stories_list"))
+    except Exception as e:
+        flash(f"Error fetching original: {e}", "error")
+        return redirect(url_for("admin.bob_stories_list"))
+
+    # Build an article doc and re-index it
+    article_doc = {
+        "title": story.source_article_title or fetched.get("page_title", "Untitled"),
+        "url": story.source_article_url,
+        "summary": fetched.get("meta_description") or fetched["text"][:500],
+        "content": fetched["text"],
+        "author": story.source_name or "Unknown",
+        "category": story.category or "news",
+        "source_name": story.source_name or "Unknown",
+        "source_credibility": 5,
+        "published_at": datetime.now(timezone.utc).isoformat(),
+        "crawled_at": datetime.now(timezone.utc).isoformat(),
+        "tags": [],
+    }
+
+    try:
+        engine = SearchEngine(config.ELASTICSEARCH_URL)
+        engine.index_article(article_doc)
+        flash(f"Restored original article to search index: {article_doc['title'][:60]}", "success")
+    except Exception as e:
+        flash(f"Failed to re-index original: {e}", "error")
+
+    return redirect(url_for("admin.bob_stories_list"))
+
+
+# --- Special Section Re-categorization ---
+
+@admin_bp.route("/recategorize-sections", methods=["POST"])
+@login_required
+def recategorize_sections():
+    """Re-categorize existing articles into special sections based on keywords."""
+    engine = SearchEngine(config.ELASTICSEARCH_URL)
+    total = 0
+    for cat_key, keywords in SPECIAL_SECTION_KEYWORDS.items():
+        updated = engine.recategorize_by_keywords(keywords, cat_key)
+        total += updated
+
+    # Also update BobStory records in the database
+    for cat_key, keywords in SPECIAL_SECTION_KEYWORDS.items():
+        for story in db.session.query(BobStory).filter_by(status="published").all():
+            text = f"{story.title} {story.summary or ''}".lower()
+            if any(kw in text for kw in keywords):
+                story.category = cat_key
+    db.session.commit()
+
+    flash(f"Re-categorized {total} articles into special sections.", "success")
+    return redirect(url_for("admin.dashboard"))

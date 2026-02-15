@@ -29,7 +29,7 @@ class Config:
     ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "changeme")
 
     # Crawler
-    CRAWL_INTERVAL_MINUTES = int(os.getenv("CRAWL_INTERVAL_MINUTES", "60"))
+    CRAWL_INTERVAL_MINUTES = int(os.getenv("CRAWL_INTERVAL_MINUTES", "20"))
     MAX_ARTICLES_PER_FEED = int(os.getenv("MAX_ARTICLES_PER_FEED", "50"))
     RESPECT_ROBOTS_TXT = os.getenv("RESPECT_ROBOTS_TXT", "true").lower() == "true"
     USER_AGENT = os.getenv("USER_AGENT", "ProfounddBot/1.0 (+https://profoundd.com/bot)")

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{{ story.title }} - Profoundd NewsRoom{% endblock %}
+{% block description %}{{ story.seo_description or (story.summary or story.title)[:160] }}{% endblock %}
+{% if story.seo_keywords %}
+{% block head %}
+<meta name="keywords" content="{{ story.seo_keywords }}">
+{% endblock %}
+{% endif %}
+
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ story.title }}{% endblock %}
+{% block og_description %}{{ story.seo_description or (story.summary or story.title)[:200] }} | Found on Profoundd{% endblock %}
+{% block og_image_url %}{{ story.image_url or og_image }}{% endblock %}
+
+{% block twitter_card %}summary_large_image{% endblock %}
+{% block twitter_title %}{{ story.title }}{% endblock %}
+{% block twitter_description %}{{ story.seo_description or (story.summary or story.title)[:200] }} | Found on Profoundd{% endblock %}
+{% block twitter_image %}{{ story.image_url or og_image }}{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    "headline": {{ story.title | tojson }},
+    "description": {{ (story.seo_description or story.summary or story.title) | tojson }},
+    "author": {"@type": "Organization", "name": "Profoundd NewsRoom Bob"},
+    {% if story.image_url %}"image": {{ story.image_url | tojson }},{% endif %}
+    {% if story.published_at %}"datePublished": "{{ story.published_at.strftime('%Y-%m-%d') }}",{% endif %}
+    "publisher": {"@type": "Organization", "name": "Profoundd"},
+    "mainEntityOfPage": "https://{{ site_domain }}/newsroom/{{ story.slug }}",
+    {% if story.seo_keywords %}"keywords": {{ story.seo_keywords | tojson }},{% endif %}
+    "isBasedOn": {{ story.source_article_url | tojson }}
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container article-page bob-story-page">
+    <nav class="article-breadcrumb">
+        <a href="/">Home</a>
+        <span class="breadcrumb-sep">/</span>
+        <a href="/newsroom">NewsRoom</a>
+        <span class="breadcrumb-sep">/</span>
+        {% if story.category %}
+        <a href="/category/{{ story.category }}">{{ story.category | title }}</a>
+        <span class="breadcrumb-sep">/</span>
+        {% endif %}
+        <span>Story</span>
+    </nav>
+
+    <article class="article-detail">
+        <header class="article-header">
+            <div class="article-meta-bar">
+                <span class="result-source bob-byline">NewsRoom Bob</span>
+                {% if story.category %}
+                <span class="result-category category-tag-{{ story.category }}">{{ story.category | title }}</span>
+                {% endif %}
+                {% if session.get('admin_logged_in') %}
+                <span class="admin-boost-controls" data-url="profoundd://bob/{{ story.slug }}" data-boost="5">
+                    <button type="button" class="boost-btn boost-up" title="Promote">&#9650;</button>
+                    <span class="boost-value">5</span>
+                    <button type="button" class="boost-btn boost-down" title="Demote">&#9660;</button>
+                </span>
+                {% endif %}
+            </div>
+            <h1>{{ story.title }}</h1>
+            <div class="article-info">
+                {% if story.published_at %}
+                <span class="article-date">{{ story.published_at.strftime('%B %d, %Y') }}</span>
+                {% endif %}
+                {% if story.source_name %}
+                <span class="bob-source-credit">Based on reporting by <strong>{{ story.source_name }}</strong></span>
+                {% endif %}
+            </div>
+        </header>
+
+        {% if story.image_url %}
+        <div class="article-hero-image">
+            <img src="{{ story.image_url }}" alt="{{ story.title }}" loading="lazy" decoding="async">
+        </div>
+        {% endif %}
+
+        {% if story.summary %}
+        <div class="article-summary">
+            {{ story.summary }}
+        </div>
+        {% endif %}
+
+        {% with note_url='profoundd://bob/' ~ story.slug, note_title=story.title, note_summary=story.summary or '' %}
+        {% include '_newsroom_note.html' %}
+        {% endwith %}
+
+        {% if story.content %}
+        <div class="article-content bob-content">
+            {% for paragraph in story.content.split('\n\n') %}
+                {% set text = paragraph.strip().replace('\n', ' ') %}
+                {% if text %}
+                <p>{{ text }}</p>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <footer class="article-footer">
+            <div class="bob-original-source">
+                <span class="credibility-badge credibility-high">AI Generated</span>
+                <span class="bob-source-label">Original Source:</span>
+                <a href="{{ story.source_article_url }}" target="_blank" rel="noopener" class="share-link-btn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    {{ story.source_article_title or story.source_name or 'View Original' }}
+                </a>
+            </div>
+            <button type="button" class="share-link-btn" onclick="copyShareLink(this)" title="Copy shareable link">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                Share Story
+            </button>
+        </footer>
+    </article>
+</div>
+{% endblock %}
