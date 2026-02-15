@@ -197,6 +197,12 @@ def create_app(config_override=None):
         from profoundd.config.settings import BASE_DIR
         os.makedirs(os.path.join(BASE_DIR, "data"), exist_ok=True)
         db.create_all()
+        # Add sponsor_tags column if missing (SQLite doesn't add new columns via create_all)
+        try:
+            db.session.execute(db.text("ALTER TABLE sources ADD COLUMN sponsor_tags VARCHAR(500) DEFAULT ''"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
         _ensure_admin(app.config)
 
     # Start background scheduler (only in production, not in testing)

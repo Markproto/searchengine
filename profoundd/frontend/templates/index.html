@@ -120,6 +120,11 @@
                 {% endwith %}
                 <p class="trending-meta">
                     <span class="source">{{ article.source_name }}{% with src_name=article.source_name %}{% include '_source_note.html' %}{% endwith %}</span>
+                    {% if article.source_sponsors %}
+                    {% for sponsor in article.source_sponsors %}
+                    <span class="sponsor-badge" title="{{ sponsor }} sponsored this source">{{ sponsor }} Sponsored</span>
+                    {% endfor %}
+                    {% endif %}
                     {% if article.published_at %}
                     <span class="date" data-time="{{ article.published_at }}">{{ article.published_at[:10] }}</span>
                     {% endif %}

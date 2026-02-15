@@ -51,6 +51,11 @@
             <div class="result-body">
             <div class="result-header">
                 <span class="result-source">{{ article.source_name }}{% with src_name=article.source_name %}{% include '_source_note.html' %}{% endwith %}</span>
+                {% if article.source_sponsors %}
+                {% for sponsor in article.source_sponsors %}
+                <span class="sponsor-badge" title="{{ sponsor }} sponsored this source">{{ sponsor }} Sponsored</span>
+                {% endfor %}
+                {% endif %}
                 {% if article.source_credibility %}
                 {% if session.get('admin_logged_in') %}
                 <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }} admin-editable-cred" data-url="{{ article.url }}">

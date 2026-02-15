@@ -26,6 +26,7 @@ ARTICLE_MAPPING = {
             "category": {"type": "keyword"},
             "source_name": {"type": "keyword"},
             "source_credibility": {"type": "integer"},
+            "source_sponsors": {"type": "keyword"},
             "admin_boost": {"type": "integer"},
             "url": {"type": "keyword"},
             "image_url": {"type": "keyword", "ignore_above": 2000},
@@ -136,6 +137,27 @@ class SearchEngine:
             return updated
         except Exception as e:
             logger.error("Failed to bulk-update credibility for '%s': %s", source_name, e)
+            return 0
+
+    def update_sponsors_by_source(self, source_name, sponsors):
+        """Update source_sponsors on ALL articles from a given source."""
+        try:
+            result = self.es.update_by_query(
+                index=self.index_name,
+                body={
+                    "query": {"term": {"source_name": source_name}},
+                    "script": {
+                        "source": "ctx._source.source_sponsors = params.sponsors",
+                        "lang": "painless",
+                        "params": {"sponsors": sponsors},
+                    },
+                },
+                refresh=True,
+            )
+            updated = result.get("updated", 0)
+            return updated
+        except Exception as e:
+            logger.error("Failed to update sponsors for '%s': %s", source_name, e)
             return 0
 
     def get_article(self, article_url):
@@ -897,7 +919,7 @@ class SearchEngine:
             "size": size,
             "_source": [
                 "title", "summary", "url", "source_name", "source_credibility",
-                "category", "published_at", "image_url", "tags",
+                "source_sponsors", "category", "published_at", "image_url", "tags",
             ],
         }
 

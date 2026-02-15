@@ -206,6 +206,10 @@ class FeedCrawler:
         matched_special = self._match_special_category(title, summary, content, tags)
         category = matched_special or source["category"]
 
+        # Sponsor disclosure tags (e.g. "Pfizer")
+        sponsors = source.get("sponsors", "")
+        source_sponsors = [s.strip() for s in sponsors.split(",") if s.strip()] if sponsors else []
+
         return {
             "title": title,
             "url": link,
@@ -215,6 +219,7 @@ class FeedCrawler:
             "category": category,
             "source_name": source["name"],
             "source_credibility": source.get("credibility", 5),
+            "source_sponsors": source_sponsors,
             "image_url": image_url,
             "published_at": published.isoformat(),
             "crawled_at": datetime.now(timezone.utc).isoformat(),
@@ -330,6 +335,7 @@ class FeedCrawler:
                 "category": source.category,
                 "credibility": source.credibility,
                 "feed_type": source.feed_type,
+                "sponsors": getattr(source, "sponsor_tags", "") or "",
             }
             articles = self.crawl_source(source_dict)
             all_articles.extend(articles)

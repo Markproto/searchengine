@@ -37,6 +37,14 @@
                     <option value="atom" {% if source and source.feed_type == 'atom' %}selected{% endif %}>Atom</option>
                 </select>
             </div>
+
+            <div class="form-group">
+                <label for="sponsor_tags">Sponsor Tags</label>
+                <input type="text" id="sponsor_tags" name="sponsor_tags"
+                       value="{{ source.sponsor_tags if source and source.sponsor_tags else '' }}"
+                       placeholder="e.g. Pfizer, Johnson & Johnson">
+                <small>Comma-separated sponsor names. Shown as disclosure badges on articles.</small>
+            </div>
         </div>
 
         <h3>Ranking Criteria</h3>

@@ -91,6 +91,11 @@
             <div class="result-body">
             <div class="result-header">
                 <span class="result-source">{{ article.source_name }}{% with src_name=article.source_name %}{% include '_source_note.html' %}{% endwith %}</span>
+                {% if article.source_sponsors %}
+                {% for sponsor in article.source_sponsors %}
+                <span class="sponsor-badge" title="{{ sponsor }} sponsored this source">{{ sponsor }} Sponsored</span>
+                {% endfor %}
+                {% endif %}
                 <span class="result-category category-tag-{{ article.category }}">{{ article.category | title }}</span>
                 {% if article.source_credibility and article._provider != 'searxng' %}
                 {% if session.get('admin_logged_in') %}

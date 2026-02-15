@@ -47,6 +47,9 @@ class Source(db.Model):
     recency_weight = db.Column(db.Float, default=0.3)
     relevance_weight = db.Column(db.Float, default=0.3)
 
+    # Sponsor disclosure (comma-separated sponsor names, e.g. "Pfizer,Johnson & Johnson")
+    sponsor_tags = db.Column(db.String(500), default="")
+
     # Metadata
     last_crawled = db.Column(db.DateTime)
     articles_count = db.Column(db.Integer, default=0)

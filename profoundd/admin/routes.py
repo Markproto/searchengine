@@ -235,6 +235,7 @@ def add_source():
             credibility_weight=float(request.form.get("credibility_weight", 0.4)),
             recency_weight=float(request.form.get("recency_weight", 0.3)),
             relevance_weight=float(request.form.get("relevance_weight", 0.3)),
+            sponsor_tags=request.form.get("sponsor_tags", "").strip(),
         )
         db.session.add(source)
         db.session.commit()
@@ -264,6 +265,7 @@ def edit_source(source_id):
         source.credibility_weight = float(request.form.get("credibility_weight", 0.4))
         source.recency_weight = float(request.form.get("recency_weight", 0.3))
         source.relevance_weight = float(request.form.get("relevance_weight", 0.3))
+        source.sponsor_tags = request.form.get("sponsor_tags", "").strip()
         source.is_active = "is_active" in request.form
         db.session.commit()
 
@@ -310,6 +312,7 @@ def seed_sources():
                 category=src["category"],
                 credibility=src.get("credibility", 5),
                 feed_type=src.get("feed_type", "rss"),
+                sponsor_tags=src.get("sponsors", ""),
             )
             db.session.add(source)
             added += 1
@@ -330,6 +333,10 @@ def seed_sources():
                 changed = True
             if existing.feed_type != src.get("feed_type", "rss"):
                 existing.feed_type = src.get("feed_type", "rss")
+                changed = True
+            new_sponsors = src.get("sponsors", "")
+            if (existing.sponsor_tags or "") != new_sponsors:
+                existing.sponsor_tags = new_sponsors
                 changed = True
             if changed:
                 updated += 1
@@ -405,6 +412,28 @@ def cleanup_old():
     engine = SearchEngine(config.ELASTICSEARCH_URL)
     deleted = engine.delete_old_articles(days=days)
     flash(f"Cleaned up {deleted} articles older than {days} days.", "info")
+    return redirect(url_for("admin.dashboard"))
+
+
+@admin_bp.route("/sync-sponsors", methods=["POST"])
+@login_required
+def sync_sponsors():
+    """Backfill sponsor tags onto all existing articles in Elasticsearch."""
+    engine = SearchEngine(config.ELASTICSEARCH_URL)
+    if not engine.is_available():
+        flash("Elasticsearch is not available.", "error")
+        return redirect(url_for("admin.dashboard"))
+
+    # Get all sources with sponsor tags
+    sources = db.session.query(Source).filter(Source.sponsor_tags != "", Source.sponsor_tags.isnot(None)).all()
+    total_updated = 0
+    for src in sources:
+        sponsors = [s.strip() for s in src.sponsor_tags.split(",") if s.strip()]
+        if sponsors:
+            updated = engine.update_sponsors_by_source(src.name, sponsors)
+            total_updated += updated
+
+    flash(f"Synced sponsor tags to {total_updated} articles across {len(sources)} sources.", "success")
     return redirect(url_for("admin.dashboard"))
 
 
