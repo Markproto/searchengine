@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Verification Bot{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>Verification Bot</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+    </div>
+
+    <p class="action-desc" style="margin-bottom: 20px;">
+        Paste a social media post or claim about legislation. The bot will search Congress.gov,
+        Federal Register, and Profoundd's index for evidence, then produce a balanced analysis
+        showing both conservative and progressive perspectives.
+    </p>
+
+    {% if not result %}
+    {# --- Step 1: Input the claim --- #}
+    <form method="POST" class="admin-form">
+        <input type="hidden" name="step" value="analyze">
+        <div class="form-group">
+            <label>Claim or Post to Verify</label>
+            <textarea name="claim_text" rows="12" class="form-control"
+                      placeholder="Paste the social media post, article excerpt, or claim you want to verify...&#10;&#10;Example: 'The proposed Farm Bill strips states of power to regulate pesticides. Sections 10205-10211 on pages 685-687 preempt all state and local pesticide laws...'"
+                      style="font-size: 0.9rem; line-height: 1.6;">{{ claim_text }}</textarea>
+        </div>
+
+        {% if not has_ai_key %}
+        <div class="flash-message flash-error" style="margin-bottom: 16px;">
+            No AI API key configured. <a href="{{ url_for('admin.ai_settings') }}">Configure in AI Settings</a>.
+        </div>
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary" {% if not has_ai_key %}disabled{% endif %}>
+            Analyze &amp; Verify
+        </button>
+    </form>
+
+    {% else %}
+    {# --- Step 2: Review the verification report --- #}
+    <div class="admin-section" style="margin-bottom: 24px;">
+        <h2>Evidence Found: {{ total_evidence }} sources</h2>
+        <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px;">
+            {% if evidence.profoundd_results %}
+            <span class="subcategory-badge" style="font-size: 0.75rem; padding: 4px 10px;">
+                Profoundd Index: {{ evidence.profoundd_results|length }}
+            </span>
+            {% endif %}
+            {% if evidence.congress_results %}
+            <span class="enhanced-badge" style="font-size: 0.75rem; padding: 4px 10px;">
+                Congress.gov: {{ evidence.congress_results|length }}
+            </span>
+            {% endif %}
+            {% if evidence.federal_register_results %}
+            <span class="enhanced-badge" style="font-size: 0.75rem; padding: 4px 10px;">
+                Federal Register: {{ evidence.federal_register_results|length }}
+            </span>
+            {% endif %}
+        </div>
+        {% if claims_data and claims_data.claims %}
+        <details style="margin-bottom: 12px;">
+            <summary style="cursor: pointer; font-weight: 600; color: var(--text-secondary);">
+                Key Claims Identified ({{ claims_data.claims|length }})
+            </summary>
+            <ul style="margin-top: 8px; padding-left: 20px;">
+                {% for claim in claims_data.claims %}
+                <li style="margin-bottom: 4px; color: var(--text-secondary);">{{ claim }}</li>
+                {% endfor %}
+            </ul>
+        </details>
+        {% endif %}
+    </div>
+
+    <div class="admin-section">
+        <h2>{{ result.headline }}</h2>
+        <div class="verify-report" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; line-height: 1.8; font-size: 0.92rem;">
+            {{ result.report_html | safe }}
+        </div>
+    </div>
+
+    {# --- Publish or Edit --- #}
+    <div class="admin-section" style="margin-top: 24px;">
+        <h2>Publish as Profoundd Story</h2>
+        <form method="POST" class="admin-form">
+            <input type="hidden" name="step" value="publish">
+            <input type="hidden" name="claim_text" value="{{ claim_text }}">
+            <input type="hidden" name="report" value="{{ result.report }}">
+
+            <div class="form-group">
+                <label>Headline</label>
+                <input type="text" name="headline" value="{{ result.headline }}" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Summary</label>
+                <textarea name="summary" rows="3" class="form-control">{{ result.summary }}</textarea>
+            </div>
+            <div class="form-group">
+                <label>SEO Keywords</label>
+                <input type="text" name="seo_keywords" value="{{ result.seo_keywords }}" class="form-control">
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 16px;">
+                <button type="submit" class="btn btn-primary">Publish to Profoundd</button>
+                <a href="{{ url_for('admin.verify_claim') }}" class="btn btn-secondary">Start Over</a>
+            </div>
+        </form>
+    </div>
+
+    {# --- Original post for reference --- #}
+    <details style="margin-top: 24px;">
+        <summary style="cursor: pointer; font-weight: 600; color: var(--text-secondary);">
+            Original Post (for reference)
+        </summary>
+        <div style="margin-top: 8px; padding: 16px; background: var(--bg-input); border-radius: var(--radius-sm); white-space: pre-wrap; font-size: 0.85rem; color: var(--text-secondary); max-height: 300px; overflow-y: auto;">{{ claim_text }}</div>
+    </details>
+    {% endif %}
+</div>
+
+<style>
+.verify-report h1, .verify-report h2, .verify-report h3 {
+    margin-top: 20px;
+    margin-bottom: 8px;
+    color: var(--text);
+}
+.verify-report h2 { font-size: 1.15rem; }
+.verify-report h3 { font-size: 1.05rem; }
+.verify-report p { margin-bottom: 12px; }
+.verify-report ul, .verify-report ol {
+    padding-left: 24px;
+    margin-bottom: 12px;
+}
+.verify-report li { margin-bottom: 6px; }
+.verify-report strong { color: var(--text); }
+.verify-report a { color: var(--accent); text-decoration: underline; }
+.verify-report blockquote {
+    border-left: 3px solid var(--accent);
+    margin: 12px 0;
+    padding: 8px 16px;
+    background: var(--accent-glow);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+</style>
+{% endblock %}

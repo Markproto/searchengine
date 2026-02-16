@@ -54,6 +54,17 @@
         </div>
 
         <div class="admin-section">
+            <h2>Congress.gov API (Legislative Watch)</h2>
+            <p class="action-desc">Free API key from <a href="https://api.congress.gov/sign-up/" target="_blank">api.congress.gov/sign-up</a>. Enables live bill search and status lookups when users search legislative topics. 5,000 requests/hour.</p>
+            <div class="form-group">
+                <label>Congress.gov API Key</label>
+                <input type="password" name="congress_gov_api_key" value="{{ congress_gov_api_key }}"
+                       placeholder="Enter your Congress.gov API key" class="form-control">
+                <small class="text-muted">Leave empty to only use Federal Register (no key needed) for legislative searches</small>
+            </div>
+        </div>
+
+        <div class="admin-section">
             <h2>SearXNG (Web Search Fallback)</h2>
             <p class="action-desc">When Profoundd's index has fewer than 5 results, SearXNG searches the mainstream web (Google, Bing, DuckDuckGo, etc.) as a fallback. Self-hosted, no API key needed.</p>
             <div class="form-group">

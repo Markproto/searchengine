@@ -701,6 +701,7 @@ def ai_settings():
         SiteSetting.set("ai_xai_model", request.form.get("xai_model", "grok-2-latest"))
         SiteSetting.set("ai_default_provider", request.form.get("default_ai_provider", "anthropic"))
         SiteSetting.set("searxng_url", request.form.get("searxng_url", "").strip().rstrip("/"))
+        SiteSetting.set("congress_gov_api_key", request.form.get("congress_gov_api_key", "").strip())
         SiteSetting.set("source_research_guidelines", request.form.get("source_research_guidelines", "").strip())
         flash("Settings saved.", "success")
         return redirect(url_for("admin.ai_settings"))
@@ -712,6 +713,7 @@ def ai_settings():
                            xai_model=SiteSetting.get("ai_xai_model", "grok-2-latest"),
                            default_provider=SiteSetting.get("ai_default_provider", "anthropic"),
                            searxng_url=SiteSetting.get("searxng_url", ""),
+                           congress_gov_api_key=SiteSetting.get("congress_gov_api_key", ""),
                            source_research_guidelines=SiteSetting.get("source_research_guidelines", ""),
                            categories=CATEGORIES)
 
@@ -1630,3 +1632,124 @@ def recategorize_sections():
 
     flash(f"Re-categorized {total} articles into special sections.", "success")
     return redirect(url_for("admin.dashboard"))
+
+
+# --- Verification Bot ---
+
+@admin_bp.route("/verify", methods=["GET", "POST"])
+@login_required
+def verify_claim():
+    """Verification Bot: analyze a claim from dual perspectives and publish."""
+    from profoundd.search.verify_bot import (
+        extract_search_queries, search_for_evidence, generate_verification_story,
+    )
+    from profoundd.search.newsroom_bob import make_slug
+
+    api_key = SiteSetting.get("ai_anthropic_key", "")
+    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+    congress_key = SiteSetting.get("congress_gov_api_key", "")
+    has_ai_key = bool(api_key)
+
+    if request.method == "POST":
+        step = request.form.get("step", "analyze")
+
+        if step == "analyze":
+            claim_text = request.form.get("claim_text", "").strip()
+            if not claim_text:
+                flash("Please paste the claim or post to verify.", "error")
+                return redirect(url_for("admin.verify_claim"))
+
+            if not api_key:
+                flash("No AI API key configured. Go to Admin > AI Settings.", "error")
+                return redirect(url_for("admin.verify_claim"))
+
+            # Step 1: Extract claims and search queries
+            claims_data = extract_search_queries(claim_text, api_key, model)
+
+            # Step 2: Search for evidence
+            engine = SearchEngine(config.ELASTICSEARCH_URL)
+            evidence = search_for_evidence(
+                claims_data.get("queries", []), engine, congress_api_key=congress_key,
+            )
+
+            # Step 3: Generate verification story
+            result, error = generate_verification_story(
+                claim_text, claims_data, evidence, api_key, model,
+            )
+
+            if error:
+                flash(f"Verification failed: {error}", "error")
+                return redirect(url_for("admin.verify_claim"))
+
+            # Convert markdown report to HTML for display
+            import markdown
+            result["report_html"] = markdown.markdown(
+                result["report"], extensions=["tables", "fenced_code"],
+            )
+
+            # Count evidence found
+            total_evidence = sum(len(v) for v in evidence.values())
+
+            return render_template("admin/verify.html",
+                                   categories=CATEGORIES,
+                                   has_ai_key=has_ai_key,
+                                   result=result,
+                                   claim_text=claim_text,
+                                   claims_data=claims_data,
+                                   evidence=evidence,
+                                   total_evidence=total_evidence)
+
+        elif step == "publish":
+            # Publish the verification report as a Bob story
+            headline = request.form.get("headline", "").strip()
+            report = request.form.get("report", "").strip()
+            summary = request.form.get("summary", "").strip()
+            seo_keywords = request.form.get("seo_keywords", "").strip()
+            claim_text = request.form.get("claim_text", "").strip()
+
+            if not headline or not report:
+                flash("Headline and report are required.", "error")
+                return redirect(url_for("admin.verify_claim"))
+
+            slug = make_slug(headline)
+            base_slug = slug
+            counter = 1
+            while db.session.query(BobStory).filter_by(slug=slug).first():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+
+            story = BobStory(
+                title=headline,
+                slug=slug,
+                content=report,
+                summary=summary,
+                seo_keywords=seo_keywords,
+                seo_description=summary[:290] if summary else "",
+                category="legislative",
+                source_article_url=f"profoundd://verify/{slug}",
+                source_article_title=headline,
+                source_name="Profoundd Verification Bot",
+            )
+            db.session.add(story)
+            db.session.commit()
+
+            # Index to Elasticsearch
+            try:
+                engine = SearchEngine(config.ELASTICSEARCH_URL)
+                es_doc = story.to_es_doc()
+                es_doc["tags"] = ["verification", "dual-perspective", "fact-check"]
+                engine.index_article(es_doc)
+                flash(f"Published verification: '{headline}'", "success")
+            except Exception as e:
+                flash(f"Saved but failed to index: {e}", "warning")
+
+            return redirect(url_for("admin.bob_stories_list"))
+
+    return render_template("admin/verify.html",
+                           categories=CATEGORIES,
+                           has_ai_key=has_ai_key,
+                           result=None,
+                           claim_text="",
+                           claims_data=None,
+                           evidence=None,
+                           total_evidence=0)

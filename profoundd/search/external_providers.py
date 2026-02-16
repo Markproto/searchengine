@@ -1,7 +1,8 @@
 """
 External search providers for enhanced results.
-Queries CourtListener (legal) and PubMed/arXiv (medical/science) APIs
-in real-time when the user's search matches those domains.
+Queries CourtListener (legal), PubMed/arXiv (medical/science), and
+Congress.gov (legislative) APIs in real-time when the user's search
+matches those domains.
 """
 import logging
 import xml.etree.ElementTree as ET
@@ -17,6 +18,7 @@ API_TIMEOUT = 5
 # Categories that trigger each provider
 LEGAL_CATEGORIES = {"legal"}
 SCIENCE_CATEGORIES = {"medical", "science"}
+LEGISLATIVE_CATEGORIES = {"legislative"}
 
 # Keywords that trigger providers when category is "all"
 LEGAL_KEYWORDS = [
@@ -31,12 +33,23 @@ SCIENCE_KEYWORDS = [
     "arxiv", "preprint", "meta-analysis", "double-blind", "cohort",
     "epidemiology", "pathogen", "therapeutic", "biomarker",
 ]
+LEGISLATIVE_KEYWORDS = [
+    "bill", "h.r.", "s.", "senate bill", "house bill", "farm bill",
+    "act", "congress", "committee", "legislation", "legislative",
+    "appropriation", "authorization", "executive order", "regulation",
+    "federal register", "subcommittee", "hearing", "markup",
+    "filibuster", "cloture", "reconciliation", "omnibus",
+    "continuing resolution", "debt ceiling", "government shutdown",
+    "preemption", "pesticide", "epa", "usda", "fifra",
+    "signed into law", "passed the house", "passed the senate",
+    "sent to president", "veto", "enrolled",
+]
 
 
 def should_enhance(query, category):
     """
     Determine which providers to activate.
-    Returns a set of provider names: {'courtlistener', 'pubmed'}
+    Returns a set of provider names: {'courtlistener', 'pubmed', 'congress'}
     """
     providers = set()
     q_lower = (query or "").lower()
@@ -45,12 +58,16 @@ def should_enhance(query, category):
         providers.add("courtlistener")
     elif category in SCIENCE_CATEGORIES:
         providers.add("pubmed")
+    elif category in LEGISLATIVE_CATEGORIES:
+        providers.add("congress")
     elif category == "all" or not category:
         # Auto-detect from query keywords
         if any(kw in q_lower for kw in LEGAL_KEYWORDS):
             providers.add("courtlistener")
         if any(kw in q_lower for kw in SCIENCE_KEYWORDS):
             providers.add("pubmed")
+        if any(kw in q_lower for kw in LEGISLATIVE_KEYWORDS):
+            providers.add("congress")
 
     return providers
 
@@ -199,6 +216,160 @@ def fetch_pubmed(query, max_results=5):
         return []
 
 
+def fetch_congress_gov(query, api_key=None, max_results=5):
+    """
+    Query Congress.gov API v3 for bills, resolutions, and amendments.
+    Free API key required (5000 req/hour).
+    Returns list of article-like dicts compatible with our search results.
+    """
+    if not api_key:
+        logger.debug("Congress.gov API key not configured, skipping")
+        return []
+
+    try:
+        resp = requests.get(
+            "https://api.congress.gov/v3/bill",
+            params={
+                "query": query,
+                "limit": max_results,
+                "sort": "updateDate+desc",
+                "api_key": api_key,
+            },
+            headers={"User-Agent": "Profoundd/1.0 (search engine)"},
+            timeout=API_TIMEOUT + 2,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        articles = []
+        for bill in data.get("bills", [])[:max_results]:
+            bill_type = bill.get("type", "")
+            bill_number = bill.get("number", "")
+            congress = bill.get("congress", "")
+            title = bill.get("title", "")
+            latest_action = bill.get("latestAction", {})
+            action_text = latest_action.get("text", "")
+            action_date = latest_action.get("actionDate", "")
+
+            # Build a readable label like "H.R. 1234 (119th Congress)"
+            bill_label = f"{bill_type}.{bill_number}" if bill_type and bill_number else ""
+            congress_label = f"{congress}th Congress" if congress else ""
+
+            summary = action_text
+            if bill_label and congress_label:
+                summary = f"{bill_label} ({congress_label}). Latest action: {action_text}"
+
+            # Congress.gov URL
+            url = bill.get("url", "")
+            # The API returns an API URL; build the public-facing URL instead
+            if bill_type and bill_number and congress:
+                type_slug = bill_type.lower().replace(".", "")
+                public_url = f"https://www.congress.gov/bill/{congress}th-congress/{_bill_type_path(bill_type)}/{bill_number}"
+            else:
+                public_url = url
+
+            articles.append({
+                "title": title,
+                "summary": summary,
+                "content": "",
+                "source_name": f"Congress.gov ({bill_label})" if bill_label else "Congress.gov",
+                "source_credibility": 9,
+                "category": "legislative",
+                "url": public_url,
+                "published_at": action_date,
+                "tags": ["legislation", "enhanced", "primary-source"],
+                "_enhanced": True,
+                "_provider": "congress",
+                "_score": 0,
+                "_highlights": {},
+            })
+
+        logger.info("Congress.gov returned %d results for '%s'", len(articles), query)
+        return articles
+
+    except requests.Timeout:
+        logger.warning("Congress.gov API timed out for '%s'", query)
+        return []
+    except Exception as e:
+        logger.warning("Congress.gov API error: %s", e)
+        return []
+
+
+def fetch_federal_register(query, max_results=5):
+    """
+    Query the Federal Register API for regulations and rules.
+    No API key required.
+    """
+    try:
+        resp = requests.get(
+            "https://www.federalregister.gov/api/v1/documents.json",
+            params={
+                "conditions[term]": query,
+                "per_page": max_results,
+                "order": "relevance",
+                "fields[]": ["title", "abstract", "html_url", "publication_date",
+                             "agencies", "type", "document_number"],
+            },
+            headers={"User-Agent": "Profoundd/1.0 (search engine)"},
+            timeout=API_TIMEOUT,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        articles = []
+        for doc in data.get("results", [])[:max_results]:
+            title = doc.get("title", "")
+            abstract = doc.get("abstract", "") or ""
+            url = doc.get("html_url", "")
+            pub_date = doc.get("publication_date", "")
+            doc_type = doc.get("type", "Document")
+            agencies = doc.get("agencies", [])
+            agency_names = ", ".join(a.get("name", "") for a in agencies if a.get("name"))
+
+            source_label = f"Federal Register ({agency_names})" if agency_names else "Federal Register"
+
+            articles.append({
+                "title": title,
+                "summary": abstract[:500] if abstract else f"{doc_type} published {pub_date}",
+                "content": "",
+                "source_name": source_label,
+                "source_credibility": 9,
+                "category": "legislative",
+                "url": url,
+                "published_at": pub_date,
+                "tags": ["regulation", "enhanced", "primary-source"],
+                "_enhanced": True,
+                "_provider": "congress",
+                "_score": 0,
+                "_highlights": {},
+            })
+
+        logger.info("Federal Register returned %d results for '%s'", len(articles), query)
+        return articles
+
+    except requests.Timeout:
+        logger.warning("Federal Register API timed out for '%s'", query)
+        return []
+    except Exception as e:
+        logger.warning("Federal Register API error: %s", e)
+        return []
+
+
+def _bill_type_path(bill_type):
+    """Convert API bill type code to Congress.gov URL path segment."""
+    mapping = {
+        "HR": "house-bill",
+        "S": "senate-bill",
+        "HJRES": "house-joint-resolution",
+        "SJRES": "senate-joint-resolution",
+        "HCONRES": "house-concurrent-resolution",
+        "SCONRES": "senate-concurrent-resolution",
+        "HRES": "house-resolution",
+        "SRES": "senate-resolution",
+    }
+    return mapping.get(bill_type.upper().replace(".", ""), "house-bill")
+
+
 def fetch_all_enhanced(query, category, max_per_provider=5):
     """
     Fetch results from all applicable external providers.
@@ -222,6 +393,29 @@ def fetch_all_enhanced(query, category, max_per_provider=5):
         if results:
             all_articles.extend(results)
             active.add("pubmed")
+
+    if "congress" in providers:
+        # Get API key from SiteSetting (lazy import to avoid circular)
+        api_key = ""
+        try:
+            from profoundd.utils.models import SiteSetting
+            api_key = SiteSetting.get("congress_gov_api_key", "")
+        except Exception:
+            pass
+
+        # Congress.gov bill search (needs API key)
+        if api_key:
+            results = fetch_congress_gov(query, api_key=api_key, max_results=max_per_provider)
+            if results:
+                all_articles.extend(results)
+                active.add("congress")
+
+        # Federal Register (no key needed) — always query for legislative searches
+        fr_results = fetch_federal_register(query, max_results=3)
+        if fr_results:
+            all_articles.extend(fr_results)
+            if "congress" not in active:
+                active.add("congress")
 
     return all_articles, active
 

@@ -233,6 +233,18 @@ LEGISLATIVE_SOURCES = [
 
     # --- House Clerk ---
     {"name": "House Floor Proceedings", "url": "https://clerk.house.gov/FloorSummary/HDoc-116-Res-891.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "house"},
+
+    # --- Committee-Specific Feeds ---
+    {"name": "House Agriculture Committee", "url": "https://agriculture.house.gov/rss.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "hearings"},
+    {"name": "Senate Agriculture Committee", "url": "https://www.agriculture.senate.gov/rss/feeds/", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "hearings"},
+    {"name": "House Judiciary Committee", "url": "https://judiciary.house.gov/rss.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "hearings"},
+    {"name": "Senate Judiciary Committee", "url": "https://www.judiciary.senate.gov/rss/feeds/", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "hearings"},
+    {"name": "House Appropriations Committee", "url": "https://appropriations.house.gov/rss.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "hearings"},
+    {"name": "House Energy & Commerce Committee", "url": "https://energycommerce.house.gov/rss.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "hearings"},
+
+    # --- EPA / Regulatory Agencies ---
+    {"name": "EPA News Releases", "url": "https://www.epa.gov/newsreleases/search/rss", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "regulations"},
+    {"name": "USDA Press Releases", "url": "https://www.usda.gov/rss/press-releases.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "regulations"},
 ]
 
 ALL_SOURCES = (

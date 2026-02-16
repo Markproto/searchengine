@@ -10,13 +10,11 @@
     <input type="hidden" name="category" value="{{ category }}">
     {% if enhanced_providers %}
     <span class="enhanced-indicator" title="Enhanced results from {% for p in enhanced_providers %}{{ p }}{% if not loop.last %}, {% endif %}{% endfor %}">
-        {% if 'courtlistener' in enhanced_providers and 'pubmed' in enhanced_providers %}
-        Court Opinions + Research Papers
-        {% elif 'courtlistener' in enhanced_providers %}
-        Court Opinions
-        {% elif 'pubmed' in enhanced_providers %}
-        Research Papers
-        {% endif %}
+        {% set ns = namespace(labels=[]) %}
+        {% if 'courtlistener' in enhanced_providers %}{% set ns.labels = ns.labels + ['Court Opinions'] %}{% endif %}
+        {% if 'pubmed' in enhanced_providers %}{% set ns.labels = ns.labels + ['Research Papers'] %}{% endif %}
+        {% if 'congress' in enhanced_providers %}{% set ns.labels = ns.labels + ['Legislation'] %}{% endif %}
+        {{ ns.labels | join(' + ') }}
     </span>
     {% endif %}
 </form>
@@ -57,9 +55,11 @@
         <span class="enhanced-pulse"></span>
         <span>Enhanced Search Active</span>
         <span class="enhanced-sources">
-            {% if 'courtlistener' in enhanced_providers %}US Court Opinions{% endif %}
-            {% if 'courtlistener' in enhanced_providers and 'pubmed' in enhanced_providers %} + {% endif %}
-            {% if 'pubmed' in enhanced_providers %}PubMed Research Papers{% endif %}
+            {% set ns = namespace(parts=[]) %}
+            {% if 'courtlistener' in enhanced_providers %}{% set ns.parts = ns.parts + ['US Court Opinions'] %}{% endif %}
+            {% if 'pubmed' in enhanced_providers %}{% set ns.parts = ns.parts + ['PubMed Research Papers'] %}{% endif %}
+            {% if 'congress' in enhanced_providers %}{% set ns.parts = ns.parts + ['Congress.gov &amp; Federal Register'] %}{% endif %}
+            {{ ns.parts | join(' + ') }}
         </span>
     </div>
     {% endif %}
@@ -118,7 +118,7 @@
                 </span>
                 {% endif %}
                 {% if article._enhanced %}
-                <span class="enhanced-badge {% if article._provider == 'searxng' %}web-result-badge{% endif %}">{% if article._provider == 'courtlistener' %}Court Opinion{% elif article._provider == 'pubmed' %}Research Paper{% elif article._provider == 'searxng' %}Web Result{% else %}Enhanced{% endif %}</span>
+                <span class="enhanced-badge {% if article._provider == 'searxng' %}web-result-badge{% endif %}">{% if article._provider == 'courtlistener' %}Court Opinion{% elif article._provider == 'pubmed' %}Research Paper{% elif article._provider == 'congress' %}Primary Source{% elif article._provider == 'searxng' %}Web Result{% else %}Enhanced{% endif %}</span>
                 {% endif %}
             </div>
             <h3 class="result-title">
