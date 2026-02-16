@@ -24,6 +24,7 @@ ARTICLE_MAPPING = {
             "content": {"type": "text", "analyzer": "english"},
             "author": {"type": "keyword"},
             "category": {"type": "keyword"},
+            "subcategory": {"type": "keyword"},
             "source_name": {"type": "keyword"},
             "source_credibility": {"type": "integer"},
             "source_sponsors": {"type": "keyword"},
@@ -139,6 +140,27 @@ class SearchEngine:
             logger.error("Failed to bulk-update credibility for '%s': %s", source_name, e)
             return 0
 
+    def update_subcategory_by_source(self, source_name, subcategory):
+        """Update subcategory on ALL articles from a given source."""
+        try:
+            result = self.es.update_by_query(
+                index=self.index_name,
+                body={
+                    "query": {"term": {"source_name": source_name}},
+                    "script": {
+                        "source": "ctx._source.subcategory = params.subcat",
+                        "lang": "painless",
+                        "params": {"subcat": subcategory},
+                    },
+                },
+                refresh=True,
+            )
+            updated = result.get("updated", 0)
+            return updated
+        except Exception as e:
+            logger.error("Failed to update subcategory for '%s': %s", source_name, e)
+            return 0
+
     def update_sponsors_by_source(self, source_name, sponsors):
         """Update source_sponsors on ALL articles from a given source."""
         try:
@@ -239,8 +261,8 @@ class SearchEngine:
         except Exception:
             return False
 
-    def search(self, query, category=None, page=1, per_page=20, sort_by="relevance",
-               source_filter=None, date_from=None, date_to=None):
+    def search(self, query, category=None, subcategory=None, page=1, per_page=20,
+               sort_by="relevance", source_filter=None, date_from=None, date_to=None):
         """
         Search articles with custom ranking.
 
@@ -272,6 +294,10 @@ class SearchEngine:
         # Category filter
         if category and category != "all":
             filter_clauses.append({"term": {"category": category}})
+
+        # Subcategory filter (e.g. executive-orders, house, senate)
+        if subcategory and subcategory != "all":
+            filter_clauses.append({"term": {"subcategory": subcategory}})
 
         # Source filter
         if source_filter:
@@ -919,7 +945,7 @@ class SearchEngine:
             "size": size,
             "_source": [
                 "title", "summary", "url", "source_name", "source_credibility",
-                "source_sponsors", "category", "published_at", "image_url", "tags",
+                "source_sponsors", "subcategory", "category", "published_at", "image_url", "tags",
             ],
         }
 

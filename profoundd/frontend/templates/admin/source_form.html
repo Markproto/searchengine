@@ -39,6 +39,23 @@
             </div>
 
             <div class="form-group">
+                <label for="subcategory">Subcategory</label>
+                <select id="subcategory" name="subcategory">
+                    <option value="">None</option>
+                    {% for cat_key, cat_info in categories.items() %}
+                    {% if cat_info.subcategories is defined and cat_info.subcategories %}
+                    <optgroup label="{{ cat_info.label }}">
+                        {% for sub_key, sub_info in cat_info.subcategories.items() %}
+                        <option value="{{ sub_key }}" {% if source and source.subcategory == sub_key %}selected{% endif %}>{{ sub_info.label }}</option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endif %}
+                    {% endfor %}
+                </select>
+                <small>Sub-classification within a category (e.g. Executive Orders, House, Senate).</small>
+            </div>
+
+            <div class="form-group">
                 <label for="sponsor_tags">Sponsor Tags</label>
                 <input type="text" id="sponsor_tags" name="sponsor_tags"
                        value="{{ source.sponsor_tags if source and source.sponsor_tags else '' }}"

@@ -47,6 +47,9 @@ class Source(db.Model):
     recency_weight = db.Column(db.Float, default=0.3)
     relevance_weight = db.Column(db.Float, default=0.3)
 
+    # Subcategory for finer classification (e.g. "executive-orders", "house", "senate")
+    subcategory = db.Column(db.String(100), default="")
+
     # Sponsor disclosure (comma-separated sponsor names, e.g. "Pfizer,Johnson & Johnson")
     sponsor_tags = db.Column(db.String(500), default="")
 

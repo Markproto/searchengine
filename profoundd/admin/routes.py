@@ -236,6 +236,7 @@ def add_source():
             recency_weight=float(request.form.get("recency_weight", 0.3)),
             relevance_weight=float(request.form.get("relevance_weight", 0.3)),
             sponsor_tags=request.form.get("sponsor_tags", "").strip(),
+            subcategory=request.form.get("subcategory", "").strip(),
         )
         db.session.add(source)
         db.session.commit()
@@ -266,6 +267,7 @@ def edit_source(source_id):
         source.recency_weight = float(request.form.get("recency_weight", 0.3))
         source.relevance_weight = float(request.form.get("relevance_weight", 0.3))
         source.sponsor_tags = request.form.get("sponsor_tags", "").strip()
+        source.subcategory = request.form.get("subcategory", "").strip()
         source.is_active = "is_active" in request.form
         db.session.commit()
 
@@ -313,6 +315,7 @@ def seed_sources():
                 credibility=src.get("credibility", 5),
                 feed_type=src.get("feed_type", "rss"),
                 sponsor_tags=src.get("sponsors", ""),
+                subcategory=src.get("subcategory", ""),
             )
             db.session.add(source)
             added += 1
@@ -337,6 +340,10 @@ def seed_sources():
             new_sponsors = src.get("sponsors", "")
             if (existing.sponsor_tags or "") != new_sponsors:
                 existing.sponsor_tags = new_sponsors
+                changed = True
+            new_subcategory = src.get("subcategory", "")
+            if (existing.subcategory or "") != new_subcategory:
+                existing.subcategory = new_subcategory
                 changed = True
             if changed:
                 updated += 1
@@ -434,6 +441,29 @@ def sync_sponsors():
             total_updated += updated
 
     flash(f"Synced sponsor tags to {total_updated} articles across {len(sources)} sources.", "success")
+    return redirect(url_for("admin.dashboard"))
+
+
+@admin_bp.route("/sync-subcategories", methods=["POST"])
+@login_required
+def sync_subcategories():
+    """Backfill subcategory tags onto all existing legislative articles in Elasticsearch."""
+    engine = SearchEngine(config.ELASTICSEARCH_URL)
+    if not engine.is_available():
+        flash("Elasticsearch is not available.", "error")
+        return redirect(url_for("admin.dashboard"))
+
+    # Get all sources with a subcategory set
+    sources = db.session.query(Source).filter(
+        Source.subcategory != "", Source.subcategory.isnot(None)
+    ).all()
+    total_updated = 0
+    for src in sources:
+        if src.subcategory:
+            updated = engine.update_subcategory_by_source(src.name, src.subcategory)
+            total_updated += updated
+
+    flash(f"Synced subcategories to {total_updated} articles across {len(sources)} sources.", "success")
     return redirect(url_for("admin.dashboard"))
 
 
@@ -1416,6 +1446,17 @@ def bob_write():
     # Generate the story
     from profoundd.search.newsroom_bob import generate_bob_story, make_slug
 
+    # Look up subcategory from the original article in ES (for legislative items)
+    subcategory = ""
+    if category == "legislative":
+        try:
+            _engine = SearchEngine(config.ELASTICSEARCH_URL)
+            _orig = _engine.get_article(article_url)
+            if _orig:
+                subcategory = _orig.get("subcategory", "")
+        except Exception:
+            pass
+
     article_data = {
         "title": article_title,
         "url": article_url,
@@ -1459,14 +1500,21 @@ def bob_write():
     db.session.add(story)
     db.session.commit()
 
-    # Index to Elasticsearch and remove the original article
+    # Index to Elasticsearch
+    # For legislative articles, keep the original in place alongside Bob's story.
+    # For other categories, Bob's version replaces the original.
     try:
         engine = SearchEngine(config.ELASTICSEARCH_URL)
-        engine.index_article(story.to_es_doc())
-        # Pull the original from the index — Bob's version replaces it
+        es_doc = story.to_es_doc()
+        if subcategory:
+            es_doc["subcategory"] = subcategory
+        engine.index_article(es_doc)
         if article_url and not article_url.startswith("profoundd://"):
-            engine.delete_article(article_url)
-            logger.info("Pulled original article from ES: %s", article_url)
+            if category == "legislative":
+                logger.info("Legislative article — kept original in ES: %s", article_url)
+            else:
+                engine.delete_article(article_url)
+                logger.info("Pulled original article from ES: %s", article_url)
     except Exception as e:
         logger.warning("Could not index Bob story to ES: %s", e)
 

@@ -210,6 +210,9 @@ class FeedCrawler:
         sponsors = source.get("sponsors", "")
         source_sponsors = [s.strip() for s in sponsors.split(",") if s.strip()] if sponsors else []
 
+        # Subcategory (used by legislative section for finer classification)
+        subcategory = source.get("subcategory", "")
+
         return {
             "title": title,
             "url": link,
@@ -217,6 +220,7 @@ class FeedCrawler:
             "content": content or summary,
             "author": author,
             "category": category,
+            "subcategory": subcategory,
             "source_name": source["name"],
             "source_credibility": source.get("credibility", 5),
             "source_sponsors": source_sponsors,
@@ -336,6 +340,7 @@ class FeedCrawler:
                 "credibility": source.credibility,
                 "feed_type": source.feed_type,
                 "sponsors": getattr(source, "sponsor_tags", "") or "",
+                "subcategory": getattr(source, "subcategory", "") or "",
             }
             articles = self.crawl_source(source_dict)
             all_articles.extend(articles)

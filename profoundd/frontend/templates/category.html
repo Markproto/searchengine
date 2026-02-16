@@ -38,8 +38,17 @@
         </form>
     </div>
 
+    {% if category.subcategories %}
+    <div class="subcategory-tabs">
+        <a href="/category/{{ category_name }}" class="subcategory-tab {% if subcategory == 'all' %}active{% endif %}">All</a>
+        {% for sub_key, sub_info in category.subcategories.items() %}
+        <a href="/category/{{ category_name }}?sub={{ sub_key }}" class="subcategory-tab {% if subcategory == sub_key %}active{% endif %}" title="{{ sub_info.description }}">{{ sub_info.label }}</a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     {% if articles %}
-    <h2 class="section-title">Latest Articles{% if total %} <span class="article-count">({{ total }})</span>{% endif %}</h2>
+    <h2 class="section-title">{% if subcategory != 'all' and category.subcategories and subcategory in category.subcategories %}{{ category.subcategories[subcategory].label }}{% else %}Latest Articles{% endif %}{% if total %} <span class="article-count">({{ total }})</span>{% endif %}</h2>
     <div class="articles-grid">
         {% for article in articles %}
         <article class="trending-card {% if article.image_url %}has-thumb{% endif %}">
@@ -51,6 +60,9 @@
             <div class="result-body">
             <div class="result-header">
                 <span class="result-source">{{ article.source_name }}{% with src_name=article.source_name %}{% include '_source_note.html' %}{% endwith %}</span>
+                {% if article.subcategory and category.subcategories and article.subcategory in category.subcategories %}
+                <span class="subcategory-badge">{{ category.subcategories[article.subcategory].label }}</span>
+                {% endif %}
                 {% if article.source_sponsors %}
                 {% for sponsor in article.source_sponsors %}
                 <span class="sponsor-badge" title="{{ sponsor }} sponsored this source">{{ sponsor }} Sponsored</span>
@@ -107,18 +119,19 @@
 
     {% if pages > 1 %}
     <nav class="pagination">
+        {% set sub_param = '&sub=' + subcategory if subcategory and subcategory != 'all' else '' %}
         {% if page > 1 %}
-        <a href="/category/{{ category_name }}?page={{ page - 1 }}" class="page-link">&laquo; Prev</a>
+        <a href="/category/{{ category_name }}?page={{ page - 1 }}{{ sub_param }}" class="page-link">&laquo; Prev</a>
         {% endif %}
         {% for p in range(1, pages + 1) %}
         {% if p <= 3 or p > pages - 2 or (p >= page - 1 and p <= page + 1) %}
-        <a href="/category/{{ category_name }}?page={{ p }}" class="page-link {% if p == page %}active{% endif %}">{{ p }}</a>
+        <a href="/category/{{ category_name }}?page={{ p }}{{ sub_param }}" class="page-link {% if p == page %}active{% endif %}">{{ p }}</a>
         {% elif p == 4 or p == pages - 2 %}
         <span class="page-ellipsis">&hellip;</span>
         {% endif %}
         {% endfor %}
         {% if page < pages %}
-        <a href="/category/{{ category_name }}?page={{ page + 1 }}" class="page-link">Next &raquo;</a>
+        <a href="/category/{{ category_name }}?page={{ page + 1 }}{{ sub_param }}" class="page-link">Next &raquo;</a>
         {% endif %}
     </nav>
     {% endif %}

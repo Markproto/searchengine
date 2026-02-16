@@ -84,6 +84,11 @@
                 <p class="action-desc">Backfill sponsor disclosure badges onto existing articles</p>
             </form>
 
+            <form method="POST" action="{{ url_for('admin.sync_subcategories') }}">
+                <button type="submit" class="btn btn-primary">Sync Subcategories</button>
+                <p class="action-desc">Backfill subcategory tags onto legislative articles</p>
+            </form>
+
             <form method="POST" action="{{ url_for('admin.recategorize_sections') }}">
                 <button type="submit" class="btn btn-primary">Populate Sections</button>
                 <p class="action-desc">Move Epstein & Charlie Kirk stories into their sections</p>

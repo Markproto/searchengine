@@ -197,12 +197,16 @@ def create_app(config_override=None):
         from profoundd.config.settings import BASE_DIR
         os.makedirs(os.path.join(BASE_DIR, "data"), exist_ok=True)
         db.create_all()
-        # Add sponsor_tags column if missing (SQLite doesn't add new columns via create_all)
-        try:
-            db.session.execute(db.text("ALTER TABLE sources ADD COLUMN sponsor_tags VARCHAR(500) DEFAULT ''"))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
+        # Add new columns if missing (SQLite doesn't add new columns via create_all)
+        for col_sql in [
+            "ALTER TABLE sources ADD COLUMN sponsor_tags VARCHAR(500) DEFAULT ''",
+            "ALTER TABLE sources ADD COLUMN subcategory VARCHAR(100) DEFAULT ''",
+        ]:
+            try:
+                db.session.execute(db.text(col_sql))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
         _ensure_admin(app.config)
 
     # Start background scheduler (only in production, not in testing)
@@ -318,6 +322,7 @@ def create_app(config_override=None):
             return render_template("404.html", categories=CATEGORIES), 404
 
         page = request.args.get("page", 1, type=int)
+        subcategory = request.args.get("sub", "all")
         per_page = 20
 
         articles = []
@@ -327,6 +332,7 @@ def create_app(config_override=None):
             results = search_engine.search(
                 query="",
                 category=category_name,
+                subcategory=subcategory if subcategory != "all" else None,
                 page=page,
                 per_page=per_page,
                 sort_by="date",
@@ -339,6 +345,7 @@ def create_app(config_override=None):
         return render_template("category.html", category_name=category_name,
                                category=cat_info, articles=articles,
                                page=page, pages=pages, total=total,
+                               subcategory=subcategory,
                                categories=CATEGORIES)
 
     @app.route("/article/<doc_id>")

@@ -206,33 +206,33 @@ CHARLIE_KIRK_SOURCES = [
 
 LEGISLATIVE_SOURCES = [
     # --- Congress.gov Official Feeds ---
-    {"name": "Senate Floor Today", "url": "https://www.congress.gov/rss/senate-floor-today.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
-    {"name": "House Floor Today", "url": "https://www.congress.gov/rss/house-floor-today.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
-    {"name": "Most-Viewed Bills", "url": "https://www.congress.gov/rss/most-viewed-bills.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
-    {"name": "Bills to the President", "url": "https://www.congress.gov/rss/presented-to-president.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "Senate Floor Today", "url": "https://www.congress.gov/rss/senate-floor-today.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "senate"},
+    {"name": "House Floor Today", "url": "https://www.congress.gov/rss/house-floor-today.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "house"},
+    {"name": "Most-Viewed Bills", "url": "https://www.congress.gov/rss/most-viewed-bills.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "bills"},
+    {"name": "Bills to the President", "url": "https://www.congress.gov/rss/presented-to-president.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "enacted"},
 
     # --- GovInfo (GPO) Official Feeds ---
-    {"name": "Congressional Bills", "url": "https://www.govinfo.gov/rss/bills.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
-    {"name": "Public Laws", "url": "https://www.govinfo.gov/rss/plaw.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
-    {"name": "Congressional Hearings", "url": "https://www.govinfo.gov/rss/chrg.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
-    {"name": "Committee Reports", "url": "https://www.govinfo.gov/rss/crpt.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
-    {"name": "Committee Prints", "url": "https://www.govinfo.gov/rss/cprt.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
-    {"name": "Federal Register", "url": "https://www.govinfo.gov/rss/fr.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
-    {"name": "Code of Federal Regulations", "url": "https://www.govinfo.gov/rss/cfr.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
-    {"name": "Presidential Documents", "url": "https://www.govinfo.gov/rss/dcpd.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
-    {"name": "US Code Updates", "url": "https://www.govinfo.gov/rss/uscode.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
-    {"name": "Federal Budget", "url": "https://www.govinfo.gov/rss/budget.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
-    {"name": "Economic Indicators", "url": "https://www.govinfo.gov/rss/econi.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "Congressional Bills", "url": "https://www.govinfo.gov/rss/bills.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "bills"},
+    {"name": "Public Laws", "url": "https://www.govinfo.gov/rss/plaw.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "enacted"},
+    {"name": "Congressional Hearings", "url": "https://www.govinfo.gov/rss/chrg.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "hearings"},
+    {"name": "Committee Reports", "url": "https://www.govinfo.gov/rss/crpt.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "hearings"},
+    {"name": "Committee Prints", "url": "https://www.govinfo.gov/rss/cprt.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "hearings"},
+    {"name": "Federal Register", "url": "https://www.govinfo.gov/rss/fr.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "regulations"},
+    {"name": "Code of Federal Regulations", "url": "https://www.govinfo.gov/rss/cfr.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "regulations"},
+    {"name": "Presidential Documents", "url": "https://www.govinfo.gov/rss/dcpd.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "executive-orders"},
+    {"name": "US Code Updates", "url": "https://www.govinfo.gov/rss/uscode.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "enacted"},
+    {"name": "Federal Budget", "url": "https://www.govinfo.gov/rss/budget.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "budget"},
+    {"name": "Economic Indicators", "url": "https://www.govinfo.gov/rss/econi.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "budget"},
 
     # --- CRS & CBO ---
-    {"name": "CRS Reports", "url": "https://crsreports.congress.gov/rss/reports", "category": "legislative", "credibility": 7, "feed_type": "rss"},
-    {"name": "CBO Cost Estimates", "url": "https://www.cbo.gov/rss/119congress-cost-estimates.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "CRS Reports", "url": "https://crsreports.congress.gov/rss/reports", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "research"},
+    {"name": "CBO Cost Estimates", "url": "https://www.cbo.gov/rss/119congress-cost-estimates.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "research"},
 
     # --- Executive Branch ---
-    {"name": "White House Presidential Actions", "url": "https://www.whitehouse.gov/presidential-actions/feed/", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "White House Presidential Actions", "url": "https://www.whitehouse.gov/presidential-actions/feed/", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "executive-orders"},
 
     # --- House Clerk ---
-    {"name": "House Floor Proceedings", "url": "https://clerk.house.gov/FloorSummary/HDoc-116-Res-891.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "House Floor Proceedings", "url": "https://clerk.house.gov/FloorSummary/HDoc-116-Res-891.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "house"},
 ]
 
 ALL_SOURCES = (
@@ -283,5 +283,21 @@ CATEGORIES = {
     "environment": {"label": "Environment", "description": "Climate, Energy & Conservation", "icon": "leaf", "color": "#10b981"},
     "politics": {"label": "Politics", "description": "Policy, Government & Analysis", "icon": "landmark", "color": "#8b5cf6"},
     "markets": {"label": "Markets", "description": "Stocks, Crypto, Precious Metals & Trading", "icon": "coins", "color": "#f97316"},
-    "legislative": {"label": "Legislative Watch", "description": "Federal Bills, Hearings, Regulations & Executive Orders", "icon": "scroll", "color": "#991b1b"},
+    "legislative": {
+        "label": "Legislative Watch",
+        "description": "Federal Bills, Hearings, Regulations & Executive Orders",
+        "icon": "scroll",
+        "color": "#991b1b",
+        "subcategories": {
+            "executive-orders": {"label": "Executive Orders", "description": "Presidential executive orders, memoranda & proclamations"},
+            "house": {"label": "House", "description": "Bills and proceedings on the House floor"},
+            "senate": {"label": "Senate", "description": "Bills and proceedings on the Senate floor"},
+            "bills": {"label": "Bills", "description": "Active bills moving through Congress"},
+            "enacted": {"label": "Signed Into Law", "description": "Public laws signed by the President"},
+            "hearings": {"label": "Committees & Hearings", "description": "Committee hearings, reports & prints"},
+            "regulations": {"label": "Regulations", "description": "Federal Register rules & Code of Federal Regulations"},
+            "research": {"label": "CRS & CBO Analysis", "description": "Congressional Research Service & budget analysis"},
+            "budget": {"label": "Budget & Economy", "description": "Federal budget documents & economic indicators"},
+        },
+    },
 }

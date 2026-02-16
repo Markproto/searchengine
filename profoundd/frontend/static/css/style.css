@@ -546,6 +546,53 @@ main { flex: 1; }
     color: #93c5fd;
 }
 
+/* --- Subcategory Tabs & Badge --- */
+.subcategory-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+.subcategory-tab {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--text-secondary);
+    background: var(--bg-input);
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+.subcategory-tab:hover {
+    color: var(--accent);
+    background: var(--accent-glow);
+    border-color: var(--accent);
+}
+.subcategory-tab.active {
+    color: #fff;
+    background: var(--accent);
+    border-color: var(--accent);
+}
+.subcategory-badge {
+    font-size: 0.62rem;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 600;
+    background: rgba(153, 27, 27, 0.1);
+    color: #991b1b;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+[data-theme="dark"] .subcategory-badge {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+}
+
 .credibility-dot {
     display: inline-block;
     width: 10px;
