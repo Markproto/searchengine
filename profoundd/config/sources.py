@@ -204,11 +204,42 @@ CHARLIE_KIRK_SOURCES = [
     {"name": "Washington Examiner", "url": "https://www.washingtonexaminer.com/feed", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
 ]
 
+LEGISLATIVE_SOURCES = [
+    # --- Congress.gov Official Feeds ---
+    {"name": "Senate Floor Today", "url": "https://www.congress.gov/rss/senate-floor-today.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "House Floor Today", "url": "https://www.congress.gov/rss/house-floor-today.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "Most-Viewed Bills", "url": "https://www.congress.gov/rss/most-viewed-bills.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "Bills to the President", "url": "https://www.congress.gov/rss/presented-to-president.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+
+    # --- GovInfo (GPO) Official Feeds ---
+    {"name": "Congressional Bills", "url": "https://www.govinfo.gov/rss/bills.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "Public Laws", "url": "https://www.govinfo.gov/rss/plaw.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "Congressional Hearings", "url": "https://www.govinfo.gov/rss/chrg.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "Committee Reports", "url": "https://www.govinfo.gov/rss/crpt.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "Committee Prints", "url": "https://www.govinfo.gov/rss/cprt.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "Federal Register", "url": "https://www.govinfo.gov/rss/fr.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "Code of Federal Regulations", "url": "https://www.govinfo.gov/rss/cfr.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "Presidential Documents", "url": "https://www.govinfo.gov/rss/dcpd.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "US Code Updates", "url": "https://www.govinfo.gov/rss/uscode.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "Federal Budget", "url": "https://www.govinfo.gov/rss/budget.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "Economic Indicators", "url": "https://www.govinfo.gov/rss/econi.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+
+    # --- CRS & CBO ---
+    {"name": "CRS Reports", "url": "https://crsreports.congress.gov/rss/reports", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+    {"name": "CBO Cost Estimates", "url": "https://www.cbo.gov/rss/119congress-cost-estimates.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+
+    # --- Executive Branch ---
+    {"name": "White House Presidential Actions", "url": "https://www.whitehouse.gov/presidential-actions/feed/", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+
+    # --- House Clerk ---
+    {"name": "House Floor Proceedings", "url": "https://clerk.house.gov/FloorSummary/HDoc-116-Res-891.xml", "category": "legislative", "credibility": 7, "feed_type": "rss"},
+]
+
 ALL_SOURCES = (
     NEWS_SOURCES + MEDICAL_SOURCES + LEGAL_SOURCES + TECH_SOURCES +
     FINANCE_SOURCES + SCIENCE_SOURCES + EDUCATION_SOURCES +
     ENVIRONMENT_SOURCES + POLITICS_SOURCES + MARKETS_SOURCES +
-    EPSTEIN_SOURCES + CHARLIE_KIRK_SOURCES
+    EPSTEIN_SOURCES + CHARLIE_KIRK_SOURCES + LEGISLATIVE_SOURCES
 )
 
 # Keywords that trigger automatic re-categorization from any feed.
@@ -252,4 +283,5 @@ CATEGORIES = {
     "environment": {"label": "Environment", "description": "Climate, Energy & Conservation", "icon": "leaf", "color": "#10b981"},
     "politics": {"label": "Politics", "description": "Policy, Government & Analysis", "icon": "landmark", "color": "#8b5cf6"},
     "markets": {"label": "Markets", "description": "Stocks, Crypto, Precious Metals & Trading", "icon": "coins", "color": "#f97316"},
+    "legislative": {"label": "Legislative Watch", "description": "Federal Bills, Hearings, Regulations & Executive Orders", "icon": "scroll", "color": "#991b1b"},
 }
