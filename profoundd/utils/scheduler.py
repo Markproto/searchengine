@@ -49,18 +49,8 @@ def init_scheduler(app):
         kwargs={"app": app},
     )
 
-    # Cleanup old articles daily
-    _scheduler.add_job(
-        func=_run_cleanup,
-        trigger=IntervalTrigger(days=1),
-        id="daily_cleanup",
-        name="Delete articles older than 30 days",
-        replace_existing=True,
-        kwargs={"app": app},
-    )
-
     _scheduler.start()
-    logger.info("Scheduler started: crawl every %d min, cleanup daily", interval_minutes)
+    logger.info("Scheduler started: crawl every %d min, no auto-cleanup (data retained permanently)", interval_minutes)
     return _scheduler
 
 
