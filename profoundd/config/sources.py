@@ -135,6 +135,8 @@ POLITICS_SOURCES = [
     {"name": "Louder with Crowder", "url": "https://feeds.libsyn.com/576250/rss", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Russell Brand - Stay Free", "url": "https://feeds.libsyn.com/576255/rss", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Joe Rogan Experience", "url": "https://feeds.megaphone.fm/GLT1412515089", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Matt Gaetz Show", "url": "https://www.spreaker.com/show/6461238/episodes/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "The Anchormen Show (Gaetz)", "url": "https://anchor.fm/s/ea4136c/podcast/rss", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Redacted", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCoJhK5kMc4LjBKdiYrDtzlA", "category": "politics", "credibility": 8, "feed_type": "atom"},
     {"name": "Robert F. Kennedy Jr.", "url": "https://robertfkennedyjr.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Nick Shirley", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC2Uioh1tYQkNuHLSBpzdfCg", "category": "politics", "credibility": 8, "feed_type": "atom"},
@@ -325,6 +327,7 @@ RUMBLE_SOURCES = [
     {"name": "Steven Crowder (Rumble)", "url": "https://openrss.org/rumble.com/c/StevenCrowder", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Russell Brand (Rumble)", "url": "https://openrss.org/rumble.com/c/russellbrand", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Charlie Kirk (Rumble)", "url": "https://openrss.org/rumble.com/c/CharlieKirk", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Matt Gaetz (Rumble)", "url": "https://openrss.org/rumble.com/c/c-6007494", "category": "politics", "credibility": 8, "feed_type": "rss"},
 ]
 
 ALL_SOURCES = (
