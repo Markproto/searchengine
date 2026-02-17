@@ -107,7 +107,7 @@ User=profoundd
 Group=profoundd
 WorkingDirectory=/opt/profoundd
 Environment="PATH=/opt/profoundd/venv/bin:/usr/bin"
-ExecStart=/opt/profoundd/venv/bin/gunicorn -w 2 -b 127.0.0.1:8000 --timeout 120 profoundd.app:app
+ExecStart=/opt/profoundd/venv/bin/gunicorn -w 2 -b 127.0.0.1:8000 --timeout 180 profoundd.app:app
 Restart=always
 RestartSec=5
 
@@ -157,7 +157,7 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 120s;
+        proxy_read_timeout 180s;
     }
 
     location /static/ {

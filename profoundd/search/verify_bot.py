@@ -12,8 +12,8 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-# Timeout for fetching external URLs
-URL_FETCH_TIMEOUT = 15
+# Timeout for fetching external URLs (keep tight to avoid gateway timeouts)
+URL_FETCH_TIMEOUT = 10
 
 
 def fetch_url_content(url, max_chars=12000):
@@ -161,11 +161,11 @@ def search_for_evidence(queries, search_engine, congress_api_key=None,
     }
     references = references or {}
 
-    for query in queries[:5]:
+    for query in queries[:3]:
         # Search our own index
         try:
             results = search_engine.search(
-                query=query, category="legislative", page=1, per_page=5, sort_by="relevance",
+                query=query, category="legislative", page=1, per_page=3, sort_by="relevance",
             )
             for article in results.get("articles", []):
                 evidence["profoundd_results"].append({
@@ -181,7 +181,7 @@ def search_for_evidence(queries, search_engine, congress_api_key=None,
         # Congress.gov API
         if congress_api_key:
             try:
-                results = fetch_congress_gov(query, api_key=congress_api_key, max_results=3)
+                results = fetch_congress_gov(query, api_key=congress_api_key, max_results=2)
                 for r in results:
                     evidence["congress_results"].append({
                         "title": r["title"],
@@ -198,7 +198,7 @@ def search_for_evidence(queries, search_engine, congress_api_key=None,
 
         # Federal Register (no key needed)
         try:
-            results = fetch_federal_register(query, max_results=3)
+            results = fetch_federal_register(query, max_results=2)
             for r in results:
                 evidence["federal_register_results"].append({
                     "title": r["title"],
@@ -220,20 +220,14 @@ def search_for_evidence(queries, search_engine, congress_api_key=None,
                 unique.append(item)
         evidence[key] = unique
 
-    # --- Fetch actual bill text from Congress.gov ---
+    # --- Fetch actual bill text from Congress.gov (limit to 1 bill to stay within timeout) ---
     if congress_api_key and evidence["congress_results"]:
-        fetched_bills = set()
-        for result in evidence["congress_results"][:3]:
+        for result in evidence["congress_results"][:1]:
             bill_type = result.get("_bill_type", "")
             bill_number = result.get("_bill_number", "")
             congress = result.get("_congress", "")
             if bill_type and bill_number and congress:
-                bill_key = f"{congress}-{bill_type}-{bill_number}"
-                if bill_key in fetched_bills:
-                    continue
-                fetched_bills.add(bill_key)
-
-                # Get CRS summary
+                # Get CRS summary (fast, small response)
                 summary = fetch_bill_summary(congress, bill_type, bill_number, congress_api_key)
                 if summary:
                     evidence["bill_text"].append({
@@ -243,7 +237,7 @@ def search_for_evidence(queries, search_engine, congress_api_key=None,
                         "type": "summary",
                     })
 
-                # Get actual bill text
+                # Get actual bill text (slower, large response)
                 text = fetch_bill_text(congress, bill_type, bill_number, congress_api_key)
                 if text:
                     evidence["bill_text"].append({
@@ -253,14 +247,11 @@ def search_for_evidence(queries, search_engine, congress_api_key=None,
                         "type": "full_text",
                     })
 
-    # --- Fetch content from URLs referenced in the claim ---
+    # --- Fetch content from first URL referenced in the claim ---
     ref_urls = references.get("urls", [])
     if ref_urls:
-        fetched_urls = set()
-        for url in ref_urls[:3]:
-            if url in fetched_urls or "..." in url:
-                continue
-            fetched_urls.add(url)
+        url = ref_urls[0]
+        if "..." not in url:
             logger.info("Fetching referenced URL: %s", url)
             content = fetch_url_content(url)
             if content and content.strip():
@@ -376,7 +367,12 @@ def generate_verification_story(claim_text, claims_data, evidence, api_key,
             + "Write the verification report now. Use markdown formatting. "
             "Remember: EVERY talking point MUST cite back to specific sections, pages, "
             "or quotes from the original post. If actual bill text was provided above, "
-            "use it to verify or refute specific claims — quote the relevant passages directly."
+            "use it to verify or refute specific claims — quote the relevant passages directly.\n\n"
+            "IMPORTANT: At the very end of your report, on a new line, add this exact metadata block:\n"
+            "```json-meta\n"
+            '{"headline": "short headline max 100 chars", "summary": "2-3 sentence summary", '
+            '"seo_keywords": "comma,separated,keywords"}\n'
+            "```"
         )
 
         message = client.messages.create(
@@ -385,36 +381,23 @@ def generate_verification_story(claim_text, claims_data, evidence, api_key,
             messages=[{"role": "user", "content": prompt}],
         )
 
-        report = message.content[0].text.strip()
+        raw_output = message.content[0].text.strip()
 
-        # Also generate a short headline and summary for indexing
-        meta_msg = client.messages.create(
-            model=model,
-            max_tokens=300,
-            messages=[{
-                "role": "user",
-                "content": (
-                    "Given this verification report, generate a JSON object with:\n"
-                    '{"headline": "short headline (max 100 chars)", '
-                    '"summary": "2-3 sentence summary of the findings", '
-                    '"seo_keywords": "comma-separated keywords"}\n\n'
-                    f"Report:\n{report[:2000]}"
-                ),
-            }],
-        )
-        meta_text = meta_msg.content[0].text.strip()
-        if "```" in meta_text:
-            meta_text = meta_text.split("```")[1]
-            if meta_text.startswith("json"):
-                meta_text = meta_text[4:]
-        try:
-            meta = json.loads(meta_text)
-        except json.JSONDecodeError:
-            meta = {
-                "headline": "Legislative Claim Verification",
-                "summary": "A dual-perspective analysis of claims about pending legislation.",
-                "seo_keywords": "verification, legislation, fact-check",
-            }
+        # Extract metadata block from end of report (saves a separate AI call)
+        meta = {
+            "headline": "Legislative Claim Verification",
+            "summary": "A dual-perspective analysis of claims about pending legislation.",
+            "seo_keywords": "verification, legislation, fact-check",
+        }
+        report = raw_output
+        if "```json-meta" in raw_output:
+            parts = raw_output.split("```json-meta")
+            report = parts[0].strip()
+            meta_block = parts[1].split("```")[0].strip() if "```" in parts[1] else parts[1].strip()
+            try:
+                meta = json.loads(meta_block)
+            except json.JSONDecodeError:
+                pass  # Use defaults
 
         return {
             "report": report,

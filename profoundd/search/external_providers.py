@@ -411,7 +411,7 @@ def fetch_bill_text(congress, bill_type, bill_number, api_key, max_chars=15000):
         text_resp = requests.get(
             text_url,
             headers={"User-Agent": "Profoundd/1.0 (search engine)"},
-            timeout=15,
+            timeout=10,
         )
         text_resp.raise_for_status()
 
