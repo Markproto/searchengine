@@ -42,6 +42,9 @@ AD_FILTER_PATTERNS = [
 class FeedCrawler:
     """Crawls RSS/Atom feeds and indexes articles."""
 
+    # Minimum content length (chars) before we try full-text extraction
+    MIN_CONTENT_LENGTH = 200
+
     def __init__(self, search_engine=None, db_session=None):
         self.search_engine = search_engine or SearchEngine(config.ELASTICSEARCH_URL)
         self.db_session = db_session
@@ -54,7 +57,7 @@ class FeedCrawler:
         self._seen_urls = set()
         self._seen_titles = set()
         # Statistics
-        self.stats = {"found": 0, "new": 0, "duplicate": 0, "errors": 0}
+        self.stats = {"found": 0, "new": 0, "duplicate": 0, "errors": 0, "full_text": 0}
 
     @staticmethod
     def _is_ad_content(title, summary=""):
@@ -102,6 +105,74 @@ class FeedCrawler:
             return True
         self._seen_titles.add(normalized)
         return False
+
+    def fetch_full_text(self, url, max_chars=5000):
+        """
+        Fetch the full article text from a URL when the RSS feed only
+        provides a short summary/teaser. Extracts the main article content
+        from the HTML, skipping nav bars, ads, footers, etc.
+        """
+        try:
+            resp = self.session.get(url, timeout=10)
+            resp.raise_for_status()
+
+            soup = BeautifulSoup(resp.text[:300000], "lxml")
+
+            # Remove non-content elements
+            for tag in soup(["script", "style", "nav", "footer", "header",
+                             "aside", "iframe", "form", "noscript",
+                             "figure", "figcaption"]):
+                tag.decompose()
+
+            # Remove common ad/sidebar class patterns
+            for el in soup.find_all(class_=lambda c: c and any(
+                x in str(c).lower() for x in [
+                    "sidebar", "comment", "social", "share", "related",
+                    "newsletter", "subscribe", "popup", "modal", "cookie",
+                    "promo", "advert", "sponsor", "widget", "menu",
+                ])):
+                el.decompose()
+
+            # Try to find the main article content using common selectors
+            article_text = ""
+            for selector in [
+                "article",
+                '[role="main"]',
+                ".article-body",
+                ".article-content",
+                ".post-content",
+                ".entry-content",
+                ".story-body",
+                ".story-content",
+                ".content-body",
+                ".field-body",
+                "main",
+                "#article-body",
+                "#content",
+            ]:
+                found = soup.select_one(selector)
+                if found:
+                    text = found.get_text(separator="\n", strip=True)
+                    if len(text) > len(article_text):
+                        article_text = text
+
+            # Fallback: use the largest block of text from <p> tags
+            if len(article_text) < self.MIN_CONTENT_LENGTH:
+                paragraphs = soup.find_all("p")
+                p_text = "\n".join(p.get_text(strip=True) for p in paragraphs
+                                   if len(p.get_text(strip=True)) > 30)
+                if len(p_text) > len(article_text):
+                    article_text = p_text
+
+            # Truncate to max_chars
+            if len(article_text) > max_chars:
+                article_text = article_text[:max_chars] + "..."
+
+            return article_text.strip()
+
+        except Exception as e:
+            logger.debug("Full-text fetch failed for %s: %s", url, e)
+            return ""
 
     def fetch_feed(self, source):
         """Fetch and parse an RSS/Atom feed with retry."""
@@ -198,6 +269,18 @@ class FeedCrawler:
         tags = []
         if hasattr(entry, "tags") and entry.tags:
             tags = [t.get("term", "") for t in entry.tags[:5]]
+
+        # If summary and content are too short, fetch the full article text
+        best_text = content or summary
+        if len(best_text) < self.MIN_CONTENT_LENGTH and link:
+            full_text = self.fetch_full_text(link)
+            if full_text and len(full_text) > len(best_text):
+                content = full_text
+                # Also use a better summary if the feed one was too short
+                if len(summary) < 100:
+                    summary = full_text[:500].rsplit(" ", 1)[0] + "..." if len(full_text) > 500 else full_text
+                self.stats["full_text"] = self.stats.get("full_text", 0) + 1
+                logger.debug("Full-text extracted for: %s (%d chars)", title[:50], len(content))
 
         # Determine category — check for special section keyword matches.
         # For articles from any feed, if keywords match a special section, re-categorize.
@@ -318,9 +401,9 @@ class FeedCrawler:
         if total_articles:
             indexed = self.search_engine.bulk_index(total_articles)
             duration = time() - start_time
-            logger.info("Full crawl complete in %.1fs: indexed %d/%d articles (dupes: %d, errors: %d)",
+            logger.info("Full crawl complete in %.1fs: indexed %d/%d articles (dupes: %d, full-text: %d, errors: %d)",
                          duration, indexed, len(total_articles),
-                         self.stats["duplicate"], self.stats["errors"])
+                         self.stats["duplicate"], self.stats.get("full_text", 0), self.stats["errors"])
 
         return len(total_articles)
 
@@ -348,8 +431,9 @@ class FeedCrawler:
 
         if all_articles:
             indexed = self.search_engine.bulk_index(all_articles)
-            logger.info("Custom crawl: indexed %d new articles (found %d, dupes %d, errors %d)",
-                        indexed, self.stats["found"], self.stats["duplicate"], self.stats["errors"])
+            logger.info("Custom crawl: indexed %d new articles (found %d, dupes %d, full-text %d, errors %d)",
+                        indexed, self.stats["found"], self.stats["duplicate"],
+                        self.stats.get("full_text", 0), self.stats["errors"])
         else:
             logger.info("Custom crawl: no new articles (found %d, dupes %d, errors %d)",
                         self.stats["found"], self.stats["duplicate"], self.stats["errors"])
