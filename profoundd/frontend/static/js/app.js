@@ -376,14 +376,90 @@ document.querySelectorAll('.boost-value').forEach(function(el) {
     updateBoostDisplay(el, parseInt(el.textContent, 10) || 5);
 });
 
-/* NewsRoom Bob - "Bob, Write This" button handler */
-document.addEventListener('click', function(e) {
-    var btn = e.target.closest('.bob-write-btn');
-    if (!btn) return;
-    e.preventDefault();
-    e.stopPropagation();
+/* NewsRoom Bob - "Bob, Write This" button handler with category picker */
+function showBobCategoryPicker(btn) {
+    // Remove any existing picker
+    var old = document.getElementById('bob-cat-picker');
+    if (old) old.remove();
 
-    // Prevent double-click
+    var cats = window.__CATEGORIES || {};
+    var origCat = btn.getAttribute('data-category') || 'news';
+
+    var overlay = document.createElement('div');
+    overlay.id = 'bob-cat-picker';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+
+    var modal = document.createElement('div');
+    modal.style.cssText = 'background:var(--bg-card,#fff);border-radius:12px;padding:24px;max-width:420px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);';
+
+    var title = document.createElement('h3');
+    title.style.cssText = 'margin:0 0 6px;font-size:1.1rem;';
+    title.textContent = 'Select Categories for Bob\'s Story';
+
+    var subtitle = document.createElement('p');
+    subtitle.style.cssText = 'margin:0 0 16px;font-size:0.85rem;color:var(--text-secondary,#666);';
+    subtitle.textContent = 'Pick one or more categories where this story should appear.';
+
+    modal.appendChild(title);
+    modal.appendChild(subtitle);
+
+    var checkboxes = [];
+    Object.keys(cats).forEach(function(key) {
+        var label = document.createElement('label');
+        label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:6px;cursor:pointer;margin-bottom:4px;transition:background 0.15s;';
+        label.onmouseenter = function() { label.style.background = 'var(--bg-secondary,#f1f5f9)'; };
+        label.onmouseleave = function() { label.style.background = 'transparent'; };
+
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = key;
+        cb.checked = (key === origCat);
+        cb.style.cssText = 'width:18px;height:18px;cursor:pointer;';
+
+        var txt = document.createElement('span');
+        txt.style.cssText = 'font-size:0.9rem;';
+        txt.textContent = cats[key];
+
+        label.appendChild(cb);
+        label.appendChild(txt);
+        modal.appendChild(label);
+        checkboxes.push(cb);
+    });
+
+    var btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:10px;margin-top:18px;justify-content:flex-end;';
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = 'padding:8px 18px;border-radius:6px;border:1px solid var(--border,#ddd);background:transparent;cursor:pointer;font-size:0.9rem;color:var(--text,#333);';
+    cancelBtn.onclick = function() { overlay.remove(); };
+
+    var goBtn = document.createElement('button');
+    goBtn.type = 'button';
+    goBtn.textContent = 'Bob, Write This';
+    goBtn.style.cssText = 'padding:8px 18px;border-radius:6px;border:none;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;cursor:pointer;font-weight:600;font-size:0.9rem;';
+    goBtn.onclick = function() {
+        var selected = [];
+        checkboxes.forEach(function(cb) { if (cb.checked) selected.push(cb.value); });
+        if (selected.length === 0) {
+            alert('Please select at least one category.');
+            return;
+        }
+        overlay.remove();
+        triggerBobWrite(btn, selected);
+    };
+
+    btnRow.appendChild(cancelBtn);
+    btnRow.appendChild(goBtn);
+    modal.appendChild(btnRow);
+
+    overlay.appendChild(modal);
+    overlay.onclick = function(ev) { if (ev.target === overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
+}
+
+function triggerBobWrite(btn, categories) {
     if (btn.disabled) return;
     btn.disabled = true;
     var origText = btn.textContent;
@@ -394,7 +470,7 @@ document.addEventListener('click', function(e) {
         url: btn.getAttribute('data-url'),
         title: btn.getAttribute('data-title'),
         source_name: btn.getAttribute('data-source'),
-        category: btn.getAttribute('data-category'),
+        categories: categories,
         summary: btn.getAttribute('data-summary')
     };
 
@@ -422,6 +498,15 @@ document.addEventListener('click', function(e) {
         btn.textContent = origText;
         alert('Bob failed: ' + err.message);
     });
+}
+
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.bob-write-btn');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (btn.disabled) return;
+    showBobCategoryPicker(btn);
 });
 
 /* NewsRoom Notes — Admin add/edit/delete/enhance */

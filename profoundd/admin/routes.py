@@ -1412,8 +1412,16 @@ def bob_write():
     article_url = data.get("url", "").strip()
     article_title = data.get("title", "").strip()
     source_name = data.get("source_name", "").strip()
-    category = data.get("category", "news").strip()
     summary = data.get("summary", "").strip()
+
+    # Support multi-category: accept 'categories' list or fall back to single 'category'
+    categories = data.get("categories", [])
+    if not categories:
+        single_cat = data.get("category", "news").strip()
+        categories = [single_cat] if single_cat else ["news"]
+
+    primary_category = categories[0]
+    extra_categories = categories[1:] if len(categories) > 1 else []
 
     if not article_url or not article_title:
         return jsonify({"error": "Article URL and title are required"}), 400
@@ -1450,7 +1458,7 @@ def bob_write():
 
     # Look up subcategory from the original article in ES (for legislative items)
     subcategory = ""
-    if category == "legislative":
+    if primary_category in ("legislative", "state-legislative"):
         try:
             _engine = SearchEngine(config.ELASTICSEARCH_URL)
             _orig = _engine.get_article(article_url)
@@ -1463,7 +1471,7 @@ def bob_write():
         "title": article_title,
         "url": article_url,
         "source_name": source_name,
-        "category": category,
+        "category": primary_category,
         "content": content_for_bob,
         "summary": summary,
     }
@@ -1485,7 +1493,7 @@ def bob_write():
         slug = f"{base_slug}-{counter}"
         counter += 1
 
-    # Save to database
+    # Save to database (store extra categories as comma-separated string)
     story = BobStory(
         title=result["headline"] or article_title,
         slug=slug,
@@ -1493,7 +1501,8 @@ def bob_write():
         summary=result["summary"],
         seo_keywords=result["seo_keywords"],
         seo_description=result["seo_description"],
-        category=category,
+        category=primary_category,
+        extra_categories=",".join(extra_categories) if extra_categories else "",
         image_url=image_url,
         source_article_url=article_url,
         source_article_title=article_title,
@@ -1502,17 +1511,28 @@ def bob_write():
     db.session.add(story)
     db.session.commit()
 
-    # Index to Elasticsearch
-    # For legislative articles, keep the original in place alongside Bob's story.
-    # For other categories, Bob's version replaces the original.
+    # Index to Elasticsearch — one doc per selected category
     try:
         engine = SearchEngine(config.ELASTICSEARCH_URL)
         es_doc = story.to_es_doc()
         if subcategory:
             es_doc["subcategory"] = subcategory
+        # Primary category: uses profoundd://bob/<slug>
         engine.index_article(es_doc)
+
+        # Extra categories: uses profoundd://bob/<cat>/<slug> for unique doc IDs
+        for extra_cat in extra_categories:
+            extra_doc = dict(es_doc)
+            extra_doc["category"] = extra_cat
+            extra_doc["url"] = f"profoundd://bob/{extra_cat}/{slug}"
+            # Clear subcategory for non-legislative categories
+            if extra_cat not in ("legislative", "state-legislative"):
+                extra_doc.pop("subcategory", None)
+            engine.index_article(extra_doc)
+
+        # For non-legislative categories, pull the original article from ES
         if article_url and not article_url.startswith("profoundd://"):
-            if category == "legislative":
+            if primary_category in ("legislative", "state-legislative"):
                 logger.info("Legislative article — kept original in ES: %s", article_url)
             else:
                 engine.delete_article(article_url)
@@ -1520,11 +1540,12 @@ def bob_write():
     except Exception as e:
         logger.warning("Could not index Bob story to ES: %s", e)
 
+    cat_count = len(categories)
     return jsonify({
         "success": True,
         "slug": slug,
         "title": story.title,
-        "message": "Bob wrote it!",
+        "message": f"Bob wrote it! Published to {cat_count} {'category' if cat_count == 1 else 'categories'}.",
     })
 
 
@@ -1545,13 +1566,20 @@ def bob_story_delete(story_id):
         flash("Story not found.", "error")
         return redirect(url_for("admin.bob_stories_list"))
 
-    # Remove from Elasticsearch
+    # Remove from Elasticsearch — primary doc + any extra category copies
     try:
         import hashlib
         engine = SearchEngine(config.ELASTICSEARCH_URL)
+        # Delete primary doc
         es_url = f"profoundd://bob/{story.slug}"
         es_id = hashlib.md5(es_url.encode()).hexdigest()
         engine.es.delete(index=engine.index_name, id=es_id, ignore=[404])
+        # Delete extra category copies
+        extra = story.extra_categories if hasattr(story, "extra_categories") and story.extra_categories else ""
+        for cat in [c.strip() for c in extra.split(",") if c.strip()]:
+            extra_url = f"profoundd://bob/{cat}/{story.slug}"
+            extra_id = hashlib.md5(extra_url.encode()).hexdigest()
+            engine.es.delete(index=engine.index_name, id=extra_id, ignore=[404])
     except Exception as e:
         logger.warning("Could not remove Bob story from ES: %s", e)
 

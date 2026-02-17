@@ -259,6 +259,7 @@ class BobStory(db.Model):
     seo_keywords = db.Column(db.String(500))
     seo_description = db.Column(db.String(300))
     category = db.Column(db.String(50), index=True)
+    extra_categories = db.Column(db.String(500), default="")  # comma-separated extra categories
     image_url = db.Column(db.String(1000))
 
     # Link back to the original source

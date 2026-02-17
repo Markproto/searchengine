@@ -201,6 +201,7 @@ def create_app(config_override=None):
         for col_sql in [
             "ALTER TABLE sources ADD COLUMN sponsor_tags VARCHAR(500) DEFAULT ''",
             "ALTER TABLE sources ADD COLUMN subcategory VARCHAR(100) DEFAULT ''",
+            "ALTER TABLE bob_stories ADD COLUMN extra_categories VARCHAR(500) DEFAULT ''",
         ]:
             try:
                 db.session.execute(db.text(col_sql))

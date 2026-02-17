@@ -152,7 +152,12 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=3"></script>
+    {% if session.get('admin_logged_in') %}
+    <script>window.__CATEGORIES = {
+        {% for key, cat in categories.items() %}"{{ key }}": "{{ cat.label }}"{% if not loop.last %}, {% endif %}{% endfor %}
+    };</script>
+    {% endif %}
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=4"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
