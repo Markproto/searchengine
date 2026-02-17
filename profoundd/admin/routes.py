@@ -1666,10 +1666,12 @@ def verify_claim():
             # Step 1: Extract claims and search queries
             claims_data = extract_search_queries(claim_text, api_key, model)
 
-            # Step 2: Search for evidence
+            # Step 2: Search for evidence (including bill text and referenced URLs)
             engine = SearchEngine(config.ELASTICSEARCH_URL)
             evidence = search_for_evidence(
-                claims_data.get("queries", []), engine, congress_api_key=congress_key,
+                claims_data.get("queries", []), engine,
+                congress_api_key=congress_key,
+                references=claims_data.get("references", {}),
             )
 
             # Step 3: Generate verification story

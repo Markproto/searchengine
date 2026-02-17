@@ -282,6 +282,9 @@ def fetch_congress_gov(query, api_key=None, max_results=5):
                 "_provider": "congress",
                 "_score": 0,
                 "_highlights": {},
+                "_bill_type": bill_type,
+                "_bill_number": bill_number,
+                "_congress": str(congress),
             })
 
         logger.info("Congress.gov returned %d results for '%s'", len(articles), query)
@@ -353,6 +356,128 @@ def fetch_federal_register(query, max_results=5):
     except Exception as e:
         logger.warning("Federal Register API error: %s", e)
         return []
+
+
+def fetch_bill_text(congress, bill_type, bill_number, api_key, max_chars=15000):
+    """
+    Fetch the actual text of a bill from Congress.gov.
+    Two-step: (1) get text version URLs from API, (2) fetch the HTML/XML content.
+    Returns the bill text as plain text, or empty string on failure.
+    """
+    if not api_key:
+        return ""
+
+    type_slug = bill_type.lower().replace(".", "")
+    try:
+        # Step 1: Get text versions from the API
+        resp = requests.get(
+            f"https://api.congress.gov/v3/bill/{congress}/{type_slug}/{bill_number}/text",
+            params={"api_key": api_key, "format": "json"},
+            headers={"User-Agent": "Profoundd/1.0 (search engine)"},
+            timeout=API_TIMEOUT + 3,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        text_versions = data.get("textVersions", [])
+        if not text_versions:
+            logger.info("No text versions available for %s %s (%sth Congress)", bill_type, bill_number, congress)
+            return ""
+
+        # Use the latest text version (first in list)
+        latest = text_versions[0]
+        formats = latest.get("formats", [])
+
+        # Prefer HTML, then XML, then any other format
+        text_url = ""
+        for fmt in formats:
+            url = fmt.get("url", "")
+            if url.endswith(".htm") or url.endswith(".html"):
+                text_url = url
+                break
+            elif url.endswith(".xml") and not text_url:
+                text_url = url
+
+        if not text_url:
+            # Fall back to first available format
+            text_url = formats[0].get("url", "") if formats else ""
+
+        if not text_url:
+            return ""
+
+        logger.info("Fetching bill text from: %s", text_url)
+
+        # Step 2: Fetch the actual text content
+        text_resp = requests.get(
+            text_url,
+            headers={"User-Agent": "Profoundd/1.0 (search engine)"},
+            timeout=15,
+        )
+        text_resp.raise_for_status()
+
+        # Parse HTML/XML to plain text
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(text_resp.text, "lxml")
+
+        # Remove script/style elements
+        for tag in soup(["script", "style", "meta", "link"]):
+            tag.decompose()
+
+        text = soup.get_text(separator="\n", strip=True)
+
+        # Truncate to max_chars to keep evidence manageable
+        if len(text) > max_chars:
+            text = text[:max_chars] + "\n... [truncated — full text available at Congress.gov]"
+
+        logger.info("Fetched %d chars of bill text for %s %s", len(text), bill_type, bill_number)
+        return text
+
+    except requests.Timeout:
+        logger.warning("Bill text fetch timed out for %s %s", bill_type, bill_number)
+        return ""
+    except Exception as e:
+        logger.warning("Bill text fetch failed for %s %s: %s", bill_type, bill_number, e)
+        return ""
+
+
+def fetch_bill_summary(congress, bill_type, bill_number, api_key):
+    """
+    Fetch CRS summary of a bill from Congress.gov API.
+    Returns summary text, or empty string on failure.
+    """
+    if not api_key:
+        return ""
+
+    type_slug = bill_type.lower().replace(".", "")
+    try:
+        resp = requests.get(
+            f"https://api.congress.gov/v3/bill/{congress}/{type_slug}/{bill_number}/summaries",
+            params={"api_key": api_key, "format": "json"},
+            headers={"User-Agent": "Profoundd/1.0 (search engine)"},
+            timeout=API_TIMEOUT + 3,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        summaries = data.get("summaries", [])
+        if not summaries:
+            return ""
+
+        # Use the most recent summary (last in list = most detailed)
+        best = summaries[-1]
+        text = best.get("text", "")
+
+        # Strip HTML tags from CRS summaries
+        if "<" in text:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(text, "lxml")
+            text = soup.get_text(separator="\n", strip=True)
+
+        return text
+
+    except Exception as e:
+        logger.warning("Bill summary fetch failed for %s %s: %s", bill_type, bill_number, e)
+        return ""
 
 
 def _bill_type_path(bill_type):

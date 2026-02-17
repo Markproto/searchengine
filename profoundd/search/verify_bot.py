@@ -8,7 +8,91 @@ nuance highlighted for each.
 import logging
 import json
 
+import requests
+
 logger = logging.getLogger(__name__)
+
+# Timeout for fetching external URLs
+URL_FETCH_TIMEOUT = 15
+
+
+def fetch_url_content(url, max_chars=12000):
+    """
+    Fetch a web page or PDF and extract its text content.
+    Returns plain text, or empty string on failure.
+    """
+    if not url:
+        return ""
+
+    try:
+        resp = requests.get(
+            url,
+            headers={"User-Agent": "Profoundd/1.0 (verification bot)"},
+            timeout=URL_FETCH_TIMEOUT,
+            stream=True,
+        )
+        resp.raise_for_status()
+        content_type = resp.headers.get("Content-Type", "").lower()
+
+        if "pdf" in content_type or url.lower().endswith(".pdf"):
+            # Try to extract text from PDF
+            return _extract_pdf_text(resp.content, max_chars)
+        else:
+            # HTML or plain text
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(resp.text[:500000], "lxml")
+            for tag in soup(["script", "style", "meta", "link", "nav", "footer", "header"]):
+                tag.decompose()
+            text = soup.get_text(separator="\n", strip=True)
+            if len(text) > max_chars:
+                text = text[:max_chars] + "\n... [truncated]"
+            return text
+
+    except Exception as e:
+        logger.warning("Failed to fetch URL %s: %s", url, e)
+        return ""
+
+
+def _extract_pdf_text(pdf_bytes, max_chars=12000):
+    """Extract text from PDF bytes. Tries multiple methods."""
+    # Try PyPDF2 first
+    try:
+        import io
+        from PyPDF2 import PdfReader
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        pages_text = []
+        for page in reader.pages:
+            pages_text.append(page.extract_text() or "")
+        text = "\n".join(pages_text)
+        if len(text) > max_chars:
+            text = text[:max_chars] + "\n... [truncated]"
+        if text.strip():
+            return text
+    except ImportError:
+        logger.debug("PyPDF2 not available for PDF extraction")
+    except Exception as e:
+        logger.warning("PyPDF2 extraction failed: %s", e)
+
+    # Fallback: try pdfplumber
+    try:
+        import io
+        import pdfplumber
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+            pages_text = []
+            for page in pdf.pages:
+                pages_text.append(page.extract_text() or "")
+        text = "\n".join(pages_text)
+        if len(text) > max_chars:
+            text = text[:max_chars] + "\n... [truncated]"
+        if text.strip():
+            return text
+    except ImportError:
+        logger.debug("pdfplumber not available for PDF extraction")
+    except Exception as e:
+        logger.warning("pdfplumber extraction failed: %s", e)
+
+    logger.warning("No PDF extraction library available. Install PyPDF2: pip install PyPDF2")
+    return "[PDF content could not be extracted — install PyPDF2 on server]"
 
 
 def extract_search_queries(claim_text, api_key, model="claude-sonnet-4-5-20250929"):
@@ -57,17 +141,25 @@ def extract_search_queries(claim_text, api_key, model="claude-sonnet-4-5-2025092
         }
 
 
-def search_for_evidence(queries, search_engine, congress_api_key=None):
-    """Search Profoundd index and external APIs for evidence."""
+def search_for_evidence(queries, search_engine, congress_api_key=None,
+                        references=None):
+    """
+    Search Profoundd index and external APIs for evidence.
+    Also fetches actual bill text and referenced URL content when available.
+    """
     from profoundd.search.external_providers import (
         fetch_congress_gov, fetch_federal_register,
+        fetch_bill_text, fetch_bill_summary,
     )
 
     evidence = {
         "profoundd_results": [],
         "congress_results": [],
         "federal_register_results": [],
+        "bill_text": [],        # Actual bill text excerpts
+        "fetched_documents": [], # Content from URLs in the claim
     }
+    references = references or {}
 
     for query in queries[:5]:
         # Search our own index
@@ -97,6 +189,9 @@ def search_for_evidence(queries, search_engine, congress_api_key=None):
                         "summary": r["summary"],
                         "url": r["url"],
                         "date": r.get("published_at", ""),
+                        "_bill_type": r.get("_bill_type", ""),
+                        "_bill_number": r.get("_bill_number", ""),
+                        "_congress": r.get("_congress", ""),
                     })
             except Exception as e:
                 logger.warning("Congress.gov search failed: %s", e)
@@ -115,8 +210,8 @@ def search_for_evidence(queries, search_engine, congress_api_key=None):
         except Exception as e:
             logger.warning("Federal Register search failed: %s", e)
 
-    # Deduplicate by URL
-    for key in evidence:
+    # Deduplicate by URL (for metadata results)
+    for key in ["profoundd_results", "congress_results", "federal_register_results"]:
         seen = set()
         unique = []
         for item in evidence[key]:
@@ -124,6 +219,56 @@ def search_for_evidence(queries, search_engine, congress_api_key=None):
                 seen.add(item["url"])
                 unique.append(item)
         evidence[key] = unique
+
+    # --- Fetch actual bill text from Congress.gov ---
+    if congress_api_key and evidence["congress_results"]:
+        fetched_bills = set()
+        for result in evidence["congress_results"][:3]:
+            bill_type = result.get("_bill_type", "")
+            bill_number = result.get("_bill_number", "")
+            congress = result.get("_congress", "")
+            if bill_type and bill_number and congress:
+                bill_key = f"{congress}-{bill_type}-{bill_number}"
+                if bill_key in fetched_bills:
+                    continue
+                fetched_bills.add(bill_key)
+
+                # Get CRS summary
+                summary = fetch_bill_summary(congress, bill_type, bill_number, congress_api_key)
+                if summary:
+                    evidence["bill_text"].append({
+                        "title": f"CRS Summary: {result['title']}",
+                        "content": summary,
+                        "url": result["url"],
+                        "type": "summary",
+                    })
+
+                # Get actual bill text
+                text = fetch_bill_text(congress, bill_type, bill_number, congress_api_key)
+                if text:
+                    evidence["bill_text"].append({
+                        "title": f"Full Text: {result['title']}",
+                        "content": text,
+                        "url": result["url"],
+                        "type": "full_text",
+                    })
+
+    # --- Fetch content from URLs referenced in the claim ---
+    ref_urls = references.get("urls", [])
+    if ref_urls:
+        fetched_urls = set()
+        for url in ref_urls[:3]:
+            if url in fetched_urls or "..." in url:
+                continue
+            fetched_urls.add(url)
+            logger.info("Fetching referenced URL: %s", url)
+            content = fetch_url_content(url)
+            if content and content.strip():
+                evidence["fetched_documents"].append({
+                    "title": f"Referenced document: {url}",
+                    "content": content,
+                    "url": url,
+                })
 
     return evidence
 
@@ -140,15 +285,30 @@ def generate_verification_story(claim_text, claims_data, evidence, api_key,
 
         # Compile evidence summary for the AI
         evidence_text = ""
-        for source_type, items in evidence.items():
+        # Metadata results (titles, summaries, URLs)
+        for source_type in ["profoundd_results", "congress_results", "federal_register_results"]:
+            items = evidence.get(source_type, [])
             if items:
                 label = source_type.replace("_", " ").title()
                 evidence_text += f"\n--- {label} ---\n"
                 for item in items[:8]:
-                    evidence_text += f"- {item['title']} ({item['source']}, {item['date']})\n"
-                    if item['summary']:
+                    evidence_text += f"- {item['title']} ({item.get('source', '')}, {item.get('date', '')})\n"
+                    if item.get('summary'):
                         evidence_text += f"  {item['summary'][:200]}\n"
                     evidence_text += f"  URL: {item['url']}\n"
+
+        # Actual bill text and CRS summaries — the critical content for verification
+        bill_text_section = ""
+        for item in evidence.get("bill_text", []):
+            bill_text_section += f"\n--- {item['title']} ---\n"
+            bill_text_section += f"URL: {item['url']}\n"
+            bill_text_section += item["content"][:8000] + "\n"
+
+        # Fetched documents from URLs referenced in the claim
+        fetched_docs_section = ""
+        for item in evidence.get("fetched_documents", []):
+            fetched_docs_section += f"\n--- {item['title']} ---\n"
+            fetched_docs_section += item["content"][:8000] + "\n"
 
         claims_list = "\n".join(f"- {c}" for c in claims_data.get("claims", []))
 
@@ -209,10 +369,14 @@ def generate_verification_story(claim_text, claims_data, evidence, api_key,
             f"=== ORIGINAL POST ===\n{claim_text[:4000]}\n\n"
             f"=== KEY CLAIMS IDENTIFIED ===\n{claims_list}\n\n"
             f"=== SPECIFIC REFERENCES FROM THE POST ===\n{references_text}\n\n"
-            f"=== EVIDENCE FOUND ===\n{evidence_text}\n\n"
-            "Write the verification report now. Use markdown formatting. "
+            f"=== EVIDENCE FOUND (metadata) ===\n{evidence_text}\n\n"
+            + (f"=== ACTUAL BILL TEXT / CRS SUMMARIES ===\n{bill_text_section}\n\n" if bill_text_section else
+               "=== ACTUAL BILL TEXT ===\n[No bill text could be retrieved from Congress.gov]\n\n")
+            + (f"=== FETCHED DOCUMENTS FROM REFERENCED URLS ===\n{fetched_docs_section}\n\n" if fetched_docs_section else "")
+            + "Write the verification report now. Use markdown formatting. "
             "Remember: EVERY talking point MUST cite back to specific sections, pages, "
-            "or quotes from the original post."
+            "or quotes from the original post. If actual bill text was provided above, "
+            "use it to verify or refute specific claims — quote the relevant passages directly."
         )
 
         message = client.messages.create(

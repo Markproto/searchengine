@@ -56,6 +56,16 @@
                 Federal Register: {{ evidence.federal_register_results|length }}
             </span>
             {% endif %}
+            {% if evidence.bill_text %}
+            <span style="font-size: 0.75rem; padding: 4px 10px; background: #1a7a1a; color: #fff; border-radius: 4px;">
+                Bill Text Retrieved: {{ evidence.bill_text|length }}
+            </span>
+            {% endif %}
+            {% if evidence.fetched_documents %}
+            <span style="font-size: 0.75rem; padding: 4px 10px; background: #6a4c93; color: #fff; border-radius: 4px;">
+                Referenced Docs Fetched: {{ evidence.fetched_documents|length }}
+            </span>
+            {% endif %}
         </div>
         {% if claims_data and claims_data.claims %}
         <details style="margin-bottom: 12px;">
