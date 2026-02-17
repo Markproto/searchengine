@@ -247,11 +247,35 @@ LEGISLATIVE_SOURCES = [
     {"name": "USDA Press Releases", "url": "https://www.usda.gov/rss/press-releases.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "regulations"},
 ]
 
+STATE_LEGISLATIVE_SOURCES = [
+    # --- Oregon ---
+    {"name": "Oregon Governor", "url": "https://www.oregon.gov/newsroom/Pages/rss.aspx", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "oregon"},
+    {"name": "My Oregon (Governor's Blog)", "url": "https://www.myoregon.gov/feed/", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "oregon"},
+    {"name": "Oregon Legislature Press", "url": "https://www.myoregon.gov/category/press-releases/feed/", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "oregon"},
+    {"name": "Oregon Secretary of State", "url": "https://sos.oregon.gov/Pages/rss.aspx", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "oregon"},
+    {"name": "Oregon DOJ", "url": "https://www.doj.state.or.us/media-home/news-media-releases/feed/", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "oregon"},
+
+    # --- Washington ---
+    {"name": "Washington Governor", "url": "https://governor.wa.gov/news/feed", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "washington"},
+    {"name": "Washington AG", "url": "https://www.atg.wa.gov/rss.xml", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "washington"},
+    {"name": "WA Secretary of State", "url": "https://www.sos.wa.gov/office/news-releases.aspx#/rss", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "washington"},
+    {"name": "Washington Legislature", "url": "https://lawfilesext.leg.wa.gov/Biennium/2025-26/Xml/Digests/Digests.rss", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "washington"},
+    {"name": "WA Dept of Ecology", "url": "https://ecology.wa.gov/about-us/get-to-know-us/news/rss", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "washington"},
+
+    # --- California ---
+    {"name": "California Governor", "url": "https://www.gov.ca.gov/category/press-releases/feed/", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "california"},
+    {"name": "CA Legislative Analyst", "url": "https://lao.ca.gov/RSS", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "california"},
+    {"name": "CA Secretary of State", "url": "https://www.sos.ca.gov/administration/news-releases-and-advisories/rss", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "california"},
+    {"name": "CA Attorney General", "url": "https://oag.ca.gov/news/feed", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "california"},
+    {"name": "CA Dept of Finance", "url": "https://dof.ca.gov/feed/", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "california"},
+]
+
 ALL_SOURCES = (
     NEWS_SOURCES + MEDICAL_SOURCES + LEGAL_SOURCES + TECH_SOURCES +
     FINANCE_SOURCES + SCIENCE_SOURCES + EDUCATION_SOURCES +
     ENVIRONMENT_SOURCES + POLITICS_SOURCES + MARKETS_SOURCES +
-    EPSTEIN_SOURCES + CHARLIE_KIRK_SOURCES + LEGISLATIVE_SOURCES
+    EPSTEIN_SOURCES + CHARLIE_KIRK_SOURCES + LEGISLATIVE_SOURCES +
+    STATE_LEGISLATIVE_SOURCES
 )
 
 # Keywords that trigger automatic re-categorization from any feed.
@@ -310,6 +334,17 @@ CATEGORIES = {
             "regulations": {"label": "Regulations", "description": "Federal Register rules & Code of Federal Regulations"},
             "research": {"label": "CRS & CBO Analysis", "description": "Congressional Research Service & budget analysis"},
             "budget": {"label": "Budget & Economy", "description": "Federal budget documents & economic indicators"},
+        },
+    },
+    "state-legislative": {
+        "label": "State Watch",
+        "description": "Oregon, Washington & California State Government",
+        "icon": "building",
+        "color": "#0e7490",
+        "subcategories": {
+            "oregon": {"label": "Oregon", "description": "Oregon state legislature, governor & agencies"},
+            "washington": {"label": "Washington", "description": "Washington state legislature, governor & agencies"},
+            "california": {"label": "California", "description": "California state legislature, governor & agencies"},
         },
     },
 }

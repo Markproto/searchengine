@@ -1151,6 +1151,10 @@ main { flex: 1; }
 .category-epstein-files:hover { border-color: #b91c1c; }
 .category-charlie-kirk .category-icon, .category-tag-charlie-kirk { color: #1d4ed8; }
 .category-charlie-kirk:hover { border-color: #1d4ed8; }
+.category-legislative .category-icon, .category-tag-legislative { color: #991b1b; }
+.category-legislative:hover { border-color: #991b1b; }
+.category-state-legislative .category-icon, .category-tag-state-legislative { color: #0e7490; }
+.category-state-legislative:hover { border-color: #0e7490; }
 
 /* --- Search Suggestions Dropdown --- */
 .suggestions-dropdown {

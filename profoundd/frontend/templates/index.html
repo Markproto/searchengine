@@ -74,6 +74,8 @@
                     <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><circle cx="15" cy="17" r="4"/><path d="M17 5l-10 14"/></svg>
                     {% elif key == 'legislative' %}
                     <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    {% elif key == 'state-legislative' %}
+                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M4 21V10l8-6 8 6v11"/><path d="M9 21v-6h6v6"/><path d="M10 10h4v3h-4z"/></svg>
                     {% endif %}
                 </div>
                 <h3>{{ cat.label }}</h3>
@@ -97,51 +99,58 @@
                 </div>
                 {% endif %}
                 <div class="result-body">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
-                    <span class="trending-category category-tag-{{ article.category }}">{{ article.category | title }}</span>
-                    {% if session.get('admin_logged_in') %}
-                    <div style="display:flex; align-items:center; gap:4px;">
-                        {% if article.source_credibility %}
-                        <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }} admin-editable-cred" data-url="{{ article.url }}">
-                            <input type="number" class="cred-input" value="{{ article.source_credibility }}" min="1" max="10" title="Edit credibility (admin)">
-                            <span class="cred-label">/10</span>
-                            <button class="cred-save-btn" title="Save">&#10003;</button>
-                        </span>
-                        {% endif %}
-                        <span class="admin-boost-controls" data-url="{{ article.url }}" data-boost="{{ article.admin_boost or 5 }}">
-                            <button type="button" class="boost-btn boost-up" title="Promote">&#9650;</button>
-                            <span class="boost-value">{{ article.admin_boost or 5 }}</span>
-                            <button type="button" class="boost-btn boost-down" title="Demote">&#9660;</button>
-                        </span>
-                    </div>
-                    {% endif %}
-                </div>
-                <h3><a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
-                {% with note_url=article.url, note_title=article.title, note_summary='' %}
-                {% include '_newsroom_note.html' %}
-                {% endwith %}
-                <p class="trending-meta">
-                    <span class="source">{{ article.source_name }}{% with src_name=article.source_name %}{% include '_source_note.html' %}{% endwith %}</span>
+                <div class="result-header">
+                    <span class="result-source">{{ article.source_name }}{% with src_name=article.source_name %}{% include '_source_note.html' %}{% endwith %}</span>
+                    <span class="trending-category category-tag-{{ article.category }}">{{ categories[article.category].label if article.category in categories else article.category | title }}</span>
                     {% if article.source_sponsors %}
                     {% for sponsor in article.source_sponsors %}
                     <span class="sponsor-badge" title="{{ sponsor }} sponsored this source">{{ sponsor }} Sponsored</span>
                     {% endfor %}
                     {% endif %}
+                    {% if article.source_credibility %}
+                    {% if session.get('admin_logged_in') %}
+                    <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }} admin-editable-cred" data-url="{{ article.url }}">
+                        <input type="number" class="cred-input" value="{{ article.source_credibility }}" min="1" max="10" title="Edit credibility (admin)">
+                        <span class="cred-label">/10</span>
+                        <button class="cred-save-btn" title="Save">&#10003;</button>
+                    </span>
+                    {% else %}
+                    <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }}">
+                        {{ article.source_credibility }}/10 <span class="credibility-help" title="This credibility rating is an opinion">?</span>
+                    </span>
+                    {% endif %}
+                    {% endif %}
+                    {% if session.get('admin_logged_in') %}
+                    <span class="admin-boost-controls" data-url="{{ article.url }}" data-boost="{{ article.admin_boost or 5 }}">
+                        <button type="button" class="boost-btn boost-up" title="Promote">&#9650;</button>
+                        <span class="boost-value">{{ article.admin_boost or 5 }}</span>
+                        <button type="button" class="boost-btn boost-down" title="Demote">&#9660;</button>
+                    </span>
+                    {% endif %}
+                </div>
+                <h3><a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
+                {% if article.summary %}
+                <p class="result-summary">{{ article.summary[:200] }}{% if article.summary|length > 200 %}...{% endif %}</p>
+                {% endif %}
+                {% with note_url=article.url, note_title=article.title, note_summary=article.summary or '' %}
+                {% include '_newsroom_note.html' %}
+                {% endwith %}
+                <p class="trending-meta">
                     {% if article.published_at %}
                     <span class="date" data-time="{{ article.published_at }}">{{ article.published_at[:10] }}</span>
                     {% endif %}
+                    {% if session.get('admin_logged_in') %}
+                    <button type="button" class="bob-write-btn"
+                            data-url="{{ article.url }}"
+                            data-title="{{ article.title }}"
+                            data-source="{{ article.source_name }}"
+                            data-category="{{ article.category }}"
+                            data-summary="{{ (article.summary or '')[:500] }}"
+                            title="Have NewsRoom Bob write a story about this">
+                        Bob, Write This
+                    </button>
+                    {% endif %}
                 </p>
-                {% if session.get('admin_logged_in') %}
-                <button type="button" class="bob-write-btn"
-                        data-url="{{ article.url }}"
-                        data-title="{{ article.title }}"
-                        data-source="{{ article.source_name }}"
-                        data-category="{{ article.category }}"
-                        data-summary=""
-                        title="Have NewsRoom Bob write a story about this">
-                    Bob, Write This
-                </button>
-                {% endif %}
                 </div>{# /result-body #}
             </article>
             {% endfor %}
