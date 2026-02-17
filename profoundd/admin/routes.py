@@ -1032,6 +1032,41 @@ def api_update_boost():
     return jsonify({"success": True, "boost": new_boost})
 
 
+# --- Add Category to Article ---
+
+@admin_bp.route("/api/add-category", methods=["POST"])
+@login_required
+def api_add_category():
+    """AJAX endpoint to add an article to an additional category."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Invalid request"}), 400
+
+    article_url = data.get("url", "").strip()
+    category = data.get("category", "").strip()
+
+    if not article_url or not category:
+        return jsonify({"error": "URL and category required"}), 400
+
+    if category not in CATEGORIES:
+        return jsonify({"error": f"Unknown category: {category}"}), 400
+
+    engine = SearchEngine(config.ELASTICSEARCH_URL)
+    if not engine.is_available():
+        return jsonify({"error": "Elasticsearch not available"}), 503
+
+    success = engine.add_category(article_url, category)
+    if not success:
+        return jsonify({"error": "Failed to add category — article not found"}), 404
+
+    return jsonify({
+        "success": True,
+        "category": category,
+        "label": CATEGORIES[category]["label"],
+        "message": f"Added to {CATEGORIES[category]['label']}",
+    })
+
+
 # --- Newsroom Notes ---
 
 @admin_bp.route("/api/newsroom-note", methods=["POST"])
@@ -1760,13 +1795,128 @@ def verify_claim():
                                    evidence=evidence,
                                    total_evidence=total_evidence)
 
+        elif step == "bob_write":
+            # Have Bob write a story from Victor's report with specific angle
+            import anthropic as _anthropic
+
+            bob_instructions = request.form.get("bob_instructions", "").strip()
+            victor_report = request.form.get("victor_report", "").strip()
+            victor_headline = request.form.get("victor_headline", "").strip()
+            victor_keywords = request.form.get("victor_seo_keywords", "").strip()
+            claim_text = request.form.get("claim_text", "").strip()
+            bob_categories = request.form.getlist("bob_categories")
+
+            if not bob_categories:
+                bob_categories = ["legislative"]
+
+            if not victor_report:
+                flash("No report to work from.", "error")
+                return redirect(url_for("admin.verify_claim"))
+
+            if not api_key:
+                flash("No AI API key configured.", "error")
+                return redirect(url_for("admin.verify_claim"))
+
+            # Truncate report if needed
+            report_for_bob = victor_report
+            if len(report_for_bob) > 15000:
+                report_for_bob = report_for_bob[:15000] + "\n\n[Content truncated...]"
+
+            bob_prompt = f"""You are NewsRoom Bob, a sharp, no-nonsense journalist for Profoundd.com.
+
+Below is a verification report by Victor the Verifier analyzing a legislative claim. The report contains both conservative and progressive perspectives with detailed talking points.
+
+YOUR INSTRUCTIONS FROM THE EDITOR:
+{bob_instructions or "Write a balanced news story covering the key findings."}
+
+ORIGINAL CLAIM:
+{claim_text[:3000]}
+
+VICTOR'S VERIFICATION REPORT:
+{report_for_bob}
+
+Based on the editor's instructions, write a FRESH news story. Follow the angle requested — if they say "progressive talking points," emphasize those. If they say "conservative perspective," focus there. If they specify a section, drill into that.
+
+Write your response in EXACTLY this format:
+
+HEADLINE: [A compelling, SEO-friendly headline — clear, not clickbait, under 80 chars]
+SUMMARY: [2-3 sentence summary that hooks the reader and covers the key facts]
+BODY: [Full article body, 4-8 paragraphs. Use facts and citations from Victor's report. Reference specific sections, pages, and quotes where available. Write in Bob's direct, no-nonsense voice.]
+SEO_KEYWORDS: [8-12 comma-separated keywords/phrases relevant to the story]
+SEO_DESCRIPTION: [A 150-160 character meta description for search engines]"""
+
+            try:
+                client = _anthropic.Anthropic(api_key=api_key)
+                msg = client.messages.create(
+                    model=model,
+                    max_tokens=4000,
+                    messages=[{"role": "user", "content": bob_prompt}],
+                )
+                response_text = msg.content[0].text
+            except Exception as e:
+                flash(f"Bob couldn't write this: {e}", "error")
+                return redirect(url_for("admin.verify_claim"))
+
+            # Parse Bob's response
+            from profoundd.search.newsroom_bob import _parse_bob_response
+            result_data = _parse_bob_response(response_text)
+
+            slug = make_slug(result_data["headline"] or victor_headline)
+            base_slug = slug
+            counter = 1
+            while db.session.query(BobStory).filter_by(slug=slug).first():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+
+            primary_category = bob_categories[0]
+            extra_categories = bob_categories[1:] if len(bob_categories) > 1 else []
+
+            story = BobStory(
+                title=result_data["headline"] or victor_headline,
+                slug=slug,
+                content=result_data["body"],
+                summary=result_data["summary"],
+                seo_keywords=result_data["seo_keywords"] or victor_keywords,
+                seo_description=result_data["seo_description"] or "",
+                category=primary_category,
+                extra_categories=",".join(extra_categories) if extra_categories else "",
+                source_article_url=f"profoundd://verify/{slug}",
+                source_article_title=victor_headline,
+                source_name="NewsRoom Bob (via Victor)",
+            )
+            db.session.add(story)
+            db.session.commit()
+
+            # Index to ES — one doc per selected category
+            try:
+                engine = SearchEngine(config.ELASTICSEARCH_URL)
+                es_doc = story.to_es_doc()
+                es_doc["tags"] = ["verification", "bob-story", "fact-check"]
+                engine.index_article(es_doc)
+
+                for extra_cat in extra_categories:
+                    extra_doc = dict(es_doc)
+                    extra_doc["category"] = extra_cat
+                    extra_doc["url"] = f"profoundd://bob/{extra_cat}/{slug}"
+                    engine.index_article(extra_doc)
+
+                flash(f"Bob wrote '{story.title}' — published to {len(bob_categories)} {'category' if len(bob_categories) == 1 else 'categories'}.", "success")
+            except Exception as e:
+                flash(f"Saved but failed to index: {e}", "warning")
+
+            return redirect(url_for("admin.bob_stories_list"))
+
         elif step == "publish":
-            # Publish the verification report as a Bob story
+            # Publish Victor's verification report directly
             headline = request.form.get("headline", "").strip()
             report = request.form.get("report", "").strip()
             summary = request.form.get("summary", "").strip()
             seo_keywords = request.form.get("seo_keywords", "").strip()
             claim_text = request.form.get("claim_text", "").strip()
+            publish_categories = request.form.getlist("publish_categories")
+
+            if not publish_categories:
+                publish_categories = ["legislative"]
 
             if not headline or not report:
                 flash("Headline and report are required.", "error")
@@ -1779,6 +1929,9 @@ def verify_claim():
                 slug = f"{base_slug}-{counter}"
                 counter += 1
 
+            primary_category = publish_categories[0]
+            extra_categories = publish_categories[1:] if len(publish_categories) > 1 else []
+
             story = BobStory(
                 title=headline,
                 slug=slug,
@@ -1786,7 +1939,8 @@ def verify_claim():
                 summary=summary,
                 seo_keywords=seo_keywords,
                 seo_description=summary[:290] if summary else "",
-                category="legislative",
+                category=primary_category,
+                extra_categories=",".join(extra_categories) if extra_categories else "",
                 source_article_url=f"profoundd://verify/{slug}",
                 source_article_title=headline,
                 source_name="Victor the Verifier",
@@ -1794,13 +1948,20 @@ def verify_claim():
             db.session.add(story)
             db.session.commit()
 
-            # Index to Elasticsearch
+            # Index to ES — one doc per selected category
             try:
                 engine = SearchEngine(config.ELASTICSEARCH_URL)
                 es_doc = story.to_es_doc()
                 es_doc["tags"] = ["verification", "dual-perspective", "fact-check"]
                 engine.index_article(es_doc)
-                flash(f"Published verification: '{headline}'", "success")
+
+                for extra_cat in extra_categories:
+                    extra_doc = dict(es_doc)
+                    extra_doc["category"] = extra_cat
+                    extra_doc["url"] = f"profoundd://bob/{extra_cat}/{slug}"
+                    engine.index_article(extra_doc)
+
+                flash(f"Published verification: '{headline}' to {len(publish_categories)} {'category' if len(publish_categories) == 1 else 'categories'}.", "success")
             except Exception as e:
                 flash(f"Saved but failed to index: {e}", "warning")
 

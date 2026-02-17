@@ -138,9 +138,48 @@
         </div>
     </div>
 
-    {# --- Publish or Edit --- #}
+    {# --- Have Bob Write a Story from Victor's Report --- #}
+    <div class="admin-section" style="margin-top: 24px; border: 2px solid var(--accent); border-radius: var(--radius); padding: 20px;">
+        <h2 style="margin-top: 0;">
+            <span style="font-size: 1.2rem;">Bob, Write a Story</span>
+            <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 400; margin-left: 8px;">from Victor's report</span>
+        </h2>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+            Tell Bob what angle to take. For example: "Write using the progressive talking points" or
+            "Focus on the conservative perspective regarding pesticide regulation" or
+            "Write about the budget impact sections only."
+        </p>
+        <form method="POST" class="admin-form" id="bobFromVictorForm">
+            <input type="hidden" name="step" value="bob_write">
+            <input type="hidden" name="claim_text" value="{{ claim_text }}">
+            <input type="hidden" name="victor_report" value="{{ result.report }}">
+            <input type="hidden" name="victor_headline" value="{{ result.headline }}">
+            <input type="hidden" name="victor_seo_keywords" value="{{ result.seo_keywords }}">
+            <div class="form-group">
+                <label>Instructions for Bob</label>
+                <textarea name="bob_instructions" rows="3" class="form-control"
+                          placeholder="e.g., Write a story using the progressive talking points regarding this bill..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Publish to Categories</label>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;">
+                    {% for key, cat in categories.items() %}
+                    <label style="display: flex; align-items: center; gap: 4px; font-size: 0.85rem; cursor: pointer; padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px;">
+                        <input type="checkbox" name="bob_categories" value="{{ key }}" {% if key == 'legislative' %}checked{% endif %}>
+                        {{ cat.label }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                Bob, Write This Story
+            </button>
+        </form>
+    </div>
+
+    {# --- Publish or Edit (Victor's raw report) --- #}
     <div class="admin-section" style="margin-top: 24px;">
-        <h2>Publish as Profoundd Story</h2>
+        <h2>Publish Victor's Report Directly</h2>
         <form method="POST" class="admin-form">
             <input type="hidden" name="step" value="publish">
             <input type="hidden" name="claim_text" value="{{ claim_text }}">
@@ -160,6 +199,17 @@
             <div class="form-group">
                 <label>SEO Keywords</label>
                 <input type="text" name="seo_keywords" value="{{ result.seo_keywords }}" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Publish to Categories</label>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;">
+                    {% for key, cat in categories.items() %}
+                    <label style="display: flex; align-items: center; gap: 4px; font-size: 0.85rem; cursor: pointer; padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px;">
+                        <input type="checkbox" name="publish_categories" value="{{ key }}" {% if key == 'legislative' %}checked{% endif %}>
+                        {{ cat.label }}
+                    </label>
+                    {% endfor %}
+                </div>
             </div>
 
             <div style="display: flex; gap: 12px; margin-top: 16px;">

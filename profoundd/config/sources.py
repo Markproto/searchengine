@@ -255,6 +255,7 @@ STATE_LEGISLATIVE_SOURCES = [
     {"name": "Oregon Secretary of State", "url": "https://sos.oregon.gov/Pages/rss.aspx", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "oregon"},
     {"name": "Oregon DOJ", "url": "https://www.doj.state.or.us/media-home/news-media-releases/feed/", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "oregon"},
     {"name": "Oregon Firearms Federation", "url": "https://www.oregonfirearms.org/feed/", "category": "state-legislative", "credibility": 8, "feed_type": "rss", "subcategory": "oregon"},
+    {"name": "Oregonians for Medical Freedom", "url": "https://www.oregoniansformedicalfreedom.com/feed/", "category": "state-legislative", "credibility": 8, "feed_type": "rss", "subcategory": "oregon"},
 
     # --- Washington ---
     {"name": "Washington Governor", "url": "https://governor.wa.gov/news/feed", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "washington"},
@@ -271,16 +272,52 @@ STATE_LEGISLATIVE_SOURCES = [
     {"name": "CA Dept of Finance", "url": "https://dof.ca.gov/feed/", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "california"},
 ]
 
+ADVOCACY_SOURCES = [
+    # --- Federal Gun Rights Advocacy ---
+    {"name": "NRA-ILA", "url": "https://www.nraila.org/ilarss.aspx", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
+    {"name": "Gun Owners of America", "url": "https://www.gunowners.org/feed/", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
+    {"name": "Second Amendment Foundation", "url": "https://saf.org/feed/", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
+    {"name": "Firearms Policy Coalition", "url": "https://www.firearmspolicy.org/news?feed=rss2", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
+
+    # --- Federal Think Tanks / Limited Government ---
+    {"name": "Heritage Foundation", "url": "https://www.heritage.org/rss", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "research"},
+    {"name": "Judicial Watch", "url": "https://www.judicialwatch.org/feed/", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "research"},
+    {"name": "Claremont Institute", "url": "https://claremontinstitute.substack.com/feed", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "research"},
+
+    # --- Federal Religious Liberty ---
+    {"name": "Alliance Defending Freedom", "url": "https://adflegal.org/feed/", "category": "legal", "credibility": 8, "feed_type": "rss"},
+    {"name": "First Liberty Institute", "url": "https://firstliberty.org/feed/", "category": "legal", "credibility": 8, "feed_type": "rss"},
+
+    # --- Federal Pro-Life / Family ---
+    {"name": "Focus on the Family", "url": "https://dailycitizen.focusonthefamily.com/feed/", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
+    {"name": "Students for Life", "url": "https://studentsforlife.org/feed/", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
+
+    # --- Federal Immigration ---
+    {"name": "Center for Immigration Studies", "url": "https://cis.org/RSS", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
+    {"name": "NumbersUSA", "url": "https://www.numbersusa.com/content/rss.xml", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
+    {"name": "FAIR", "url": "https://www.fairus.org/feed/", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
+
+    # --- Free Speech ---
+    {"name": "FIRE", "url": "https://www.thefire.org/feed/", "category": "legal", "credibility": 7, "feed_type": "rss"},
+
+    # --- Oregon State ---
+    {"name": "Oregon Catalyst", "url": "https://oregoncatalyst.com/feed/", "category": "state-legislative", "credibility": 8, "feed_type": "rss", "subcategory": "oregon"},
+
+    # --- Washington State ---
+    {"name": "Washington Policy Center", "url": "https://www.washingtonpolicy.org/rss", "category": "state-legislative", "credibility": 8, "feed_type": "rss", "subcategory": "washington"},
+
+    # --- California ---
+    {"name": "Pacific Legal Foundation", "url": "https://pacificlegal.org/feed/", "category": "state-legislative", "credibility": 8, "feed_type": "rss", "subcategory": "california"},
+]
+
 ALL_SOURCES = (
     NEWS_SOURCES + MEDICAL_SOURCES + LEGAL_SOURCES + TECH_SOURCES +
     FINANCE_SOURCES + SCIENCE_SOURCES + EDUCATION_SOURCES +
     ENVIRONMENT_SOURCES + POLITICS_SOURCES + MARKETS_SOURCES +
     EPSTEIN_SOURCES + CHARLIE_KIRK_SOURCES + LEGISLATIVE_SOURCES +
-    STATE_LEGISLATIVE_SOURCES
+    STATE_LEGISLATIVE_SOURCES + ADVOCACY_SOURCES
 )
 
-# Keywords that trigger automatic re-categorization from any feed.
-# Articles from ANY source matching these keywords get moved to the special category.
 SPECIAL_SECTION_KEYWORDS = {
     "epstein-files": [
         "epstein", "jeffrey epstein", "ghislaine maxwell",

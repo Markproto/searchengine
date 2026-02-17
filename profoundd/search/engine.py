@@ -207,6 +207,21 @@ class SearchEngine:
             logger.error("Failed to update boost for %s: %s", article_url, e)
             return False
 
+    def add_category(self, article_url, category):
+        """Copy an article into an additional category by indexing a duplicate with a new category-prefixed URL."""
+        article = self.get_article(article_url)
+        if not article:
+            return False
+        new_doc = dict(article)
+        new_doc["category"] = category
+        new_doc["url"] = f"{article_url}#cat-{category}"
+        try:
+            self.index_article(new_doc)
+            return True
+        except Exception as e:
+            logger.error("Failed to add category %s for %s: %s", category, article_url, e)
+            return False
+
     def bulk_index(self, articles):
         """Bulk index multiple articles."""
         if not articles:

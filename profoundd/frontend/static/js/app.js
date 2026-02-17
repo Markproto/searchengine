@@ -509,6 +509,75 @@ document.addEventListener('click', function(e) {
     showBobCategoryPicker(btn);
 });
 
+/* Admin: Add Category to Article */
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.admin-add-cat-btn');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Toggle dropdown
+    var existing = btn.parentElement.querySelector('.admin-cat-dropdown');
+    if (existing) { existing.remove(); return; }
+
+    // Close any other open dropdowns
+    document.querySelectorAll('.admin-cat-dropdown').forEach(function(d) { d.remove(); });
+
+    var cats = window.__CATEGORIES || {};
+    var articleUrl = btn.getAttribute('data-url');
+
+    var dropdown = document.createElement('div');
+    dropdown.className = 'admin-cat-dropdown';
+    dropdown.style.cssText = 'position:absolute;top:100%;left:0;z-index:100;background:var(--bg-card,#fff);border:1px solid var(--border,#ddd);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.15);min-width:180px;max-height:300px;overflow-y:auto;padding:4px;';
+
+    Object.keys(cats).forEach(function(key) {
+        var item = document.createElement('button');
+        item.type = 'button';
+        item.textContent = cats[key];
+        item.style.cssText = 'display:block;width:100%;text-align:left;padding:8px 12px;border:none;background:transparent;cursor:pointer;font-size:0.85rem;border-radius:4px;color:var(--text,#333);';
+        item.onmouseenter = function() { item.style.background = 'var(--bg-secondary,#f1f5f9)'; };
+        item.onmouseleave = function() { item.style.background = 'transparent'; };
+        item.onclick = function() {
+            item.textContent = 'Adding...';
+            fetch('/admin/api/add-category', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({url: articleUrl, category: key})
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    item.textContent = data.label + ' ✓';
+                    item.style.color = '#22c55e';
+                    item.style.fontWeight = '600';
+                    setTimeout(function() { dropdown.remove(); }, 800);
+                } else {
+                    item.textContent = data.error || 'Failed';
+                    item.style.color = '#ef4444';
+                }
+            })
+            .catch(function() {
+                item.textContent = 'Error';
+                item.style.color = '#ef4444';
+            });
+        };
+        dropdown.appendChild(item);
+    });
+
+    btn.parentElement.style.position = 'relative';
+    btn.parentElement.appendChild(dropdown);
+
+    // Close on outside click
+    setTimeout(function() {
+        document.addEventListener('click', function closeDropdown(ev) {
+            if (!dropdown.contains(ev.target) && ev.target !== btn) {
+                dropdown.remove();
+                document.removeEventListener('click', closeDropdown);
+            }
+        });
+    }, 10);
+});
+
 /* NewsRoom Notes — Admin add/edit/delete/enhance */
 function showNoteEditor(wrapper, existingText) {
     // Remove any existing editor in this wrapper
