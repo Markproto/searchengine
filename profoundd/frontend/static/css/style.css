@@ -1153,6 +1153,8 @@ main { flex: 1; }
 .category-charlie-kirk:hover { border-color: #1d4ed8; }
 .category-youtube .category-icon, .category-tag-youtube { color: #FF0000; }
 .category-youtube:hover { border-color: #FF0000; }
+.category-rumble .category-icon, .category-tag-rumble { color: #85c742; }
+.category-rumble:hover { border-color: #85c742; }
 .category-legislative .category-icon, .category-tag-legislative { color: #991b1b; }
 .category-legislative:hover { border-color: #991b1b; }
 .category-state-legislative .category-icon, .category-tag-state-legislative { color: #0e7490; }

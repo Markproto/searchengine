@@ -311,12 +311,28 @@ ADVOCACY_SOURCES = [
     {"name": "Pacific Legal Foundation", "url": "https://pacificlegal.org/feed/", "category": "state-legislative", "credibility": 8, "feed_type": "rss", "subcategory": "california"},
 ]
 
+RUMBLE_SOURCES = [
+    # --- Rumble Feeds (via OpenRSS) ---
+    # These creators also have YouTube/podcast feeds in other categories;
+    # Rumble copies are cross-posted into the 'rumble' section automatically.
+    {"name": "Redacted (Rumble)", "url": "https://openrss.org/rumble.com/c/Redacted", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Nick Shirley (Rumble)", "url": "https://openrss.org/rumble.com/c/NickShirley", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Ian Carroll (Rumble)", "url": "https://openrss.org/rumble.com/c/IanCarrollShow", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Candace Owens (Rumble)", "url": "https://openrss.org/rumble.com/c/RealCandaceO", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Tucker Carlson (Rumble)", "url": "https://openrss.org/rumble.com/c/TuckerCarlson", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Timcast (Rumble)", "url": "https://openrss.org/rumble.com/c/Timcast", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Ben Shapiro (Rumble)", "url": "https://openrss.org/rumble.com/c/BenShapiro", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Steven Crowder (Rumble)", "url": "https://openrss.org/rumble.com/c/StevenCrowder", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Russell Brand (Rumble)", "url": "https://openrss.org/rumble.com/c/russellbrand", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Charlie Kirk (Rumble)", "url": "https://openrss.org/rumble.com/c/CharlieKirk", "category": "politics", "credibility": 8, "feed_type": "rss"},
+]
+
 ALL_SOURCES = (
     NEWS_SOURCES + MEDICAL_SOURCES + LEGAL_SOURCES + TECH_SOURCES +
     FINANCE_SOURCES + SCIENCE_SOURCES + EDUCATION_SOURCES +
     ENVIRONMENT_SOURCES + POLITICS_SOURCES + MARKETS_SOURCES +
     EPSTEIN_SOURCES + CHARLIE_KIRK_SOURCES + LEGISLATIVE_SOURCES +
-    STATE_LEGISLATIVE_SOURCES + ADVOCACY_SOURCES
+    STATE_LEGISLATIVE_SOURCES + ADVOCACY_SOURCES + RUMBLE_SOURCES
 )
 
 SPECIAL_SECTION_KEYWORDS = {
@@ -380,6 +396,12 @@ CATEGORIES = {
         "description": "Video Content from YouTube Creators",
         "icon": "youtube",
         "color": "#FF0000",
+    },
+    "rumble": {
+        "label": "Rumble",
+        "description": "Video Content from Rumble Creators",
+        "icon": "rumble",
+        "color": "#85c742",
     },
     "state-legislative": {
         "label": "State Watch",

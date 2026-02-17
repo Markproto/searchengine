@@ -392,6 +392,27 @@ class FeedCrawler:
                 copies.append(copy)
         return copies
 
+    @staticmethod
+    def _make_rumble_copies(articles):
+        """Create copies of Rumble-sourced articles for the rumble category.
+
+        Articles from Rumble feeds already live in their primary category
+        (e.g. politics). This creates a duplicate with category='rumble'
+        and a unique URL suffix so both copies coexist in ES.
+        """
+        copies = []
+        for a in articles:
+            url = a.get("url", "")
+            if a.get("category") == "rumble":
+                continue  # already in rumble, skip
+            if "rumble.com/" in url:
+                copy = dict(a)
+                copy["category"] = "rumble"
+                copy["url"] = url + "#rumble-section"
+                copy.pop("subcategory", None)
+                copies.append(copy)
+        return copies
+
     def crawl_category(self, category):
         """Crawl all sources in a specific category."""
         sources = [s for s in ALL_SOURCES if s["category"] == category]
@@ -412,6 +433,12 @@ class FeedCrawler:
             if yt_copies:
                 yt_indexed = self.search_engine.bulk_index(yt_copies)
                 logger.info("YouTube cross-post from '%s': indexed %d copies", category, yt_indexed)
+
+            # Cross-post Rumble articles into the rumble category
+            rumble_copies = self._make_rumble_copies(all_articles)
+            if rumble_copies:
+                rb_indexed = self.search_engine.bulk_index(rumble_copies)
+                logger.info("Rumble cross-post from '%s': indexed %d copies", category, rb_indexed)
 
         return all_articles
 
@@ -435,6 +462,12 @@ class FeedCrawler:
             if yt_copies:
                 yt_indexed = self.search_engine.bulk_index(yt_copies)
                 logger.info("YouTube cross-post: indexed %d copies", yt_indexed)
+
+            # Cross-post Rumble articles into the 'rumble' category
+            rumble_copies = self._make_rumble_copies(total_articles)
+            if rumble_copies:
+                rb_indexed = self.search_engine.bulk_index(rumble_copies)
+                logger.info("Rumble cross-post: indexed %d copies", rb_indexed)
 
             duration = time() - start_time
             logger.info("Full crawl complete in %.1fs: indexed %d/%d articles (dupes: %d, full-text: %d, errors: %d)",
@@ -473,6 +506,12 @@ class FeedCrawler:
             if yt_copies:
                 yt_indexed = self.search_engine.bulk_index(yt_copies)
                 logger.info("YouTube cross-post (custom): indexed %d copies", yt_indexed)
+
+            # Cross-post Rumble articles into rumble category
+            rumble_copies = self._make_rumble_copies(all_articles)
+            if rumble_copies:
+                rb_indexed = self.search_engine.bulk_index(rumble_copies)
+                logger.info("Rumble cross-post (custom): indexed %d copies", rb_indexed)
 
             logger.info("Custom crawl: indexed %d new articles (found %d, dupes %d, full-text %d, errors %d)",
                         indexed, self.stats["found"], self.stats["duplicate"],
