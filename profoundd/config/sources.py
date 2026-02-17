@@ -254,6 +254,7 @@ STATE_LEGISLATIVE_SOURCES = [
     {"name": "Oregon Legislature Press", "url": "https://www.myoregon.gov/category/press-releases/feed/", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "oregon"},
     {"name": "Oregon Secretary of State", "url": "https://sos.oregon.gov/Pages/rss.aspx", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "oregon"},
     {"name": "Oregon DOJ", "url": "https://www.doj.state.or.us/media-home/news-media-releases/feed/", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "oregon"},
+    {"name": "Oregon Firearms Federation", "url": "https://www.oregonfirearms.org/feed/", "category": "state-legislative", "credibility": 8, "feed_type": "rss", "subcategory": "oregon"},
 
     # --- Washington ---
     {"name": "Washington Governor", "url": "https://governor.wa.gov/news/feed", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "washington"},
