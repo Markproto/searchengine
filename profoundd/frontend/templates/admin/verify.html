@@ -84,7 +84,6 @@
         <form method="POST" class="admin-form">
             <input type="hidden" name="step" value="publish">
             <input type="hidden" name="claim_text" value="{{ claim_text }}">
-            <input type="hidden" name="report" value="{{ result.report }}">
 
             <div class="form-group">
                 <label>Headline</label>
@@ -92,7 +91,11 @@
             </div>
             <div class="form-group">
                 <label>Summary</label>
-                <textarea name="summary" rows="3" class="form-control">{{ result.summary }}</textarea>
+                <textarea name="summary" rows="4" class="form-control">{{ result.summary }}</textarea>
+            </div>
+            <div class="form-group">
+                <label>Full Report (Markdown — edit before publishing)</label>
+                <textarea name="report" rows="30" class="form-control" style="font-family: 'SF Mono', 'Consolas', 'Monaco', monospace; font-size: 0.88rem; line-height: 1.7; white-space: pre-wrap; padding: 16px; min-height: 500px;">{{ result.report }}</textarea>
             </div>
             <div class="form-group">
                 <label>SEO Keywords</label>
@@ -132,6 +135,10 @@
 .verify-report li { margin-bottom: 6px; }
 .verify-report strong { color: var(--text); }
 .verify-report a { color: var(--accent); text-decoration: underline; }
+.verify-report em {
+    color: var(--text-secondary);
+    font-size: 0.85em;
+}
 .verify-report blockquote {
     border-left: 3px solid var(--accent);
     margin: 12px 0;

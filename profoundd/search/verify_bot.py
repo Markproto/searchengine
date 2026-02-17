@@ -19,15 +19,24 @@ def extract_search_queries(claim_text, api_key, model="claude-sonnet-4-5-2025092
 
         message = client.messages.create(
             model=model,
-            max_tokens=500,
+            max_tokens=800,
             messages=[{
                 "role": "user",
                 "content": (
                     "Extract the key factual claims from this post and generate 3-5 targeted "
                     "search queries that would help verify or refute them. Focus on specific "
                     "bill names, section numbers, agency names, and policy details.\n\n"
+                    "Also extract any specific references mentioned: bill section numbers, "
+                    "page numbers, URLs, agency names, law names (e.g. FIFRA), and named people.\n\n"
                     "Return ONLY valid JSON in this format:\n"
-                    '{"claims": ["claim 1", "claim 2"], "queries": ["query 1", "query 2"]}\n\n'
+                    '{"claims": ["claim 1", "claim 2"], '
+                    '"queries": ["query 1", "query 2"], '
+                    '"references": {"sections": ["10205", "10206"], '
+                    '"pages": ["685", "686"], '
+                    '"urls": ["https://..."], '
+                    '"laws": ["FIFRA"], '
+                    '"people": ["Lee Zeldin"], '
+                    '"bills": ["Farm Bill 2026"]}}\n\n'
                     f"Post:\n{claim_text[:3000]}"
                 ),
             }],
@@ -143,6 +152,23 @@ def generate_verification_story(claim_text, claims_data, evidence, api_key,
 
         claims_list = "\n".join(f"- {c}" for c in claims_data.get("claims", []))
 
+        # Build structured references section from extracted data
+        refs = claims_data.get("references", {})
+        ref_lines = []
+        if refs.get("sections"):
+            ref_lines.append(f"Sections referenced: {', '.join(refs['sections'])}")
+        if refs.get("pages"):
+            ref_lines.append(f"Pages referenced: {', '.join(refs['pages'])}")
+        if refs.get("bills"):
+            ref_lines.append(f"Bills mentioned: {', '.join(refs['bills'])}")
+        if refs.get("laws"):
+            ref_lines.append(f"Laws cited: {', '.join(refs['laws'])}")
+        if refs.get("people"):
+            ref_lines.append(f"People named: {', '.join(refs['people'])}")
+        if refs.get("urls"):
+            ref_lines.append(f"URLs provided: {', '.join(refs['urls'])}")
+        references_text = "\n".join(ref_lines) if ref_lines else "No specific references extracted."
+
         prompt = (
             "You are a senior editorial analyst for Profoundd, a non-partisan search engine. "
             "Your job is to verify legislative claims and present both sides fairly.\n\n"
@@ -169,16 +195,29 @@ def generate_verification_story(claim_text, claims_data, evidence, api_key,
             "- Acknowledge when evidence is incomplete or contested.\n"
             "- Use plain language, not academic jargon.\n"
             "- Include specific bill numbers, section numbers, and page references when available.\n"
-            "- If something cannot be verified from the evidence provided, say so clearly.\n\n"
+            "- If something cannot be verified from the evidence provided, say so clearly.\n"
+            "- CRITICAL: For EVERY talking point in sections 3, 4, and 5, you MUST include a "
+            "parenthetical reference citing exactly WHERE in the original post or bill text "
+            "the point is supported or contradicted. Use the format: "
+            "*(See: Section XXXX, page XXX of the bill)* or "
+            "*(Post claims: \"[exact quote]\")* or "
+            "*(Not addressed in the post)* if the post omits it. "
+            "Every single argument must be traceable back to a specific passage, section, "
+            "page number, or quote. If the claim references specific sections or pages, "
+            "cite those exact references. If a point is NOT in the original claim, "
+            "explicitly say so — e.g., *(Not mentioned in the post — this is additional context)*.\n\n"
             f"=== ORIGINAL POST ===\n{claim_text[:4000]}\n\n"
             f"=== KEY CLAIMS IDENTIFIED ===\n{claims_list}\n\n"
+            f"=== SPECIFIC REFERENCES FROM THE POST ===\n{references_text}\n\n"
             f"=== EVIDENCE FOUND ===\n{evidence_text}\n\n"
-            "Write the verification report now. Use markdown formatting."
+            "Write the verification report now. Use markdown formatting. "
+            "Remember: EVERY talking point MUST cite back to specific sections, pages, "
+            "or quotes from the original post."
         )
 
         message = client.messages.create(
             model=model,
-            max_tokens=4000,
+            max_tokens=6000,
             messages=[{"role": "user", "content": prompt}],
         )
 
