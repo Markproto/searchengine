@@ -311,6 +311,7 @@ class FeedCrawler:
             "published_at": published.isoformat(),
             "crawled_at": datetime.now(timezone.utc).isoformat(),
             "tags": tags,
+            "_feed_url": source.get("url", ""),
         }
 
     def crawl_source(self, source):
@@ -376,15 +377,19 @@ class FeedCrawler:
         Articles from YouTube feeds already live in their primary category
         (e.g. politics). This creates a duplicate with category='youtube'
         and a unique URL suffix so both copies coexist in ES.
+
+        Detection: checks article URL for youtube.com/watch or youtu.be,
+        AND the feed URL for youtube.com/feeds (catches Atom channel feeds).
         """
         copies = []
         for a in articles:
             url = a.get("url", "")
+            feed_url = a.get("_feed_url", "")
             if a.get("category") == "youtube":
                 continue  # already in youtube, skip
-            # Check if this article came from a YouTube feed
-            # YouTube video URLs look like https://www.youtube.com/watch?v=...
-            if "youtube.com/watch" in url or "youtu.be/" in url:
+            is_yt = ("youtube.com/watch" in url or "youtu.be/" in url
+                     or "youtube.com/feeds" in feed_url)
+            if is_yt:
                 copy = dict(a)
                 copy["category"] = "youtube"
                 copy["url"] = url + "#yt-section"
@@ -399,13 +404,19 @@ class FeedCrawler:
         Articles from Rumble feeds already live in their primary category
         (e.g. politics). This creates a duplicate with category='rumble'
         and a unique URL suffix so both copies coexist in ES.
+
+        Detection: checks article URL for rumble.com AND the feed URL
+        for openrss.org/rumble (catches OpenRSS-proxied Rumble feeds).
         """
         copies = []
         for a in articles:
             url = a.get("url", "")
+            feed_url = a.get("_feed_url", "")
             if a.get("category") == "rumble":
                 continue  # already in rumble, skip
-            if "rumble.com/" in url:
+            is_rumble = ("rumble.com/" in url
+                         or "rumble.com" in feed_url)
+            if is_rumble:
                 copy = dict(a)
                 copy["category"] = "rumble"
                 copy["url"] = url + "#rumble-section"

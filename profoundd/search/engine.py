@@ -231,7 +231,9 @@ class SearchEngine:
         for article in articles:
             doc_id = hashlib.md5(article.get("url", "").encode()).hexdigest()
             actions.append({"index": {"_index": self.index_name, "_id": doc_id}})
-            actions.append(article)
+            # Strip internal metadata fields (prefixed with _) before indexing
+            doc = {k: v for k, v in article.items() if not k.startswith("_")}
+            actions.append(doc)
 
         try:
             result = self.es.bulk(operations=actions, refresh=True)
