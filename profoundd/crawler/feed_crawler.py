@@ -369,6 +369,29 @@ class FeedCrawler:
                      self.stats["duplicate"])
         return articles
 
+    @staticmethod
+    def _make_youtube_copies(articles):
+        """Create copies of YouTube-sourced articles for the youtube category.
+
+        Articles from YouTube feeds already live in their primary category
+        (e.g. politics). This creates a duplicate with category='youtube'
+        and a unique URL suffix so both copies coexist in ES.
+        """
+        copies = []
+        for a in articles:
+            url = a.get("url", "")
+            if a.get("category") == "youtube":
+                continue  # already in youtube, skip
+            # Check if this article came from a YouTube feed
+            # YouTube video URLs look like https://www.youtube.com/watch?v=...
+            if "youtube.com/watch" in url or "youtu.be/" in url:
+                copy = dict(a)
+                copy["category"] = "youtube"
+                copy["url"] = url + "#yt-section"
+                copy.pop("subcategory", None)
+                copies.append(copy)
+        return copies
+
     def crawl_category(self, category):
         """Crawl all sources in a specific category."""
         sources = [s for s in ALL_SOURCES if s["category"] == category]
@@ -383,6 +406,12 @@ class FeedCrawler:
         if all_articles:
             indexed = self.search_engine.bulk_index(all_articles)
             logger.info("Category '%s': indexed %d articles", category, indexed)
+
+            # Cross-post YouTube articles into the youtube category
+            yt_copies = self._make_youtube_copies(all_articles)
+            if yt_copies:
+                yt_indexed = self.search_engine.bulk_index(yt_copies)
+                logger.info("YouTube cross-post from '%s': indexed %d copies", category, yt_indexed)
 
         return all_articles
 
@@ -400,6 +429,13 @@ class FeedCrawler:
         # Bulk index everything
         if total_articles:
             indexed = self.search_engine.bulk_index(total_articles)
+
+            # Cross-post YouTube articles into the 'youtube' category
+            yt_copies = self._make_youtube_copies(total_articles)
+            if yt_copies:
+                yt_indexed = self.search_engine.bulk_index(yt_copies)
+                logger.info("YouTube cross-post: indexed %d copies", yt_indexed)
+
             duration = time() - start_time
             logger.info("Full crawl complete in %.1fs: indexed %d/%d articles (dupes: %d, full-text: %d, errors: %d)",
                          duration, indexed, len(total_articles),
@@ -431,6 +467,13 @@ class FeedCrawler:
 
         if all_articles:
             indexed = self.search_engine.bulk_index(all_articles)
+
+            # Cross-post YouTube articles into youtube category
+            yt_copies = self._make_youtube_copies(all_articles)
+            if yt_copies:
+                yt_indexed = self.search_engine.bulk_index(yt_copies)
+                logger.info("YouTube cross-post (custom): indexed %d copies", yt_indexed)
+
             logger.info("Custom crawl: indexed %d new articles (found %d, dupes %d, full-text %d, errors %d)",
                         indexed, self.stats["found"], self.stats["duplicate"],
                         self.stats.get("full_text", 0), self.stats["errors"])

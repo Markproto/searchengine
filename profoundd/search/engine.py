@@ -569,6 +569,40 @@ class SearchEngine:
         return result[:limit]
 
     @staticmethod
+    def _ensure_credibility_floor(articles, size):
+        """Ensure at least half the trending articles come from credibility 8+ sources.
+
+        Splits articles into high-cred (8+) and lower-cred buckets, then
+        interleaves: takes from high-cred first to fill at least half the
+        slots, then fills the rest from lower-cred, preserving original order.
+        """
+        if not articles:
+            return articles
+
+        min_high = (size + 1) // 2  # at least half (rounded up)
+        high = [a for a in articles if (a.get("source_credibility") or 5) >= 8]
+        low = [a for a in articles if (a.get("source_credibility") or 5) < 8]
+
+        # Already meets the floor?
+        if len(high) >= min_high:
+            return articles[:size]
+
+        # Not enough high-cred articles exist — just return what we have
+        if len(high) < min_high and len(high) + len(low) <= size:
+            return articles[:size]
+
+        # Rebuild: take min_high from high, fill rest from low
+        result = high[:min_high]
+        remaining_slots = size - len(result)
+        result.extend(low[:remaining_slots])
+
+        # If we still have room and more high-cred articles, add them
+        if len(result) < size:
+            result.extend(high[min_high:size - len(result) + min_high])
+
+        return result[:size]
+
+    @staticmethod
     def _apply_admin_boost_reorder(articles):
         """
         Final pass: shift articles up/down based on admin_boost.
@@ -778,6 +812,9 @@ class SearchEngine:
 
             # Diversify: cap per-source articles so no single source dominates
             articles = self._diversify_by_source(articles, size)
+
+            # Credibility floor: ensure at least half come from 8+ rated sources
+            articles = self._ensure_credibility_floor(articles, size)
 
             # Enforce sub-topic guarantees for this category
             if category and category in self.CATEGORY_SUBTOPIC_GUARANTEES:

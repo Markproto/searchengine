@@ -137,6 +137,7 @@ POLITICS_SOURCES = [
     {"name": "Joe Rogan Experience", "url": "https://feeds.megaphone.fm/GLT1412515089", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Redacted", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCoJhK5kMc4LjBKdiYrDtzlA", "category": "politics", "credibility": 8, "feed_type": "atom"},
     {"name": "Robert F. Kennedy Jr.", "url": "https://robertfkennedyjr.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
+    {"name": "Nick Shirley", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC2Uioh1tYQkNuHLSBpzdfCg", "category": "politics", "credibility": 8, "feed_type": "atom"},
     {"name": "Ian Miles Cheong", "url": "https://stillgray.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Ian Miles Cheong (Midnight Directive)", "url": "https://midnightdirective.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Ian Carroll", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCXN75hqjDGF0sKsCRoAZ6fz", "category": "politics", "credibility": 8, "feed_type": "atom"},
@@ -373,6 +374,12 @@ CATEGORIES = {
             "research": {"label": "CRS & CBO Analysis", "description": "Congressional Research Service & budget analysis"},
             "budget": {"label": "Budget & Economy", "description": "Federal budget documents & economic indicators"},
         },
+    },
+    "youtube": {
+        "label": "YouTube",
+        "description": "Video Content from YouTube Creators",
+        "icon": "youtube",
+        "color": "#FF0000",
     },
     "state-legislative": {
         "label": "State Watch",
