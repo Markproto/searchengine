@@ -156,8 +156,9 @@ def search_for_evidence(queries, search_engine, congress_api_key=None,
         "profoundd_results": [],
         "congress_results": [],
         "federal_register_results": [],
-        "bill_text": [],        # Actual bill text excerpts
-        "fetched_documents": [], # Content from URLs in the claim
+        "bill_text": [],          # Actual bill text excerpts
+        "fetched_documents": [],  # Content from URLs in the claim
+        "uploaded_documents": [], # User-uploaded bill PDFs/text
     }
     references = references or {}
 
@@ -310,6 +311,12 @@ def generate_verification_story(claim_text, claims_data, evidence, api_key,
             fetched_docs_section += f"\n--- {item['title']} ---\n"
             fetched_docs_section += item["content"][:8000] + "\n"
 
+        # User-uploaded bill documents — highest priority evidence
+        uploaded_docs_section = ""
+        for item in evidence.get("uploaded_documents", []):
+            uploaded_docs_section += f"\n--- {item['title']} ---\n"
+            uploaded_docs_section += item["content"][:15000] + "\n"
+
         claims_list = "\n".join(f"- {c}" for c in claims_data.get("claims", []))
 
         # Build structured references section from extracted data
@@ -370,8 +377,9 @@ def generate_verification_story(claim_text, claims_data, evidence, api_key,
             f"=== KEY CLAIMS IDENTIFIED ===\n{claims_list}\n\n"
             f"=== SPECIFIC REFERENCES FROM THE POST ===\n{references_text}\n\n"
             f"=== EVIDENCE FOUND (metadata) ===\n{evidence_text}\n\n"
+            + (f"=== UPLOADED BILL DOCUMENT (PRIMARY SOURCE) ===\n{uploaded_docs_section}\n\n" if uploaded_docs_section else "")
             + (f"=== ACTUAL BILL TEXT / CRS SUMMARIES ===\n{bill_text_section}\n\n" if bill_text_section else
-               "=== ACTUAL BILL TEXT ===\n[No bill text could be retrieved from Congress.gov]\n\n")
+               ("" if uploaded_docs_section else "=== ACTUAL BILL TEXT ===\n[No bill text could be retrieved from Congress.gov]\n\n"))
             + (f"=== FETCHED DOCUMENTS FROM REFERENCED URLS ===\n{fetched_docs_section}\n\n" if fetched_docs_section else "")
             + "Write the verification report now. Use markdown formatting. "
             "Remember: EVERY talking point MUST cite back to specific sections, pages, "

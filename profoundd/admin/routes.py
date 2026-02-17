@@ -1639,9 +1639,10 @@ def recategorize_sections():
 @admin_bp.route("/verify", methods=["GET", "POST"])
 @login_required
 def verify_claim():
-    """Verification Bot: analyze a claim from dual perspectives and publish."""
+    """Victor the Verifier: analyze a claim from dual perspectives and publish."""
     from profoundd.search.verify_bot import (
         extract_search_queries, search_for_evidence, generate_verification_story,
+        fetch_url_content, _extract_pdf_text,
     )
     from profoundd.search.newsroom_bob import make_slug
 
@@ -1673,6 +1674,36 @@ def verify_claim():
                 congress_api_key=congress_key,
                 references=claims_data.get("references", {}),
             )
+
+            # Step 2b: Handle uploaded bill document
+            bill_file = request.files.get("bill_file")
+            if bill_file and bill_file.filename:
+                filename = bill_file.filename.lower()
+                file_bytes = bill_file.read()
+                uploaded_text = ""
+
+                if filename.endswith(".pdf"):
+                    uploaded_text = _extract_pdf_text(file_bytes, max_chars=20000)
+                elif filename.endswith((".txt", ".html", ".htm", ".xml")):
+                    raw = file_bytes.decode("utf-8", errors="replace")
+                    if filename.endswith((".html", ".htm", ".xml")):
+                        from bs4 import BeautifulSoup
+                        soup = BeautifulSoup(raw[:500000], "lxml")
+                        for tag in soup(["script", "style", "meta", "link"]):
+                            tag.decompose()
+                        uploaded_text = soup.get_text(separator="\n", strip=True)
+                    else:
+                        uploaded_text = raw
+                    if len(uploaded_text) > 20000:
+                        uploaded_text = uploaded_text[:20000] + "\n... [truncated]"
+
+                if uploaded_text and uploaded_text.strip():
+                    if "uploaded_documents" not in evidence:
+                        evidence["uploaded_documents"] = []
+                    evidence["uploaded_documents"].append({
+                        "title": f"Uploaded: {bill_file.filename}",
+                        "content": uploaded_text,
+                    })
 
             # Step 3: Generate verification story
             result, error = generate_verification_story(
@@ -1730,7 +1761,7 @@ def verify_claim():
                 category="legislative",
                 source_article_url=f"profoundd://verify/{slug}",
                 source_article_title=headline,
-                source_name="Profoundd Verification Bot",
+                source_name="Victor the Verifier",
             )
             db.session.add(story)
             db.session.commit()

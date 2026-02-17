@@ -1,22 +1,38 @@
 {% extends "base.html" %}
-{% block title %}Verification Bot{% endblock %}
+{% block title %}Victor the Verifier{% endblock %}
 
 {% block content %}
 <div class="container admin-page">
     <div class="admin-header">
-        <h1>Verification Bot</h1>
+        <h1>
+            <svg class="victor-seal" viewBox="0 0 100 100" width="36" height="36" style="vertical-align: middle; margin-right: 8px;">
+                <circle cx="50" cy="50" r="48" fill="none" stroke="var(--accent)" stroke-width="3"/>
+                <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+                <circle cx="50" cy="50" r="36" fill="none" stroke="var(--accent)" stroke-width="0.8" stroke-dasharray="4 3"/>
+                <text x="50" y="38" text-anchor="middle" font-size="9" font-weight="700" fill="var(--accent)" font-family="serif">SIGILLVM</text>
+                <text x="50" y="58" text-anchor="middle" font-size="18" font-weight="700" fill="var(--accent)" font-family="serif">V</text>
+                <text x="50" y="72" text-anchor="middle" font-size="7" font-weight="600" fill="var(--accent)" font-family="serif">VERITAS</text>
+                <!-- Decorative notches around edge (like a wax seal) -->
+                {% for i in range(24) %}
+                <line x1="50" y1="2" x2="50" y2="7" stroke="var(--accent)" stroke-width="1.5"
+                      transform="rotate({{ i * 15 }}, 50, 50)" opacity="0.5"/>
+                {% endfor %}
+            </svg>
+            Victor the Verifier
+        </h1>
         <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
     </div>
 
     <p class="action-desc" style="margin-bottom: 20px;">
-        Paste a social media post or claim about legislation. The bot will search Congress.gov,
-        Federal Register, and Profoundd's index for evidence, then produce a balanced analysis
-        showing both conservative and progressive perspectives.
+        Paste a social media post or claim about legislation. Victor searches Congress.gov,
+        Federal Register, and Profoundd's index for evidence, then produces a balanced analysis
+        showing both conservative and progressive perspectives. Upload the actual bill PDF
+        for the most accurate verification.
     </p>
 
     {% if not result %}
     {# --- Step 1: Input the claim --- #}
-    <form method="POST" class="admin-form">
+    <form method="POST" class="admin-form" enctype="multipart/form-data">
         <input type="hidden" name="step" value="analyze">
         <div class="form-group">
             <label>Claim or Post to Verify</label>
@@ -25,14 +41,43 @@
                       style="font-size: 0.9rem; line-height: 1.6;">{{ claim_text }}</textarea>
         </div>
 
+        <div class="form-group">
+            <label>Upload Bill Document (optional — PDF or text file)</label>
+            <div class="upload-area" id="uploadArea">
+                <input type="file" name="bill_file" id="billFile" accept=".pdf,.txt,.html,.htm,.xml"
+                       style="display: none;" onchange="showFileName(this)">
+                <label for="billFile" class="upload-label">
+                    <svg viewBox="0 0 100 100" width="28" height="28" style="margin-right: 8px; vertical-align: middle;">
+                        <circle cx="50" cy="50" r="48" fill="none" stroke="var(--text-secondary)" stroke-width="2"/>
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--text-secondary)" stroke-width="1" stroke-dasharray="4 3"/>
+                        <text x="50" y="42" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-secondary)" font-family="serif">BILL</text>
+                        <text x="50" y="62" text-anchor="middle" font-size="8" fill="var(--text-secondary)" font-family="serif">TEXT</text>
+                    </svg>
+                    <span id="uploadText">Click to upload bill PDF or drag &amp; drop</span>
+                </label>
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 6px;">
+                    Accepts PDF, TXT, HTML, XML. Victor will read the document to verify specific sections and language.
+                </p>
+            </div>
+        </div>
+
         {% if not has_ai_key %}
         <div class="flash-message flash-error" style="margin-bottom: 16px;">
             No AI API key configured. <a href="{{ url_for('admin.ai_settings') }}">Configure in AI Settings</a>.
         </div>
         {% endif %}
 
-        <button type="submit" class="btn btn-primary" {% if not has_ai_key %}disabled{% endif %}>
-            Analyze &amp; Verify
+        <button type="submit" class="btn btn-primary victor-btn" {% if not has_ai_key %}disabled{% endif %}>
+            <svg class="victor-seal" viewBox="0 0 100 100" width="22" height="22" style="vertical-align: middle; margin-right: 6px;">
+                <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" stroke-width="3"/>
+                <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <text x="50" y="58" text-anchor="middle" font-size="22" font-weight="700" fill="currentColor" font-family="serif">V</text>
+                {% for i in range(24) %}
+                <line x1="50" y1="2" x2="50" y2="6" stroke="currentColor" stroke-width="1.5"
+                      transform="rotate({{ i * 15 }}, 50, 50)" opacity="0.5"/>
+                {% endfor %}
+            </svg>
+            Verify with Victor
         </button>
     </form>
 
@@ -64,6 +109,11 @@
             {% if evidence.fetched_documents %}
             <span style="font-size: 0.75rem; padding: 4px 10px; background: #6a4c93; color: #fff; border-radius: 4px;">
                 Referenced Docs Fetched: {{ evidence.fetched_documents|length }}
+            </span>
+            {% endif %}
+            {% if evidence.uploaded_documents %}
+            <span style="font-size: 0.75rem; padding: 4px 10px; background: #b8860b; color: #fff; border-radius: 4px;">
+                Uploaded Bill: {{ evidence.uploaded_documents|length }}
             </span>
             {% endif %}
         </div>
@@ -130,6 +180,28 @@
 </div>
 
 <style>
+.victor-btn {
+    font-size: 1rem;
+    padding: 10px 24px;
+}
+.upload-area {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    transition: border-color 0.2s;
+}
+.upload-area:hover {
+    border-color: var(--accent);
+}
+.upload-label {
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+.upload-label:hover {
+    color: var(--accent);
+}
 .verify-report h1, .verify-report h2, .verify-report h3 {
     margin-top: 20px;
     margin-bottom: 8px;
@@ -157,4 +229,28 @@
     border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 </style>
+
+<script>
+function showFileName(input) {
+    var text = document.getElementById('uploadText');
+    if (input.files && input.files[0]) {
+        text.textContent = input.files[0].name + ' (' + (input.files[0].size / 1024).toFixed(0) + ' KB)';
+        text.style.color = 'var(--accent)';
+        text.style.fontWeight = '600';
+    }
+}
+// Drag and drop
+var area = document.getElementById('uploadArea');
+if (area) {
+    area.addEventListener('dragover', function(e) { e.preventDefault(); area.style.borderColor = 'var(--accent)'; });
+    area.addEventListener('dragleave', function() { area.style.borderColor = 'var(--border)'; });
+    area.addEventListener('drop', function(e) {
+        e.preventDefault();
+        area.style.borderColor = 'var(--border)';
+        var fileInput = document.getElementById('billFile');
+        fileInput.files = e.dataTransfer.files;
+        showFileName(fileInput);
+    });
+}
+</script>
 {% endblock %}
