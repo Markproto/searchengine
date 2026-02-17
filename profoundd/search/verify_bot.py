@@ -161,11 +161,11 @@ def search_for_evidence(queries, search_engine, congress_api_key=None,
     }
     references = references or {}
 
-    for query in queries[:3]:
+    for query in queries[:5]:
         # Search our own index
         try:
             results = search_engine.search(
-                query=query, category="legislative", page=1, per_page=3, sort_by="relevance",
+                query=query, category="legislative", page=1, per_page=5, sort_by="relevance",
             )
             for article in results.get("articles", []):
                 evidence["profoundd_results"].append({
@@ -181,7 +181,7 @@ def search_for_evidence(queries, search_engine, congress_api_key=None,
         # Congress.gov API
         if congress_api_key:
             try:
-                results = fetch_congress_gov(query, api_key=congress_api_key, max_results=2)
+                results = fetch_congress_gov(query, api_key=congress_api_key, max_results=3)
                 for r in results:
                     evidence["congress_results"].append({
                         "title": r["title"],
@@ -198,7 +198,7 @@ def search_for_evidence(queries, search_engine, congress_api_key=None,
 
         # Federal Register (no key needed)
         try:
-            results = fetch_federal_register(query, max_results=2)
+            results = fetch_federal_register(query, max_results=3)
             for r in results:
                 evidence["federal_register_results"].append({
                     "title": r["title"],
@@ -220,13 +220,19 @@ def search_for_evidence(queries, search_engine, congress_api_key=None,
                 unique.append(item)
         evidence[key] = unique
 
-    # --- Fetch actual bill text from Congress.gov (limit to 1 bill to stay within timeout) ---
+    # --- Fetch actual bill text from Congress.gov ---
     if congress_api_key and evidence["congress_results"]:
-        for result in evidence["congress_results"][:1]:
+        fetched_bills = set()
+        for result in evidence["congress_results"][:3]:
             bill_type = result.get("_bill_type", "")
             bill_number = result.get("_bill_number", "")
             congress = result.get("_congress", "")
             if bill_type and bill_number and congress:
+                bill_key = f"{congress}-{bill_type}-{bill_number}"
+                if bill_key in fetched_bills:
+                    continue
+                fetched_bills.add(bill_key)
+
                 # Get CRS summary (fast, small response)
                 summary = fetch_bill_summary(congress, bill_type, bill_number, congress_api_key)
                 if summary:
@@ -247,11 +253,14 @@ def search_for_evidence(queries, search_engine, congress_api_key=None,
                         "type": "full_text",
                     })
 
-    # --- Fetch content from first URL referenced in the claim ---
+    # --- Fetch content from URLs referenced in the claim ---
     ref_urls = references.get("urls", [])
     if ref_urls:
-        url = ref_urls[0]
-        if "..." not in url:
+        fetched_urls = set()
+        for url in ref_urls[:3]:
+            if url in fetched_urls or "..." in url:
+                continue
+            fetched_urls.add(url)
             logger.info("Fetching referenced URL: %s", url)
             content = fetch_url_content(url)
             if content and content.strip():
