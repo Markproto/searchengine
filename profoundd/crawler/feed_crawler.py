@@ -45,6 +45,9 @@ class FeedCrawler:
     # Minimum content length (chars) before we try full-text extraction
     MIN_CONTENT_LENGTH = 200
 
+    # Extra delay (seconds) for rate-limited third-party proxies like OpenRSS
+    OPENRSS_DELAY = 10
+
     def __init__(self, search_engine=None, db_session=None):
         self.search_engine = search_engine or SearchEngine(config.ELASTICSEARCH_URL)
         self.db_session = db_session
@@ -314,6 +317,17 @@ class FeedCrawler:
             "_feed_url": source.get("url", ""),
         }
 
+    def _delay_for(self, source):
+        """Return the appropriate delay for a source.
+
+        OpenRSS feeds (used for Rumble) are rate-limited aggressively,
+        so we use a longer pause between those requests.
+        """
+        url = source.get("url", "") if isinstance(source, dict) else getattr(source, "url", "")
+        if "openrss.org" in url:
+            return self.OPENRSS_DELAY
+        return self.delay
+
     def crawl_source(self, source):
         """Crawl a single source and return deduplicated articles."""
         logger.info("Crawling: %s (%s)", source["name"], source["category"])
@@ -432,7 +446,7 @@ class FeedCrawler:
         for source in sources:
             articles = self.crawl_source(source)
             all_articles.extend(articles)
-            sleep(self.delay)  # Be polite
+            sleep(self._delay_for(source))
 
         # Bulk index
         if all_articles:
@@ -462,7 +476,7 @@ class FeedCrawler:
         for source in ALL_SOURCES:
             articles = self.crawl_source(source)
             total_articles.extend(articles)
-            sleep(self.delay)
+            sleep(self._delay_for(source))
 
         # Bulk index everything
         if total_articles:
@@ -507,7 +521,7 @@ class FeedCrawler:
             }
             articles = self.crawl_source(source_dict)
             all_articles.extend(articles)
-            sleep(self.delay)
+            sleep(self._delay_for(source_dict))
 
         if all_articles:
             indexed = self.search_engine.bulk_index(all_articles)

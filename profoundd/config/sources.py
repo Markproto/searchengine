@@ -124,7 +124,6 @@ POLITICS_SOURCES = [
     {"name": "ProPublica", "url": "https://www.propublica.org/feeds/propublica/main", "category": "politics", "credibility": 7, "feed_type": "rss"},
     {"name": "Brookings", "url": "https://www.brookings.edu/feed/", "category": "politics", "credibility": 7, "feed_type": "rss"},
     {"name": "RAND", "url": "https://www.rand.org/content/rand/blog.rss", "category": "politics", "credibility": 7, "feed_type": "rss"},
-    {"name": "CRS Reports", "url": "https://crsreports.congress.gov/rss/reports", "category": "politics", "credibility": 7, "feed_type": "rss"},
 
     # --- Independent Commentary / Podcasts ---
     {"name": "Candace (Podcast)", "url": "https://feeds.megaphone.fm/candace", "category": "politics", "credibility": 8, "feed_type": "rss"},
@@ -228,26 +227,17 @@ LEGISLATIVE_SOURCES = [
     {"name": "Economic Indicators", "url": "https://www.govinfo.gov/rss/econi.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "budget"},
 
     # --- CRS & CBO ---
-    {"name": "CRS Reports", "url": "https://crsreports.congress.gov/rss/reports", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "research"},
     {"name": "CBO Cost Estimates", "url": "https://www.cbo.gov/rss/119congress-cost-estimates.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "research"},
 
     # --- Executive Branch ---
     {"name": "White House Presidential Actions", "url": "https://www.whitehouse.gov/presidential-actions/feed/", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "executive-orders"},
 
-    # --- House Clerk ---
-    {"name": "House Floor Proceedings", "url": "https://clerk.house.gov/FloorSummary/HDoc-116-Res-891.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "house"},
-
     # --- Committee-Specific Feeds ---
-    {"name": "House Agriculture Committee", "url": "https://agriculture.house.gov/rss.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "hearings"},
-    {"name": "Senate Agriculture Committee", "url": "https://www.agriculture.senate.gov/rss/feeds/", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "hearings"},
     {"name": "House Judiciary Committee", "url": "https://judiciary.house.gov/rss.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "hearings"},
-    {"name": "Senate Judiciary Committee", "url": "https://www.judiciary.senate.gov/rss/feeds/", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "hearings"},
     {"name": "House Appropriations Committee", "url": "https://appropriations.house.gov/rss.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "hearings"},
-    {"name": "House Energy & Commerce Committee", "url": "https://energycommerce.house.gov/rss.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "hearings"},
 
     # --- EPA / Regulatory Agencies ---
     {"name": "EPA News Releases", "url": "https://www.epa.gov/newsreleases/search/rss", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "regulations"},
-    {"name": "USDA Press Releases", "url": "https://www.usda.gov/rss/press-releases.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "regulations"},
 ]
 
 STATE_LEGISLATIVE_SOURCES = [
@@ -255,24 +245,16 @@ STATE_LEGISLATIVE_SOURCES = [
     {"name": "Oregon Governor", "url": "https://www.oregon.gov/newsroom/Pages/rss.aspx", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "oregon"},
     {"name": "My Oregon (Governor's Blog)", "url": "https://www.myoregon.gov/feed/", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "oregon"},
     {"name": "Oregon Legislature Press", "url": "https://www.myoregon.gov/category/press-releases/feed/", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "oregon"},
-    {"name": "Oregon Secretary of State", "url": "https://sos.oregon.gov/Pages/rss.aspx", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "oregon"},
-    {"name": "Oregon DOJ", "url": "https://www.doj.state.or.us/media-home/news-media-releases/feed/", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "oregon"},
     {"name": "Oregon Firearms Federation", "url": "https://www.oregonfirearms.org/feed/", "category": "state-legislative", "credibility": 8, "feed_type": "rss", "subcategory": "oregon"},
     {"name": "Oregonians for Medical Freedom", "url": "https://www.oregoniansformedicalfreedom.com/feed/", "category": "state-legislative", "credibility": 8, "feed_type": "rss", "subcategory": "oregon"},
 
     # --- Washington ---
-    {"name": "Washington Governor", "url": "https://governor.wa.gov/news/feed", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "washington"},
     {"name": "Washington AG", "url": "https://www.atg.wa.gov/rss.xml", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "washington"},
-    {"name": "WA Secretary of State", "url": "https://www.sos.wa.gov/office/news-releases.aspx#/rss", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "washington"},
-    {"name": "Washington Legislature", "url": "https://lawfilesext.leg.wa.gov/Biennium/2025-26/Xml/Digests/Digests.rss", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "washington"},
-    {"name": "WA Dept of Ecology", "url": "https://ecology.wa.gov/about-us/get-to-know-us/news/rss", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "washington"},
 
     # --- California ---
     {"name": "California Governor", "url": "https://www.gov.ca.gov/category/press-releases/feed/", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "california"},
     {"name": "CA Legislative Analyst", "url": "https://lao.ca.gov/RSS", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "california"},
-    {"name": "CA Secretary of State", "url": "https://www.sos.ca.gov/administration/news-releases-and-advisories/rss", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "california"},
     {"name": "CA Attorney General", "url": "https://oag.ca.gov/news/feed", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "california"},
-    {"name": "CA Dept of Finance", "url": "https://dof.ca.gov/feed/", "category": "state-legislative", "credibility": 7, "feed_type": "rss", "subcategory": "california"},
 ]
 
 ADVOCACY_SOURCES = [
@@ -280,25 +262,15 @@ ADVOCACY_SOURCES = [
     {"name": "NRA-ILA", "url": "https://www.nraila.org/ilarss.aspx", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
     {"name": "Gun Owners of America", "url": "https://www.gunowners.org/feed/", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
     {"name": "Second Amendment Foundation", "url": "https://saf.org/feed/", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
-    {"name": "Firearms Policy Coalition", "url": "https://www.firearmspolicy.org/news?feed=rss2", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
 
     # --- Federal Think Tanks / Limited Government ---
     {"name": "Heritage Foundation", "url": "https://www.heritage.org/rss", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "research"},
     {"name": "Judicial Watch", "url": "https://www.judicialwatch.org/feed/", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "research"},
     {"name": "Claremont Institute", "url": "https://claremontinstitute.substack.com/feed", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "research"},
 
-    # --- Federal Religious Liberty ---
-    {"name": "Alliance Defending Freedom", "url": "https://adflegal.org/feed/", "category": "legal", "credibility": 8, "feed_type": "rss"},
-    {"name": "First Liberty Institute", "url": "https://firstliberty.org/feed/", "category": "legal", "credibility": 8, "feed_type": "rss"},
-
     # --- Federal Pro-Life / Family ---
     {"name": "Focus on the Family", "url": "https://dailycitizen.focusonthefamily.com/feed/", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
     {"name": "Students for Life", "url": "https://studentsforlife.org/feed/", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
-
-    # --- Federal Immigration ---
-    {"name": "Center for Immigration Studies", "url": "https://cis.org/RSS", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
-    {"name": "NumbersUSA", "url": "https://www.numbersusa.com/content/rss.xml", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
-    {"name": "FAIR", "url": "https://www.fairus.org/feed/", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
 
     # --- Free Speech ---
     {"name": "FIRE", "url": "https://www.thefire.org/feed/", "category": "legal", "credibility": 7, "feed_type": "rss"},
