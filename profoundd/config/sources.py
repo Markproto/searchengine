@@ -227,10 +227,14 @@ LEGISLATIVE_SOURCES = [
     {"name": "Economic Indicators", "url": "https://www.govinfo.gov/rss/econi.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "budget"},
 
     # --- CRS & CBO ---
+    {"name": "EveryCRSReport", "url": "https://www.everycrsreport.com/rss.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "research"},
     {"name": "CBO Cost Estimates", "url": "https://www.cbo.gov/rss/119congress-cost-estimates.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "research"},
 
     # --- Executive Branch ---
     {"name": "White House Presidential Actions", "url": "https://www.whitehouse.gov/presidential-actions/feed/", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "executive-orders"},
+
+    # --- House Clerk ---
+    {"name": "House Floor Proceedings", "url": "https://clerk.house.gov/floor/HDoc-119-2-FloorProceedings.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "house"},
 
     # --- Committee-Specific Feeds ---
     {"name": "House Judiciary Committee", "url": "https://judiciary.house.gov/rss.xml", "category": "legislative", "credibility": 7, "feed_type": "rss", "subcategory": "hearings"},
@@ -262,6 +266,7 @@ ADVOCACY_SOURCES = [
     {"name": "NRA-ILA", "url": "https://www.nraila.org/ilarss.aspx", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
     {"name": "Gun Owners of America", "url": "https://www.gunowners.org/feed/", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
     {"name": "Second Amendment Foundation", "url": "https://saf.org/feed/", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
+    {"name": "Firearms Policy Coalition", "url": "https://www.firearmspolicy.org/news?format=rss", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
 
     # --- Federal Think Tanks / Limited Government ---
     {"name": "Heritage Foundation", "url": "https://www.heritage.org/rss", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "research"},
@@ -271,6 +276,15 @@ ADVOCACY_SOURCES = [
     # --- Federal Pro-Life / Family ---
     {"name": "Focus on the Family", "url": "https://dailycitizen.focusonthefamily.com/feed/", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
     {"name": "Students for Life", "url": "https://studentsforlife.org/feed/", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
+
+    # --- Federal Religious Liberty (via OpenRSS) ---
+    {"name": "Alliance Defending Freedom", "url": "https://openrss.org/adflegal.org/media", "category": "legal", "credibility": 8, "feed_type": "rss"},
+    {"name": "First Liberty Institute", "url": "https://openrss.org/firstliberty.org/news", "category": "legal", "credibility": 8, "feed_type": "rss"},
+
+    # --- Federal Immigration ---
+    {"name": "Center for Immigration Studies", "url": "https://cis.org/blog/feed", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
+    {"name": "FAIR", "url": "https://immigrationreform.com/feed", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
+    {"name": "NumbersUSA", "url": "https://openrss.org/www.numbersusa.com/blog", "category": "legislative", "credibility": 8, "feed_type": "rss", "subcategory": "regulations"},
 
     # --- Free Speech ---
     {"name": "FIRE", "url": "https://www.thefire.org/feed/", "category": "legal", "credibility": 7, "feed_type": "rss"},
