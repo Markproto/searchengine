@@ -79,39 +79,44 @@ def _parse_bob_response(text):
         "image_search": "",
     }
 
-    # Parse multi-line BODY section specially
+    # Section markers — Claude sometimes wraps them in Markdown bold (**BODY:**)
+    # or uses ## headers. Strip those before checking.
+    _section_re = re.compile(r'^[*#\s]*(HEADLINE|SUMMARY|BODY|SEO_KEYWORDS|SEO_DESCRIPTION|IMAGE_SEARCH)[*#\s]*:\s*', re.IGNORECASE)
+
     lines = text.strip().split("\n")
     current_field = None
     body_lines = []
 
     for line in lines:
         stripped = line.strip()
+        m = _section_re.match(stripped)
 
-        if stripped.startswith("HEADLINE:"):
-            current_field = "headline"
-            result["headline"] = stripped[9:].strip()
-        elif stripped.startswith("SUMMARY:"):
-            current_field = "summary"
-            result["summary"] = stripped[8:].strip()
-        elif stripped.startswith("BODY:"):
-            current_field = "body"
-            rest = stripped[5:].strip()
-            if rest:
-                body_lines.append(rest)
-        elif stripped.startswith("SEO_KEYWORDS:"):
-            current_field = "seo_keywords"
-            result["seo_keywords"] = stripped[13:].strip()
-        elif stripped.startswith("SEO_DESCRIPTION:"):
-            current_field = "seo_description"
-            result["seo_description"] = stripped[16:].strip()
-        elif stripped.startswith("IMAGE_SEARCH:"):
-            current_field = "image_search"
-            result["image_search"] = stripped[13:].strip()
+        if m:
+            field = m.group(1).upper()
+            rest = stripped[m.end():].strip()
+
+            if field == "HEADLINE":
+                current_field = "headline"
+                result["headline"] = rest
+            elif field == "SUMMARY":
+                current_field = "summary"
+                result["summary"] = rest
+            elif field == "BODY":
+                current_field = "body"
+                if rest:
+                    body_lines.append(rest)
+            elif field == "SEO_KEYWORDS":
+                current_field = "seo_keywords"
+                result["seo_keywords"] = rest
+            elif field == "SEO_DESCRIPTION":
+                current_field = "seo_description"
+                result["seo_description"] = rest
+            elif field == "IMAGE_SEARCH":
+                current_field = "image_search"
+                result["image_search"] = rest
         elif current_field == "body":
             body_lines.append(line)
-        elif current_field == "summary" and not any(
-            stripped.startswith(k) for k in ["BODY:", "SEO_KEYWORDS:", "SEO_DESCRIPTION:", "IMAGE_SEARCH:"]
-        ):
+        elif current_field == "summary":
             result["summary"] += " " + stripped
 
     result["body"] = "\n".join(body_lines).strip()
