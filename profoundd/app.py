@@ -508,20 +508,33 @@ def create_app(config_override=None):
         clean = []
         for a in articles:
             url = a.get("url", "")
+            is_newsroom = url.startswith("profoundd://bob/")
             # Convert internal profoundd:// URLs to real HTTP links
-            if url.startswith("profoundd://bob/"):
+            if is_newsroom:
                 slug = url.replace("profoundd://bob/", "").split("/")[-1]
                 url = f"https://{domain}/newsroom/{slug}"
             clean.append({
                 "title": a.get("title", ""),
                 "summary": a.get("summary", ""),
                 "url": url,
-                "source_name": a.get("source_name", ""),
+                "source_name": "Profoundd NewsRoom" if is_newsroom else a.get("source_name", ""),
+                "source_url": a.get("source_article_url", "") if is_newsroom else "",
                 "source_credibility": a.get("source_credibility", 5),
                 "category": a.get("category", ""),
                 "published_at": a.get("published_at", ""),
                 "image_url": a.get("image_url", ""),
+                "is_newsroom": is_newsroom,
             })
+
+        # NewsRoom stories lead the feed, then everything else by date
+        clean.sort(key=lambda a: (not a["is_newsroom"], a.get("published_at", "")),
+                   reverse=False)
+        # Within each group (newsroom / non-newsroom), sort newest first
+        newsroom = [a for a in clean if a["is_newsroom"]]
+        others = [a for a in clean if not a["is_newsroom"]]
+        newsroom.sort(key=lambda a: a.get("published_at", ""), reverse=True)
+        others.sort(key=lambda a: a.get("published_at", ""), reverse=True)
+        clean = newsroom + others
 
         if fmt == "rss":
             return _build_rss_feed(topic, topic_config["label"], clean)
@@ -540,20 +553,23 @@ def create_app(config_override=None):
         items = []
         for a in articles:
             pub_date = a.get("published_at", "")
+            source_url = a.get("source_url", "")
+            source_tag = f'<source url="{_xml_escape(source_url)}">{_xml_escape(a["source_name"])}</source>' if source_url else f'<source>{_xml_escape(a["source_name"])}</source>'
+            newsroom_tag = "\n      <profoundd:newsroom>true</profoundd:newsroom>" if a.get("is_newsroom") else ""
             items.append(f"""    <item>
       <title>{_xml_escape(a['title'])}</title>
       <link>{_xml_escape(a['url'])}</link>
       <description>{_xml_escape(a['summary'][:500])}</description>
-      <source>{_xml_escape(a['source_name'])}</source>
+      {source_tag}
       <category>{_xml_escape(a['category'])}</category>
-      {f'<pubDate>{pub_date}</pubDate>' if pub_date else ''}
+      {f'<pubDate>{pub_date}</pubDate>' if pub_date else ''}{newsroom_tag}
     </item>""")
 
         xml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
+<rss version="2.0" xmlns:profoundd="https://{domain}/ns/feed">
   <channel>
     <title>Profoundd - {_xml_escape(label)}</title>
-    <link>https://{domain}/category/markets</link>
+    <link>https://{domain}</link>
     <description>{_xml_escape(label)} feed from Profoundd</description>
     <language>en-us</language>
 {''.join(items)}
