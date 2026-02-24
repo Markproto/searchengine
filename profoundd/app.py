@@ -504,12 +504,18 @@ def create_app(config_override=None):
             articles = articles[:limit]
 
         # Clean articles for export (strip internal fields)
+        domain = app.config.get("DOMAIN", "profoundd.com")
         clean = []
         for a in articles:
+            url = a.get("url", "")
+            # Convert internal profoundd:// URLs to real HTTP links
+            if url.startswith("profoundd://bob/"):
+                slug = url.replace("profoundd://bob/", "").split("/")[-1]
+                url = f"https://{domain}/newsroom/{slug}"
             clean.append({
                 "title": a.get("title", ""),
                 "summary": a.get("summary", ""),
-                "url": a.get("url", ""),
+                "url": url,
                 "source_name": a.get("source_name", ""),
                 "source_credibility": a.get("source_credibility", 5),
                 "category": a.get("category", ""),
