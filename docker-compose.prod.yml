@@ -1,0 +1,42 @@
+# Profoundd Search Engine - Production (Apollo9)
+# Usage: docker compose -f docker-compose.prod.yml up -d --build
+
+services:
+  web:
+    build: .
+    container_name: profoundd
+    ports:
+      - "3004:5000"
+    env_file:
+      - .env.prod
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    volumes:
+      - profoundd-data:/app/data
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    container_name: profoundd-es
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    ports:
+      - "127.0.0.1:9201:9200"
+    volumes:
+      - profoundd-es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"\\(green\\|yellow\\)\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+volumes:
+  profoundd-data:
+  profoundd-es-data:
