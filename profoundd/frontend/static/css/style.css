@@ -2554,4 +2554,8 @@ body,
     line-height: 1.65;
     color: var(--text-primary);
 }
+.ai-loading {
+    color: var(--text-muted);
+    font-style: italic;
+}
 

@@ -300,12 +300,6 @@ def create_app(config_override=None):
                     blended.insert(pos, wr)
                 results["articles"] = blended
 
-        # Generate AI summary from local Ollama/Mistral
-        ai_answer = ""
-        if query and results.get("articles"):
-            ai_result = ai_generate_summary(query, results["articles"])
-            ai_answer = ai_result.get("answer", "")
-
         # Log the search
         log = SearchLog(
             query=query,
@@ -319,8 +313,23 @@ def create_app(config_override=None):
         return render_template("search.html", results=results, categories=CATEGORIES,
                                query=query, category=category, sort_by=sort_by,
                                enhanced_providers=enhanced_providers,
-                               web_fallback=web_fallback,
-                               ai_answer=ai_answer)
+                               web_fallback=web_fallback)
+
+    @app.route("/api/ai-summary")
+    def api_ai_summary():
+        """Async endpoint for AI search summary. Called via JS after page load."""
+        query = request.args.get("q", "").strip()
+        if not query:
+            return jsonify({"answer": "", "error": "No query"})
+
+        # Get search results to summarize
+        results = search_engine.search(query=query, category="all", page=1)
+        articles = results.get("articles", [])
+        if not articles:
+            return jsonify({"answer": "", "error": "No results to summarize"})
+
+        ai_result = ai_generate_summary(query, articles)
+        return jsonify(ai_result)
 
     @app.route("/category/<category_name>")
     def category_page(category_name):
