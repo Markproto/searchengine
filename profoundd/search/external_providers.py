@@ -776,7 +776,7 @@ def fetch_grokipedia(query, max_results=3):
         resp = requests.get(
             "https://grokipedia.com/search",
             params={"q": query},
-            headers={"User-Agent": USER_AGENT},
+            headers={"User-Agent": "Profoundd/1.0 (search engine)"},
             timeout=API_TIMEOUT,
         )
         resp.raise_for_status()
@@ -785,16 +785,15 @@ def fetch_grokipedia(query, max_results=3):
         soup = BeautifulSoup(resp.text, "html.parser")
 
         articles = []
-        # Grokipedia results are <a> tags with h3 title and p snippet
-        for link in soup.select("a[href^='/page/']"):
-            h3 = link.find("h3")
-            p = link.find("p")
-            if not h3:
+        # Grokipedia results are <a> tags with data-search-result-link attribute
+        for link in soup.select("a[data-search-result-link]"):
+            slug = link.get("data-slug", "")
+            if not slug:
                 continue
 
-            title = h3.get_text(strip=True)
-            snippet = p.get_text(strip=True) if p else ""
-            slug = link["href"].replace("/page/", "")
+            title_el = link.find("span", class_=lambda c: c and "font-medium" in c)
+            snippet = link.get("data-search-snippet", "")
+            title = title_el.get_text(strip=True) if title_el else slug.replace("_", " ")
             url = f"https://grokipedia.com/page/{slug}"
 
             articles.append({
