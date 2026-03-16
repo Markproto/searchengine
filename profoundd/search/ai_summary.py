@@ -41,18 +41,19 @@ def generate_summary(query, articles, max_articles=5):
     context = "\n\n".join(context_parts)
 
     prompt = (
-        f'You are a search assistant for Profoundd, an independent news search engine '
-        f'that covers topics often ignored by mainstream media.\n\n'
+        f'You are a search assistant for Profoundd, an independent news search engine.\n\n'
         f'The user searched for: "{query}"\n\n'
         f'Here are the top search results:\n\n'
         f'{context}\n\n'
-        f'Based on these results:\n'
-        f'1. **Answer** the user\'s question directly and concisely\n'
-        f'2. **Key findings** across the results (2-3 sentences)\n'
-        f'3. **Most relevant source** — which result best answers the query and why '
-        f'(reference by number)\n\n'
-        f'Be factual and concise. Stay under 200 words. '
-        f'If the results don\'t clearly answer the question, say so honestly.'
+        f'RULES:\n'
+        f'- ONLY use information from the results above. Do NOT add outside knowledge.\n'
+        f'- When citing a source, use its exact name (e.g. "according to Reuters").\n'
+        f'- If a result is not relevant to the query, ignore it.\n'
+        f'- If none of the results answer the query well, say "These results don\'t directly cover this topic."\n\n'
+        f'Write a brief summary (under 150 words):\n'
+        f'1. What the results say about "{query}"\n'
+        f'2. Which source is most relevant and why\n\n'
+        f'Be factual and concise. Do not guess or speculate.'
     )
 
     try:
