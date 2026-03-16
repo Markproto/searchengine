@@ -86,16 +86,7 @@
         </button>
     </div>
 
-    <div class="ai-answer-box" id="ai-answer-box" style="display:none;">
-        <div class="ai-answer-header">
-            <span class="ai-answer-icon">&#129302;</span>
-            <span class="ai-answer-label">AI Summary</span>
-            <span class="ai-answer-model">Powered by local Mistral</span>
-        </div>
-        <div class="ai-answer-content" id="ai-answer-content">
-            <span class="ai-loading">Generating summary...</span>
-        </div>
-    </div>
+    {# AI summary disabled — will re-enable when tark1 GPU is hardlined #}
 
     <div class="search-results">
         {% for article in results.articles %}
@@ -244,28 +235,4 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
-{% if results and results.articles %}
-<script>
-(function() {
-    var query = {{ query | tojson }};
-    if (!query) return;
-    var box = document.getElementById('ai-answer-box');
-    var content = document.getElementById('ai-answer-content');
-    box.style.display = 'block';
-    fetch('/api/ai-summary?q=' + encodeURIComponent(query))
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            if (data.answer) {
-                content.innerHTML = data.answer.replace(/\n/g, '<br>');
-            } else {
-                box.style.display = 'none';
-            }
-        })
-        .catch(function() {
-            box.style.display = 'none';
-        });
-})();
-</script>
-{% endif %}
-{% endblock %}
+{# AI summary scripts disabled — will re-enable when tark1 GPU is hardlined #}
