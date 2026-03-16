@@ -6,7 +6,7 @@ import uuid
 import logging
 from datetime import datetime, timezone
 
-from flask import Flask, render_template, request, jsonify, flash, redirect, Response, url_for, make_response
+from flask import Flask, render_template, request, jsonify, flash, redirect, Response, url_for, make_response, session
 from flask_cors import CORS
 from flask_login import LoginManager
 
