@@ -185,6 +185,9 @@
                 {% if article.published_at %}
                 <span class="result-date">{{ article.published_at[:10] }}</span>
                 {% endif %}
+                {% if article._provider == 'grokipedia' %}
+                <a href="{{ article.url }}#suggest-edit" target="_blank" rel="noopener" class="grok-suggest-btn" title="Suggest an edit on Grokipedia">Suggest Edit</a>
+                {% endif %}
                 {% if session.get('admin_logged_in') %}
                 <button type="button" class="bob-write-btn"
                         data-url="{{ article.url }}"

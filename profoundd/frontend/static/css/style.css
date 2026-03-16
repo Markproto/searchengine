@@ -1410,6 +1410,17 @@ main { flex: 1; }
     background: rgba(16, 185, 129, 0.1) !important;
     color: #10b981 !important;
 }
+.grok-suggest-btn {
+    font-size: 0.78rem;
+    color: #10b981;
+    text-decoration: none;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+.grok-suggest-btn:hover {
+    background: rgba(16, 185, 129, 0.1);
+}
 
 /* Hide enhanced indicator on small screens, show banner instead */
 @media (max-width: 768px) {
