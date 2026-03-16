@@ -351,11 +351,13 @@ def create_app(config_override=None):
         db.session.add(log)
         db.session.commit()
 
-        return render_template("search.html", results=results, categories=CATEGORIES,
+        resp = make_response(render_template("search.html", results=results, categories=CATEGORIES,
                                query=query, category=category, sort_by=sort_by,
                                enhanced_providers=enhanced_providers,
                                web_fallback=web_fallback,
-                               web_promoted=web_promoted)
+                               web_promoted=web_promoted))
+        resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return resp
 
     @app.route("/api/ai-summary")
     def api_ai_summary():
