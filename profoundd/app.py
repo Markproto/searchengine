@@ -264,6 +264,7 @@ def create_app(config_override=None):
         # Fetch enhanced results from external providers (page 1 only)
         enhanced_providers = set()
         web_fallback = False
+        web_promoted = False
         if page == 1:
             enhanced_articles, enhanced_providers = fetch_all_enhanced(query, category)
             if enhanced_articles:
@@ -287,17 +288,36 @@ def create_app(config_override=None):
                 # Brave backup when SearXNG is down or returns nothing
                 web_results = fetch_brave_web(query, max_results=10)
             if web_results:
-                # Boost results from domains in Profoundd's source list
                 web_results = boost_known_domains(web_results)
                 web_fallback = True
                 existing_urls = {a.get("url") for a in results.get("articles", [])}
-                # Filter to only new URLs
                 new_web = [wr for wr in web_results if wr.get("url") not in existing_urls]
-                # Interleave: insert 1 web result after every 3 local results
-                blended = list(results.get("articles", []))
-                for i, wr in enumerate(new_web):
-                    pos = min(3 + i * 4 + i, len(blended))
-                    blended.insert(pos, wr)
+
+                # Check if local results are actually relevant to the query.
+                # If top local results don't contain most query terms in
+                # their title, the local index doesn't cover this topic —
+                # put web results first so the user finds what they need.
+                local_articles = results.get("articles", [])
+                query_terms = set(query.lower().split())
+                local_relevant = False
+                for a in local_articles[:3]:
+                    title_words = set(a.get("title", "").lower().split())
+                    overlap = query_terms & title_words
+                    if len(overlap) >= max(2, len(query_terms) - 1):
+                        local_relevant = True
+                        break
+
+                if local_relevant:
+                    # Local results match — interleave web after every 3
+                    blended = list(local_articles)
+                    for i, wr in enumerate(new_web):
+                        pos = min(3 + i * 4 + i, len(blended))
+                        blended.insert(pos, wr)
+                else:
+                    # Local results are weak matches — web results go first
+                    blended = list(new_web) + list(local_articles)
+                    web_promoted = True
+
                 results["articles"] = blended
 
         # Log the search
@@ -313,7 +333,8 @@ def create_app(config_override=None):
         return render_template("search.html", results=results, categories=CATEGORIES,
                                query=query, category=category, sort_by=sort_by,
                                enhanced_providers=enhanced_providers,
-                               web_fallback=web_fallback)
+                               web_fallback=web_fallback,
+                               web_promoted=web_promoted)
 
     @app.route("/api/ai-summary")
     def api_ai_summary():

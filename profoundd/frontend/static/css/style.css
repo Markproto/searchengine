@@ -1415,6 +1415,10 @@ main { flex: 1; }
     .web-fallback-banner { flex-wrap: wrap; font-size: 0.8rem; }
     .web-fallback-note { margin-left: 0; width: 100%; }
 }
+.web-promoted-banner {
+    background: rgba(234, 179, 8, 0.08);
+    border-color: rgba(234, 179, 8, 0.3);
+}
 
 /* --- Admin Source Search Bar --- */
 .source-search-bar {

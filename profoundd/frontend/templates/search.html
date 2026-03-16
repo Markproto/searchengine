@@ -63,7 +63,13 @@
         </span>
     </div>
     {% endif %}
-    {% if web_fallback %}
+    {% if web_promoted %}
+    <div class="web-fallback-banner web-promoted-banner">
+        <span class="web-fallback-icon">&#127760;</span>
+        <span>Profoundd doesn't have specific coverage of this topic</span>
+        <span class="web-fallback-note">Showing external search results first. Profoundd's index results follow below.</span>
+    </div>
+    {% elif web_fallback %}
     <div class="web-fallback-banner">
         <span class="web-fallback-icon">&#127760;</span>
         <span>Also showing results from external sources</span>
