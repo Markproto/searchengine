@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 def get_anthropic_key():
     """Get Anthropic API key from DB, falling back to environment variable."""
     import os
-    key = get_anthropic_key()
+    key = SiteSetting.get("ai_anthropic_key", "")
     if not key:
         key = os.environ.get("ANTHROPIC_API_KEY", "")
     return key
