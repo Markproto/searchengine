@@ -364,7 +364,8 @@ def create_app(config_override=None):
         if not query:
             return jsonify({"answer": "", "error": "No query", "remaining": 0})
 
-        # Cookie-based rate limit: 5 AI summaries per user per day
+        # Cookie-based rate limit: 5 AI summaries per user per day (admins unlimited)
+        is_admin = session.get("admin_logged_in", False)
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         cookie_val = request.cookies.get("ai_searches", "")
         ai_count = 0
@@ -373,7 +374,7 @@ def create_app(config_override=None):
             if len(parts) == 2 and parts[0] == today:
                 ai_count = int(parts[1])
 
-        if ai_count >= 5:
+        if not is_admin and ai_count >= 5:
             return jsonify({"answer": "", "error": "limit_reached", "remaining": 0})
 
         # Get search results to summarize (local index + Grokipedia + web)
@@ -403,7 +404,11 @@ def create_app(config_override=None):
 
         ai_result = ai_generate_summary(query, articles)
 
-        # Increment counter and set cookie
+        # Increment counter and set cookie (skip for admins)
+        if is_admin:
+            ai_result["remaining"] = -1  # signals unlimited to frontend
+            return jsonify(ai_result)
+
         ai_count += 1
         remaining = 5 - ai_count
         ai_result["remaining"] = remaining

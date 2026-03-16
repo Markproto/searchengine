@@ -264,13 +264,14 @@
         return match ? match[2] : null;
     }
 
-    // Check cookie for daily limit
+    // Check cookie for daily limit (admins bypass via server-side check)
+    var isAdmin = {{ 'true' if session.get('admin_logged_in') else 'false' }};
     var cookie = getCookie('ai_searches') || '';
     var parts = cookie.split(':');
     var today = new Date().toISOString().slice(0, 10);
     var count = (parts.length === 2 && parts[0] === today) ? parseInt(parts[1]) : 0;
 
-    if (count >= 5) {
+    if (!isAdmin && count >= 5) {
         box.style.display = 'block';
         content.innerHTML = 'AI summary limit reached for today (5/day). Resets tomorrow.';
         remaining.textContent = '0 of 5 remaining';
@@ -278,7 +279,7 @@
     }
 
     box.style.display = 'block';
-    remaining.textContent = (5 - count) + ' of 5 remaining';
+    remaining.textContent = isAdmin ? 'Unlimited (Admin)' : (5 - count) + ' of 5 remaining';
 
     fetch('/api/ai-summary?q=' + encodeURIComponent(query))
         .then(function(r) { return r.json(); })
@@ -288,7 +289,9 @@
                 remaining.textContent = '0 of 5 remaining';
             } else if (data.answer) {
                 content.innerHTML = data.answer.replace(/\n/g, '<br>');
-                if (typeof data.remaining === 'number') {
+                if (data.remaining === -1) {
+                    remaining.textContent = 'Unlimited (Admin)';
+                } else if (typeof data.remaining === 'number') {
                     remaining.textContent = data.remaining + ' of 5 remaining';
                 }
             } else {
