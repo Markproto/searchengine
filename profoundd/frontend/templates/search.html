@@ -257,6 +257,12 @@
     var content = document.getElementById('ai-answer-content');
     var remaining = document.getElementById('ai-remaining');
 
+    // Local getCookie (app.js version is scoped inside its own IIFE)
+    function getCookie(name) {
+        var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+        return match ? match[2] : null;
+    }
+
     // Check cookie for daily limit
     var cookie = getCookie('ai_searches') || '';
     var parts = cookie.split(':');
