@@ -2557,6 +2557,9 @@ body,
 }
 .ai-answer-icon {
     font-size: 1.3rem;
+    display: inline-flex;
+    align-items: center;
+    color: var(--accent);
 }
 .ai-answer-label {
     font-weight: 700;
