@@ -4,11 +4,12 @@ Generates an AI answer/summary from search results on every query.
 Runs entirely locally on Apollo9 — no external API calls.
 """
 import logging
+import os
 import requests
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_URL = "http://localhost:11434"
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = "mistral"
 OLLAMA_TIMEOUT = 90  # CPU-only Mistral 7B can take up to ~60s
 
