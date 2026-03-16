@@ -1406,6 +1406,10 @@ main { flex: 1; }
     background: rgba(37, 99, 235, 0.08) !important;
     color: var(--news) !important;
 }
+.grokipedia-badge {
+    background: rgba(16, 185, 129, 0.1) !important;
+    color: #10b981 !important;
+}
 
 /* Hide enhanced indicator on small screens, show banner instead */
 @media (max-width: 768px) {

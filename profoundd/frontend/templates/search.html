@@ -138,7 +138,7 @@
                 </span>
                 {% endif %}
                 {% if article._enhanced %}
-                <span class="enhanced-badge {% if article._provider == 'searxng' %}web-result-badge{% endif %}">{% if article._provider == 'courtlistener' %}Court Opinion{% elif article._provider == 'pubmed' %}Research Paper{% elif article._provider == 'congress' %}Primary Source{% elif article._provider == 'searxng' %}Web Result{% else %}Enhanced{% endif %}</span>
+                <span class="enhanced-badge {% if article._provider == 'searxng' %}web-result-badge{% elif article._provider == 'grokipedia' %}grokipedia-badge{% endif %}">{% if article._provider == 'courtlistener' %}Court Opinion{% elif article._provider == 'pubmed' %}Research Paper{% elif article._provider == 'congress' %}Primary Source{% elif article._provider == 'grokipedia' %}Grokipedia{% elif article._provider == 'searxng' %}Web Result{% else %}Enhanced{% endif %}</span>
                 {% endif %}
             </div>
             <h3 class="result-title">

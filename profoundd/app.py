@@ -238,6 +238,7 @@ def create_app(config_override=None):
         """Main search endpoint."""
         from profoundd.search.external_providers import (
             fetch_all_enhanced, fetch_searxng, fetch_brave_web, boost_known_domains,
+            fetch_grokipedia,
         )
 
         query = request.args.get("q", "").strip()
@@ -276,6 +277,16 @@ def create_app(config_override=None):
                         results["articles"].insert(insert_pos, ea)
                         insert_pos += 1
                 results["enhanced_providers"] = list(enhanced_providers)
+
+            # Fetch Grokipedia results and insert near the top
+            grok_results = fetch_grokipedia(query, max_results=3)
+            if grok_results:
+                existing_urls = {a.get("url") for a in results.get("articles", [])}
+                insert_pos = min(1, len(results.get("articles", [])))
+                for gr in grok_results:
+                    if gr.get("url") not in existing_urls:
+                        results["articles"].insert(insert_pos, gr)
+                        insert_pos += 1
 
             # Always fetch external web results so every search taps sources
             # beyond Profoundd's curated index — especially important for

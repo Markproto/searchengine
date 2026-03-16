@@ -765,3 +765,60 @@ def _normalize_pubmed_date(date_str):
         return date_str[:10]
     except Exception:
         return ""
+
+
+def fetch_grokipedia(query, max_results=3):
+    """
+    Fetch search results from Grokipedia (grokipedia.com).
+    Returns articles formatted for Profoundd's result list.
+    """
+    try:
+        resp = requests.get(
+            "https://grokipedia.com/search",
+            params={"q": query},
+            headers={"User-Agent": USER_AGENT},
+            timeout=API_TIMEOUT,
+        )
+        resp.raise_for_status()
+
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        articles = []
+        # Grokipedia results are <a> tags with h3 title and p snippet
+        for link in soup.select("a[href^='/page/']"):
+            h3 = link.find("h3")
+            p = link.find("p")
+            if not h3:
+                continue
+
+            title = h3.get_text(strip=True)
+            snippet = p.get_text(strip=True) if p else ""
+            slug = link["href"].replace("/page/", "")
+            url = f"https://grokipedia.com/page/{slug}"
+
+            articles.append({
+                "title": title,
+                "summary": snippet,
+                "content": "",
+                "source_name": "Grokipedia",
+                "source_credibility": 7,
+                "category": "news",
+                "url": url,
+                "published_at": "",
+                "tags": ["grokipedia"],
+                "_enhanced": True,
+                "_provider": "grokipedia",
+                "_score": 0,
+                "_highlights": {},
+            })
+
+            if len(articles) >= max_results:
+                break
+
+        logger.info("Grokipedia returned %d results for '%s'", len(articles), query)
+        return articles
+
+    except Exception as e:
+        logger.warning("Grokipedia error: %s", e)
+        return []
