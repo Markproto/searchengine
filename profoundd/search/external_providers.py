@@ -796,9 +796,45 @@ def fetch_grokipedia(query, max_results=3):
             title = title_el.get_text(strip=True) if title_el else slug.replace("_", " ")
             url = f"https://grokipedia.com/page/{slug}"
 
+            # Fetch full article page for a longer excerpt (~100+ words)
+            long_summary = snippet
+            try:
+                page_resp = requests.get(
+                    url,
+                    headers={"User-Agent": "Profoundd/1.0 (search engine)"},
+                    timeout=5,
+                )
+                if page_resp.ok:
+                    page_soup = BeautifulSoup(page_resp.text, "html.parser")
+                    # Try article/main content area, fall back to all paragraphs
+                    content_area = (
+                        page_soup.find("article")
+                        or page_soup.find("main")
+                        or page_soup.find("div", class_=lambda c: c and "content" in c.lower())
+                    )
+                    if content_area:
+                        paragraphs = content_area.find_all("p")
+                    else:
+                        paragraphs = page_soup.find_all("p")
+                    # Combine paragraphs until we hit ~100 words
+                    words = []
+                    for p in paragraphs:
+                        text = p.get_text(strip=True)
+                        if not text or len(text) < 20:
+                            continue
+                        words.extend(text.split())
+                        if len(words) >= 120:
+                            break
+                    if len(words) > 20:
+                        long_summary = " ".join(words[:150])
+                        if len(words) > 150:
+                            long_summary += "..."
+            except Exception:
+                pass  # Fall back to search snippet
+
             articles.append({
                 "title": title,
-                "summary": snippet,
+                "summary": long_summary,
                 "content": "",
                 "source_name": "Grokipedia",
                 "source_credibility": 7,

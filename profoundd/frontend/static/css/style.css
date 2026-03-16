@@ -1410,6 +1410,18 @@ main { flex: 1; }
     background: rgba(16, 185, 129, 0.1) !important;
     color: #10b981 !important;
 }
+.grok-read-more-btn {
+    font-size: 0.78rem;
+    color: var(--accent, #4f8cff);
+    text-decoration: none;
+    border: 1px solid rgba(79, 140, 255, 0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+.grok-read-more-btn:hover {
+    background: rgba(79, 140, 255, 0.1);
+}
 .grok-suggest-btn {
     font-size: 0.78rem;
     color: #10b981;
