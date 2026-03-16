@@ -379,27 +379,33 @@ def create_app(config_override=None):
         if not is_admin and ai_count >= 5:
             return jsonify({"answer": "", "error": "limit_reached", "remaining": 0})
 
-        # Get search results to summarize (local index + Grokipedia + web)
-        results = search_engine.search(query=query, category="all", page=1)
-        articles = results.get("articles", [])
+        # Get search results to summarize — prioritize web + Grokipedia over local index
+        # so the AI sees the most relevant sources first
+        articles = []
 
-        # Include Grokipedia articles so AI can cite them
+        # Grokipedia first (encyclopedic context)
         try:
             grok_articles = fetch_grokipedia(query, max_results=3)
             if grok_articles:
-                articles = grok_articles + articles
+                articles.extend(grok_articles)
         except Exception:
             pass
 
-        # Include web results so AI has broader coverage
+        # Web results second (broad coverage)
         searxng_url = app.config.get("SEARXNG_URL", "")
         if searxng_url:
             try:
-                web_articles = fetch_searxng(query, searxng_url, max_results=5)
+                web_articles = fetch_searxng(query, searxng_url, max_results=8)
                 if web_articles:
                     articles.extend(web_articles)
             except Exception:
                 pass
+
+        # Local index last (may not be relevant to query)
+        local_results = search_engine.search(query=query, category="all", page=1)
+        local_articles = local_results.get("articles", [])
+        if local_articles:
+            articles.extend(local_articles[:5])
 
         if not articles:
             return jsonify({"answer": "", "error": "No results to summarize", "remaining": 5 - ai_count})
@@ -409,7 +415,9 @@ def create_app(config_override=None):
         # Increment counter and set cookie (skip for admins)
         if is_admin:
             ai_result["remaining"] = -1  # signals unlimited to frontend
-            return jsonify(ai_result)
+            resp = make_response(jsonify(ai_result))
+            resp.headers["Cache-Control"] = "no-cache, no-store"
+            return resp
 
         ai_count += 1
         remaining = 5 - ai_count
