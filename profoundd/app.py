@@ -290,6 +290,16 @@ def create_app(config_override=None):
             if web_results:
                 web_results = boost_known_domains(web_results)
                 web_fallback = True
+
+                # Filter out blocked domains (admin-managed list)
+                blocked_raw = SiteSetting.get("blocked_domains", "")
+                if blocked_raw:
+                    blocked_domains = [d.strip().lower() for d in blocked_raw.split("\n") if d.strip()]
+                    web_results = [
+                        wr for wr in web_results
+                        if not any(bd in wr.get("url", "").lower() for bd in blocked_domains)
+                    ]
+
                 existing_urls = {a.get("url") for a in results.get("articles", [])}
                 new_web = [wr for wr in web_results if wr.get("url") not in existing_urls]
 
@@ -338,19 +348,39 @@ def create_app(config_override=None):
 
     @app.route("/api/ai-summary")
     def api_ai_summary():
-        """Async endpoint for AI search summary. Called via JS after page load."""
+        """Async endpoint for AI search summary. Cookie-limited to 5/day."""
         query = request.args.get("q", "").strip()
         if not query:
-            return jsonify({"answer": "", "error": "No query"})
+            return jsonify({"answer": "", "error": "No query", "remaining": 0})
+
+        # Cookie-based rate limit: 5 AI summaries per user per day
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        cookie_val = request.cookies.get("ai_searches", "")
+        ai_count = 0
+        if cookie_val:
+            parts = cookie_val.split(":", 1)
+            if len(parts) == 2 and parts[0] == today:
+                ai_count = int(parts[1])
+
+        if ai_count >= 5:
+            return jsonify({"answer": "", "error": "limit_reached", "remaining": 0})
 
         # Get search results to summarize
         results = search_engine.search(query=query, category="all", page=1)
         articles = results.get("articles", [])
         if not articles:
-            return jsonify({"answer": "", "error": "No results to summarize"})
+            return jsonify({"answer": "", "error": "No results to summarize", "remaining": 5 - ai_count})
 
         ai_result = ai_generate_summary(query, articles)
-        return jsonify(ai_result)
+
+        # Increment counter and set cookie
+        ai_count += 1
+        remaining = 5 - ai_count
+        ai_result["remaining"] = remaining
+        resp = make_response(jsonify(ai_result))
+        resp.set_cookie("ai_searches", f"{today}:{ai_count}",
+                        max_age=86400, samesite="Lax", httponly=False)
+        return resp
 
     @app.route("/category/<category_name>")
     def category_page(category_name):

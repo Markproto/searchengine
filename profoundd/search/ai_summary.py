@@ -1,22 +1,21 @@
 """
-Local AI-powered search summary using Ollama + Mistral.
-Generates an AI answer/summary from search results on every query.
-Runs entirely locally on Apollo9 — no external API calls.
+AI-powered search summary using Claude API.
+Generates a brief AI answer from search results on every query.
 """
 import logging
 import os
-import requests
+
+import anthropic
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = "mistral"
-OLLAMA_TIMEOUT = 90  # CPU-only Mistral 7B can take up to ~60s
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+MODEL = "claude-haiku-4-5-20251001"
 
 
 def generate_summary(query, articles, max_articles=5):
     """
-    Send search results to local Mistral via Ollama and get an AI summary.
+    Send search results to Claude and get an AI summary.
 
     Returns a dict with:
         - answer: The AI-generated answer/summary text
@@ -24,6 +23,9 @@ def generate_summary(query, articles, max_articles=5):
     """
     if not articles:
         return {"answer": "", "error": None}
+
+    if not ANTHROPIC_API_KEY:
+        return {"answer": "", "error": "AI not configured"}
 
     # Build context from top results
     top = articles[:max_articles]
@@ -57,43 +59,27 @@ def generate_summary(query, articles, max_articles=5):
     )
 
     try:
-        resp = requests.post(
-            f"{OLLAMA_URL}/api/generate",
-            json={
-                "model": OLLAMA_MODEL,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.3,
-                    "num_predict": 400,
-                },
-            },
-            timeout=OLLAMA_TIMEOUT,
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        message = client.messages.create(
+            model=MODEL,
+            max_tokens=300,
+            messages=[{"role": "user", "content": prompt}],
         )
-        resp.raise_for_status()
-        data = resp.json()
-        answer = data.get("response", "").strip()
+        answer = message.content[0].text.strip()
         logger.info("AI summary generated for '%s' (%d chars)", query, len(answer))
         return {"answer": answer, "error": None}
 
-    except requests.Timeout:
-        logger.warning("Ollama timed out for '%s'", query)
-        return {"answer": "", "error": "AI summary timed out"}
-    except requests.ConnectionError:
-        logger.warning("Ollama not reachable")
+    except anthropic.APIConnectionError:
+        logger.warning("Claude API not reachable")
         return {"answer": "", "error": "AI service unavailable"}
+    except anthropic.RateLimitError:
+        logger.warning("Claude API rate limited")
+        return {"answer": "", "error": "AI service busy"}
     except Exception as e:
-        logger.error("Ollama error: %s", e)
+        logger.error("Claude API error: %s", e)
         return {"answer": "", "error": str(e)}
 
 
 def is_available():
-    """Check if Ollama is running and has the model loaded."""
-    try:
-        resp = requests.get(f"{OLLAMA_URL}/api/tags", timeout=3)
-        if resp.status_code != 200:
-            return False
-        models = [m["name"] for m in resp.json().get("models", [])]
-        return any(OLLAMA_MODEL in m for m in models)
-    except Exception:
-        return False
+    """Check if Claude API key is configured."""
+    return bool(ANTHROPIC_API_KEY)

@@ -718,6 +718,22 @@ def ai_settings():
                            categories=CATEGORIES)
 
 
+@admin_bp.route("/blocked-domains", methods=["GET", "POST"])
+@login_required
+def blocked_domains():
+    """Manage domains blocked from external search results."""
+    if request.method == "POST":
+        domains_text = request.form.get("blocked_domains", "").strip()
+        SiteSetting.set("blocked_domains", domains_text)
+        flash("Blocked domains updated.", "success")
+        return redirect(url_for("admin.blocked_domains"))
+
+    blocked = SiteSetting.get("blocked_domains", "")
+    return render_template("admin/blocked_domains.html",
+                           blocked_domains=blocked,
+                           categories=CATEGORIES)
+
+
 @admin_bp.route("/analyze-url", methods=["GET", "POST"])
 @login_required
 def analyze_url():
