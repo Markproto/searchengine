@@ -19,6 +19,15 @@ from profoundd.crawler.feed_crawler import FeedCrawler
 logger = logging.getLogger(__name__)
 
 
+def get_anthropic_key():
+    """Get Anthropic API key from DB, falling back to environment variable."""
+    import os
+    key = get_anthropic_key()
+    if not key:
+        key = os.environ.get("ANTHROPIC_API_KEY", "")
+    return key
+
+
 def fetch_og_image(url):
     """Try to extract the og:image from a URL. Returns the image URL or None."""
     try:
@@ -707,7 +716,7 @@ def ai_settings():
         return redirect(url_for("admin.ai_settings"))
 
     return render_template("admin/ai_settings.html",
-                           anthropic_key=SiteSetting.get("ai_anthropic_key", ""),
+                           anthropic_key=get_anthropic_key(),
                            anthropic_model=SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929"),
                            xai_key=SiteSetting.get("ai_xai_key", ""),
                            xai_model=SiteSetting.get("ai_xai_model", "grok-2-latest"),
@@ -742,7 +751,7 @@ def analyze_url():
         fetch_url_content, analyze_with_anthropic, analyze_with_xai
     )
 
-    anthropic_key = SiteSetting.get("ai_anthropic_key", "")
+    anthropic_key = get_anthropic_key()
     xai_key = SiteSetting.get("ai_xai_key", "")
     default_provider = SiteSetting.get("ai_default_provider", "anthropic")
     has_ai_key = bool(anthropic_key or xai_key)
@@ -1131,7 +1140,7 @@ def enhance_newsroom_note():
     if not note_text:
         return jsonify({"error": "Note text is required"}), 400
 
-    api_key = SiteSetting.get("ai_anthropic_key", "")
+    api_key = get_anthropic_key()
     model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
     if not api_key:
         return jsonify({"error": "No AI API key configured."}), 400
@@ -1229,7 +1238,7 @@ def research_source_note():
     if not source_name:
         return jsonify({"error": "Source name is required"}), 400
 
-    api_key = SiteSetting.get("ai_anthropic_key", "")
+    api_key = get_anthropic_key()
     model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
     if not api_key:
         return jsonify({"error": "No AI API key configured."}), 400
@@ -1393,7 +1402,7 @@ def the_man():
         elif action == "run":
             auto_apply = request.form.get("auto_apply") == "1"
             guidelines = SiteSetting.get("the_man_guidelines", "")
-            api_key = SiteSetting.get("ai_anthropic_key", "")
+            api_key = get_anthropic_key()
             model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
 
             engine = SearchEngine(config.ELASTICSEARCH_URL)
@@ -1488,7 +1497,7 @@ def bob_write():
         })
 
     # Get API key
-    api_key = SiteSetting.get("ai_anthropic_key", "")
+    api_key = get_anthropic_key()
     model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
     if not api_key:
         return jsonify({"error": "No AI API key configured. Go to Admin > AI Settings."}), 400
@@ -1725,7 +1734,7 @@ def verify_claim():
     )
     from profoundd.search.newsroom_bob import make_slug
 
-    api_key = SiteSetting.get("ai_anthropic_key", "")
+    api_key = get_anthropic_key()
     model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
     congress_key = SiteSetting.get("congress_gov_api_key", "")
     has_ai_key = bool(api_key)
