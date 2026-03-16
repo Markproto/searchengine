@@ -957,6 +957,10 @@ main { flex: 1; }
 }
 .no-results h2, .search-prompt h2, .error-page h1 { margin-bottom: 12px; }
 .no-results p, .search-prompt p, .error-page p { color: var(--text-secondary); margin-bottom: 20px; }
+.no-results-tips { text-align: left; max-width: 420px; margin: 0 auto 24px; }
+.no-results-tips ul { margin: 8px 0 0 20px; color: var(--text-secondary); }
+.no-results-tips li { margin-bottom: 6px; }
+.no-results-tips a { color: var(--accent); }
 .error-page h1 { font-size: 4rem; color: var(--accent); }
 
 /* --- About --- */

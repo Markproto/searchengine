@@ -49,7 +49,7 @@
         </form>
     </div>
 
-    {% if results %}
+    {% if results and results.articles %}
     {% if enhanced_providers %}
     <div class="enhanced-banner">
         <span class="enhanced-pulse"></span>
@@ -71,7 +71,7 @@
     </div>
     {% endif %}
     <div class="search-meta">
-        <p>Found <strong>{{ results.total }}</strong> results for "<strong>{{ results.query }}</strong>"
+        <p>Found <strong>{{ results.articles | length }}{% if results.total > results.articles | length %}+{% endif %}</strong> results for "<strong>{{ results.query }}</strong>"
         {% if category != 'all' %} in <span class="category-tag-{{ category }}">{{ category | title }}</span>{% endif %}
         </p>
         <button type="button" class="share-link-btn" onclick="copyShareLink(this)" title="Copy shareable link">
@@ -219,8 +219,16 @@
 
     {% elif query %}
     <div class="no-results">
-        <h2>No results found</h2>
-        <p>Try different keywords or search across all categories.</p>
+        <h2>No results found for "{{ query }}"</h2>
+        <p>Profoundd searched its curated index and external sources but couldn't find a match.</p>
+        <div class="no-results-tips">
+            <p><strong>Try:</strong></p>
+            <ul>
+                <li>Check your spelling or use fewer words</li>
+                <li>Use broader or more common terms</li>
+                <li>Search across <a href="/search?q={{ query }}&category=all">all categories</a> instead of a specific one</li>
+            </ul>
+        </div>
         <a href="/" class="btn btn-primary">Back to Home</a>
     </div>
     {% else %}
