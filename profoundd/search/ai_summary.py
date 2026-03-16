@@ -13,7 +13,7 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 MODEL = "claude-haiku-4-5-20251001"
 
 
-def generate_summary(query, articles, max_articles=5):
+def generate_summary(query, articles, max_articles=12):
     """
     Send search results to Claude and get an AI summary.
 
@@ -33,10 +33,16 @@ def generate_summary(query, articles, max_articles=5):
     for i, a in enumerate(top, 1):
         title = a.get("title", "")
         source = a.get("source_name", "")
-        summary = (a.get("summary") or "")[:300]
+        provider = a.get("_provider", "")
+        summary = (a.get("summary") or "")[:500]
         url = a.get("url", "")
+        source_label = source
+        if provider == "grokipedia":
+            source_label = f"Grokipedia ({source})"
+        elif provider == "searxng":
+            source_label = f"{source} (Web)"
         context_parts.append(
-            f"[{i}] \"{title}\" — {source}\n"
+            f"[{i}] \"{title}\" — {source_label}\n"
             f"    {summary}\n"
             f"    URL: {url}"
         )
@@ -50,11 +56,13 @@ def generate_summary(query, articles, max_articles=5):
         f'RULES:\n'
         f'- ONLY use information from the results above. Do NOT add outside knowledge.\n'
         f'- When citing a source, use its exact name (e.g. "according to Reuters").\n'
-        f'- If a result is not relevant to the query, ignore it.\n'
+        f'- If a result is not relevant to the query, skip it entirely.\n'
+        f'- Focus on results that ARE relevant — prioritize Grokipedia and Web sources that directly address the query.\n'
         f'- If none of the results answer the query well, say "These results don\'t directly cover this topic."\n\n'
-        f'Write a brief summary (under 150 words):\n'
-        f'1. What the results say about "{query}"\n'
-        f'2. Which source is most relevant and why\n\n'
+        f'Write a concise summary (under 200 words):\n'
+        f'1. What the most relevant results say about "{query}"\n'
+        f'2. Key facts and figures from the best sources\n'
+        f'3. Cite sources by name\n\n'
         f'Be factual and concise. Do not guess or speculate.'
     )
 
@@ -62,7 +70,7 @@ def generate_summary(query, articles, max_articles=5):
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         message = client.messages.create(
             model=MODEL,
-            max_tokens=300,
+            max_tokens=500,
             messages=[{"role": "user", "content": prompt}],
         )
         answer = message.content[0].text.strip()
