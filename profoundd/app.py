@@ -275,31 +275,29 @@ def create_app(config_override=None):
                         insert_pos += 1
                 results["enhanced_providers"] = list(enhanced_providers)
 
-            # Web fallback: supplement with outside news when local results are
-            # insufficient OR when relevance is weak (top score below threshold).
-            # This ensures searches like "Lindsey Graham loses House" still show
-            # relevant external articles even if 6 loosely-related local results exist.
-            local_count = len(results.get("articles", []))
-            top_score = results.get("top_score", 0)
-            LOW_RELEVANCE_THRESHOLD = 15  # ES scores below this indicate weak matches
-            needs_web = local_count < 5 or top_score < LOW_RELEVANCE_THRESHOLD
-            if needs_web:
-                web_results = []
-                searxng_url = SiteSetting.get("searxng_url", "")
-                if searxng_url:
-                    web_results = fetch_searxng(query, searxng_url, max_results=10)
-                if not web_results:
-                    # Brave backup when SearXNG is down or returns nothing
-                    web_results = fetch_brave_web(query, max_results=10)
-                if web_results:
-                    # Boost results from domains in Profoundd's source list
-                    web_results = boost_known_domains(web_results)
-                    web_fallback = True
-                    existing_urls = {a.get("url") for a in results.get("articles", [])}
-                    for wr in web_results:
-                        if wr.get("url") not in existing_urls:
-                            results["articles"].append(wr)
-                            existing_urls.add(wr.get("url"))
+            # Always fetch external web results so every search taps sources
+            # beyond Profoundd's curated index — especially important for
+            # controversial topics not covered by mainstream media.
+            web_results = []
+            searxng_url = SiteSetting.get("searxng_url", "")
+            if searxng_url:
+                web_results = fetch_searxng(query, searxng_url, max_results=10)
+            if not web_results:
+                # Brave backup when SearXNG is down or returns nothing
+                web_results = fetch_brave_web(query, max_results=10)
+            if web_results:
+                # Boost results from domains in Profoundd's source list
+                web_results = boost_known_domains(web_results)
+                web_fallback = True
+                existing_urls = {a.get("url") for a in results.get("articles", [])}
+                # Filter to only new URLs
+                new_web = [wr for wr in web_results if wr.get("url") not in existing_urls]
+                # Interleave: insert 1 web result after every 3 local results
+                blended = list(results.get("articles", []))
+                for i, wr in enumerate(new_web):
+                    pos = min(3 + i * 4 + i, len(blended))
+                    blended.insert(pos, wr)
+                results["articles"] = blended
 
         # Log the search
         log = SearchLog(

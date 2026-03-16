@@ -283,14 +283,16 @@ class SearchEngine:
         """
         Search articles with custom ranking.
 
-        Ranking formula: (BM25 relevance + recency boost) * source_credibility
-        Credibility is the dominant factor — it multiplies the entire score.
+        Ranking formula: BM25 relevance * dampened_credibility * admin_boost * recency_decay
+        Credibility is dampened (1.0–1.6x) so relevance dominates.
+        Multi-word queries get phrase boosts for exact matches.
         Duplicate titles are collapsed to show only the best-scoring version.
         """
         must_clauses = []
         filter_clauses = []
 
         # Main text query
+        phrase_boosts = []
         if query:
             multi_match_query = {
                 "query": query,
@@ -303,10 +305,21 @@ class SearchEngine:
                 # to match. Stemming still causes false positives at 50%
                 # (e.g. "electric"→"electr" matches "electricity" in energy articles).
                 multi_match_query["minimum_should_match"] = "75%"
+            elif len(query_terms) == 2:
+                # Two-word queries: require both terms, no fuzziness
+                multi_match_query["minimum_should_match"] = "100%"
             else:
-                # Short queries: allow fuzziness for typo correction
+                # Single-word queries: allow fuzziness for typo correction
                 multi_match_query["fuzziness"] = "AUTO"
             must_clauses.append({"multi_match": multi_match_query})
+
+            # Phrase boost: reward articles containing the exact phrase
+            if len(query_terms) >= 2:
+                phrase_boosts = [
+                    {"match_phrase": {"title": {"query": query, "boost": 5}}},
+                    {"match_phrase": {"summary": {"query": query, "boost": 3}}},
+                    {"match_phrase": {"content": {"query": query, "boost": 1}}},
+                ]
 
         # Category filter
         if category and category != "all":
@@ -337,19 +350,19 @@ class SearchEngine:
             }
         }
 
-        # Wrap in function_score: credibility multiplies the relevance score
-        # A credibility-8 source scores 8x, credibility-7 scores 7x, etc.
-        # Admin boost adds a second multiplier: 0=neutral, +5=2x, -5=0.1x
+        # Wrap in function_score: credibility, admin boost, and recency
+        # Credibility is dampened to a 1.0–1.6x range so relevance dominates.
+        # Admin boost: 5=neutral, 10=2x, 1=0.2x.
+        # Recency: Gaussian decay — full score for 1h, halves every 3 days.
         scored_query = {
             "function_score": {
                 "query": bool_query,
                 "functions": [
                     {
-                        "field_value_factor": {
-                            "field": "source_credibility",
-                            "factor": 1,
-                            "modifier": "none",
-                            "missing": 5,
+                        "script_score": {
+                            "script": {
+                                "source": "double cred = doc['source_credibility'].size() > 0 ? doc['source_credibility'].value : 5; return 1.0 + (cred - 1) * 0.067;"
+                            }
                         }
                     },
                     {
@@ -358,18 +371,25 @@ class SearchEngine:
                                 "source": "Math.max(0.1, (doc['admin_boost'].size() > 0 ? doc['admin_boost'].value : 5) / 5.0)"
                             }
                         }
-                    }
+                    },
+                    {
+                        "gauss": {
+                            "published_at": {
+                                "origin": "now",
+                                "scale": "3d",
+                                "offset": "1h",
+                                "decay": 0.3
+                            }
+                        }
+                    },
                 ],
                 "boost_mode": "multiply",
                 "score_mode": "multiply",
             }
         }
 
-        # Add recency boosts inside the bool query
-        bool_query["bool"]["should"] = [
-            {"range": {"published_at": {"gte": "now-24h", "boost": 3}}},
-            {"range": {"published_at": {"gte": "now-7d", "boost": 1}}},
-        ]
+        # Phrase boosts (optional — only for multi-word queries)
+        bool_query["bool"]["should"] = phrase_boosts
 
         search_body = {
             "query": scored_query,
@@ -416,9 +436,9 @@ class SearchEngine:
             # (e.g. "electr" matching both "electric" and "electricity").
             top_score = raw_articles[0]["_score"] if raw_articles else 0
             if query and raw_articles:
-                min_score = top_score * 0.3
+                min_score = top_score * 0.15
                 raw_articles = [a for a in raw_articles if a["_score"] >= min_score]
-                total = len(raw_articles)
+                # Keep ES total for pagination — don't reset to filtered count
 
             # Diversify: group by credibility tier, interleave 3 high then 1 lower
             articles = self._diversify_results(raw_articles, per_page)
