@@ -2517,3 +2517,37 @@ body,
     white-space: nowrap;
 }
 
+/* AI Answer Box */
+.ai-answer-box {
+    background: var(--card-bg);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 12px rgba(99, 102, 241, 0.08);
+}
+.ai-answer-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.ai-answer-icon {
+    font-size: 1.3rem;
+}
+.ai-answer-label {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--accent);
+}
+.ai-answer-model {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+.ai-answer-content {
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: var(--text-primary);
+}
+

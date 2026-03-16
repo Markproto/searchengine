@@ -14,6 +14,7 @@ from profoundd.config.settings import get_config
 from profoundd.config.sources import CATEGORIES
 from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting, BobStory, NewsroomNote, SourceNote, PageView
 from profoundd.search.engine import SearchEngine
+from profoundd.search.ai_summary import generate_summary as ai_generate_summary, is_available as ai_is_available
 from profoundd.admin.routes import admin_bp
 from profoundd.utils.logging_config import setup_logging
 
@@ -299,6 +300,12 @@ def create_app(config_override=None):
                     blended.insert(pos, wr)
                 results["articles"] = blended
 
+        # Generate AI summary from local Ollama/Mistral
+        ai_answer = ""
+        if query and results.get("articles"):
+            ai_result = ai_generate_summary(query, results["articles"])
+            ai_answer = ai_result.get("answer", "")
+
         # Log the search
         log = SearchLog(
             query=query,
@@ -312,7 +319,8 @@ def create_app(config_override=None):
         return render_template("search.html", results=results, categories=CATEGORIES,
                                query=query, category=category, sort_by=sort_by,
                                enhanced_providers=enhanced_providers,
-                               web_fallback=web_fallback)
+                               web_fallback=web_fallback,
+                               ai_answer=ai_answer)
 
     @app.route("/category/<category_name>")
     def category_page(category_name):

@@ -80,6 +80,19 @@
         </button>
     </div>
 
+    {% if ai_answer %}
+    <div class="ai-answer-box">
+        <div class="ai-answer-header">
+            <span class="ai-answer-icon">&#129302;</span>
+            <span class="ai-answer-label">AI Summary</span>
+            <span class="ai-answer-model">Powered by local Mistral</span>
+        </div>
+        <div class="ai-answer-content">
+            {{ ai_answer | replace('\n', '<br>') | safe }}
+        </div>
+    </div>
+    {% endif %}
+
     <div class="search-results">
         {% for article in results.articles %}
         <article class="result-card {% if article._enhanced %}enhanced-result{% endif %} {% if article.image_url %}has-thumb{% endif %}">
