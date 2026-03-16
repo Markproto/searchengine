@@ -1,0 +1,52 @@
+{# Business results side panel — rendered when business_results is non-empty #}
+<aside class="business-panel">
+    <div class="business-panel-header">
+        <span class="business-panel-icon">&#128205;</span>
+        <span class="business-panel-title">Local Businesses</span>
+        {% if user_location and user_location.city %}
+        <span class="business-panel-location" id="loc-indicator">
+            {{ user_location.city }}{% if user_location.state %}, {{ user_location.state }}{% endif %}
+            <button type="button" class="loc-change-btn" onclick="showLocationPrompt()" title="Change location">&#9998;</button>
+        </span>
+        {% else %}
+        <button type="button" class="loc-set-btn" onclick="showLocationPrompt()">Set Location</button>
+        {% endif %}
+    </div>
+
+    {% for biz in business_results %}
+    <div class="business-card">
+        <div class="biz-name-row">
+            <h4 class="biz-name">
+                {% if biz.website %}
+                <a href="{{ biz.website }}" target="_blank" rel="noopener">{{ biz.name }}</a>
+                {% else %}
+                {{ biz.name }}
+                {% endif %}
+            </h4>
+            {% if biz._distance_mi is defined and biz._distance_mi is not none %}
+            <span class="biz-distance">{{ biz._distance_mi }} mi</span>
+            {% endif %}
+        </div>
+        <span class="biz-type-badge biz-cat-{{ biz.business_category }}">{{ biz.business_type }}</span>
+        {% if biz.address %}
+        <p class="biz-address">&#128205; {{ biz.address }}</p>
+        {% endif %}
+        {% if biz.phone %}
+        <p class="biz-phone"><a href="tel:{{ biz.phone }}">&#128222; {{ biz.phone }}</a></p>
+        {% endif %}
+        {% if biz.opening_hours %}
+        <p class="biz-hours">&#128336; {{ biz.opening_hours }}</p>
+        {% endif %}
+        <div class="biz-actions">
+            {% if biz.location and biz.location.lat and biz.location.lon %}
+            <a href="https://www.openstreetmap.org/?mlat={{ biz.location.lat }}&mlon={{ biz.location.lon }}&zoom=17" target="_blank" rel="noopener" class="biz-directions-btn">Directions</a>
+            {% endif %}
+            {% if biz.website %}
+            <a href="{{ biz.website }}" target="_blank" rel="noopener" class="biz-website-btn">Website</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <p class="biz-attribution">Data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</p>
+</aside>

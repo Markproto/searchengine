@@ -97,6 +97,7 @@
         </div>
     </div>
 
+    <div class="search-layout {% if business_results %}has-business-panel{% endif %}">
     <div class="search-results">
         {% for article in results.articles %}
         <article class="result-card {% if article._enhanced %}enhanced-result{% endif %} {% if article.image_url %}has-thumb{% endif %}">
@@ -204,7 +205,14 @@
             </div>{# /result-body #}
         </article>
         {% endfor %}
-    </div>
+    </div>{# /search-results #}
+
+    {% if business_results %}
+    {% include '_business_panel.html' %}
+    {% endif %}
+    </div>{# /search-layout #}
+
+    {% include '_location_prompt.html' %}
 
     {% if results.pages > 1 %}
     <nav class="pagination">

@@ -49,8 +49,19 @@ def init_scheduler(app):
         kwargs={"app": app},
     )
 
+    # Daily OSM business data refresh
+    osm_refresh_hours = app.config.get("OSM_REFRESH_HOURS", 24)
+    _scheduler.add_job(
+        func=_run_osm_refresh,
+        trigger=IntervalTrigger(hours=osm_refresh_hours),
+        id="osm_refresh",
+        name=f"Refresh OSM business data every {osm_refresh_hours} hours",
+        replace_existing=True,
+        kwargs={"app": app},
+    )
+
     _scheduler.start()
-    logger.info("Scheduler started: crawl every %d min, no auto-cleanup (data retained permanently)", interval_minutes)
+    logger.info("Scheduler started: crawl every %d min, OSM refresh every %dh", interval_minutes, osm_refresh_hours)
     return _scheduler
 
 
@@ -105,6 +116,31 @@ def _run_scheduled_crawl(app):
         logger.info("Scheduled crawl complete: %d found, %d new, %d errors in %.1fs",
                      stats.get("found", 0), stats.get("new", 0),
                      stats.get("errors", 0), duration)
+
+
+def _run_osm_refresh(app):
+    """Download latest OSM extracts and re-index businesses."""
+    with app.app_context():
+        from profoundd.search.engine import SearchEngine
+        from profoundd.crawler.osm_crawler import import_all_states
+        from profoundd.utils.models import db, SiteSetting
+        from datetime import datetime, timezone
+
+        engine = SearchEngine(app.config.get("ELASTICSEARCH_URL"))
+        if not engine.is_available():
+            logger.error("OSM refresh skipped: Elasticsearch unavailable")
+            return
+
+        data_dir = app.config.get("OSM_DATA_DIR", "data/osm")
+        results = import_all_states(engine, data_dir)
+        total = sum(r.get("indexed", 0) for r in results)
+
+        SiteSetting.set(
+            "osm_last_import",
+            datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        )
+        db.session.commit()
+        logger.info("OSM refresh complete: %d businesses across %d states", total, len(results))
 
 
 def _run_cleanup(app):

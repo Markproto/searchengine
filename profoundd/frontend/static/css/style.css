@@ -2593,3 +2593,282 @@ body,
     font-style: italic;
 }
 
+/* =========================================
+   Local Business Panel + Cards
+   ========================================= */
+
+.search-layout {
+    display: block;
+}
+.search-layout.has-business-panel {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+.search-layout.has-business-panel .search-results {
+    flex: 1;
+    min-width: 0;
+}
+
+.business-panel {
+    width: 320px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 80px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    box-shadow: var(--shadow);
+}
+.business-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+}
+.business-panel-icon {
+    font-size: 1.1rem;
+}
+.business-panel-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text);
+}
+.business-panel-location {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-left: auto;
+}
+.loc-change-btn {
+    background: none;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0 0.25rem;
+}
+.loc-set-btn {
+    margin-left: auto;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+.loc-set-btn:hover {
+    background: var(--accent-hover);
+}
+
+/* Business card */
+.business-card {
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 0;
+}
+.business-card:last-of-type {
+    border-bottom: none;
+}
+.biz-name-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.biz-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.3;
+}
+.biz-name a {
+    color: var(--accent);
+    text-decoration: none;
+}
+.biz-name a:hover {
+    text-decoration: underline;
+}
+.biz-distance {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+.biz-type-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.15rem 0.5rem;
+    border-radius: 99px;
+    background: var(--accent-glow);
+    color: var(--accent);
+    margin: 0.25rem 0;
+}
+.biz-cat-food .biz-type-badge, .biz-type-badge.biz-cat-food { background: rgba(220, 38, 38, 0.08); color: #dc2626; }
+.biz-cat-health .biz-type-badge, .biz-type-badge.biz-cat-health { background: rgba(22, 163, 74, 0.08); color: #16a34a; }
+.biz-cat-shopping .biz-type-badge, .biz-type-badge.biz-cat-shopping { background: rgba(37, 99, 235, 0.08); color: #2563eb; }
+.biz-cat-automotive .biz-type-badge, .biz-type-badge.biz-cat-automotive { background: rgba(217, 119, 6, 0.08); color: #d97706; }
+.biz-cat-professional .biz-type-badge, .biz-type-badge.biz-cat-professional { background: rgba(147, 51, 234, 0.08); color: #9333ea; }
+.biz-cat-craft .biz-type-badge, .biz-type-badge.biz-cat-craft { background: rgba(217, 119, 6, 0.08); color: #d97706; }
+
+.biz-address, .biz-phone, .biz-hours {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin: 0.2rem 0;
+    line-height: 1.4;
+}
+.biz-phone a {
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+.biz-phone a:hover {
+    color: var(--accent);
+}
+.biz-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+}
+.biz-directions-btn, .biz-website-btn {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    background: transparent;
+}
+.biz-directions-btn:hover, .biz-website-btn:hover {
+    background: var(--accent-glow);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+.biz-attribution {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 0.75rem;
+    text-align: center;
+}
+.biz-attribution a {
+    color: var(--text-muted);
+    text-decoration: underline;
+}
+
+/* Location prompt modal */
+.location-prompt {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--overlay-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.location-prompt-inner {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    padding: 2rem;
+    max-width: 380px;
+    width: 90%;
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+}
+.location-prompt-inner h3 {
+    margin-bottom: 1.25rem;
+    font-size: 1.1rem;
+    color: var(--text);
+}
+.loc-gps-btn {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 1rem;
+}
+.loc-gps-btn:hover {
+    background: var(--accent-hover);
+}
+.loc-divider {
+    position: relative;
+    text-align: center;
+    margin: 1rem 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+.loc-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--border);
+}
+.loc-divider span {
+    position: relative;
+    background: var(--bg-card);
+    padding: 0 0.75rem;
+}
+.loc-zip-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+.loc-zip-input {
+    flex: 1;
+    padding: 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    background: var(--bg-input);
+    color: var(--text);
+    text-align: center;
+}
+.loc-zip-btn {
+    padding: 0.6rem 1.25rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    cursor: pointer;
+}
+.loc-skip-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+    text-decoration: underline;
+}
+.loc-error {
+    color: var(--danger);
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+}
+
+/* Mobile: business panel stacks above results */
+@media (max-width: 900px) {
+    .search-layout.has-business-panel {
+        flex-direction: column-reverse;
+    }
+    .business-panel {
+        width: 100%;
+        position: static;
+        max-height: none;
+        margin-bottom: 1rem;
+    }
+}
+

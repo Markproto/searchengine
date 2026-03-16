@@ -50,6 +50,45 @@ ARTICLE_MAPPING = {
 }
 
 
+BUSINESS_INDEX_NAME = "profoundd_businesses"
+
+BUSINESS_MAPPING = {
+    "mappings": {
+        "properties": {
+            "osm_id": {"type": "keyword"},
+            "name": {
+                "type": "text",
+                "analyzer": "english",
+                "fields": {
+                    "raw": {"type": "keyword", "ignore_above": 256}
+                }
+            },
+            "business_type": {"type": "keyword"},
+            "business_category": {"type": "keyword"},
+            "address": {"type": "text", "analyzer": "standard"},
+            "street": {"type": "keyword"},
+            "housenumber": {"type": "keyword"},
+            "city": {"type": "keyword"},
+            "state": {"type": "keyword"},
+            "postcode": {"type": "keyword"},
+            "phone": {"type": "keyword"},
+            "website": {"type": "keyword"},
+            "email": {"type": "keyword"},
+            "opening_hours": {"type": "text"},
+            "cuisine": {"type": "keyword"},
+            "brand": {"type": "keyword"},
+            "location": {"type": "geo_point"},
+            "tags": {"type": "keyword"},
+            "indexed_at": {"type": "date"},
+        }
+    },
+    "settings": {
+        "number_of_shards": 1,
+        "number_of_replicas": 0,
+    }
+}
+
+
 class SearchEngine:
     """Manages Elasticsearch operations for Profoundd."""
 
@@ -1093,3 +1132,179 @@ class SearchEngine:
         except Exception as e:
             logger.error("deduplicate_titles failed: %s", e)
             return 0, 0
+
+    # ------------------------------------------------------------------ #
+    #  Local Business Search (OpenStreetMap)                               #
+    # ------------------------------------------------------------------ #
+
+    def create_business_index(self):
+        """Create the profoundd_businesses index if it doesn't exist."""
+        try:
+            if not self.es.indices.exists(index=BUSINESS_INDEX_NAME):
+                self.es.indices.create(index=BUSINESS_INDEX_NAME, body=BUSINESS_MAPPING)
+                logger.info("Created business index: %s", BUSINESS_INDEX_NAME)
+        except Exception as e:
+            logger.error("Failed to create business index: %s", e)
+
+    def delete_business_index(self):
+        """Delete the business index for clean re-imports."""
+        try:
+            if self.es.indices.exists(index=BUSINESS_INDEX_NAME):
+                self.es.indices.delete(index=BUSINESS_INDEX_NAME)
+                logger.info("Deleted business index: %s", BUSINESS_INDEX_NAME)
+        except Exception as e:
+            logger.error("Failed to delete business index: %s", e)
+
+    def bulk_index_businesses(self, businesses):
+        """Bulk index business listings. Returns count of indexed docs."""
+        if not businesses:
+            return 0
+        actions = []
+        for biz in businesses:
+            doc_id = hashlib.md5(biz["osm_id"].encode()).hexdigest()
+            doc = {k: v for k, v in biz.items() if not k.startswith("_")}
+            actions.append({"index": {"_index": BUSINESS_INDEX_NAME, "_id": doc_id}})
+            actions.append(doc)
+        try:
+            result = self.es.bulk(operations=actions, refresh=True)
+            success = sum(
+                1 for item in result["items"]
+                if item.get("index", {}).get("status") in (200, 201)
+            )
+            logger.info("Bulk indexed %d/%d businesses", success, len(businesses))
+            return success
+        except Exception as e:
+            logger.error("Bulk index businesses failed: %s", e)
+            return 0
+
+    def search_businesses(self, query, location=None, radius_km=50, page=1, per_page=5):
+        """Search the business index.
+
+        Args:
+            query: Search text (business name, type, cuisine, etc.)
+            location: dict with 'lat' and 'lon' keys, or None
+            radius_km: Search radius in km (only used if location provided)
+            page: Page number
+            per_page: Results per page
+        Returns:
+            List of business dicts with _provider and _distance metadata.
+        """
+        must_clauses = [
+            {
+                "multi_match": {
+                    "query": query,
+                    "fields": ["name^3", "business_type^2", "cuisine^2", "tags", "address", "brand"],
+                    "type": "best_fields",
+                    "fuzziness": "AUTO",
+                }
+            }
+        ]
+        filter_clauses = []
+
+        if location and "lat" in location and "lon" in location:
+            filter_clauses.append({
+                "geo_distance": {
+                    "distance": f"{radius_km}km",
+                    "location": {"lat": location["lat"], "lon": location["lon"]},
+                }
+            })
+
+        body = {
+            "query": {
+                "bool": {
+                    "must": must_clauses,
+                    "filter": filter_clauses if filter_clauses else None,
+                }
+            },
+            "size": per_page,
+            "from": (page - 1) * per_page,
+        }
+
+        # Remove None filter
+        if not filter_clauses:
+            body["query"]["bool"].pop("filter", None)
+
+        # Sort by distance if location provided, otherwise by relevance
+        if location and "lat" in location and "lon" in location:
+            body["sort"] = [
+                {
+                    "_geo_distance": {
+                        "location": {"lat": location["lat"], "lon": location["lon"]},
+                        "order": "asc",
+                        "unit": "mi",
+                        "distance_type": "arc",
+                    }
+                }
+            ]
+            body["script_fields"] = {
+                "distance_mi": {
+                    "script": {
+                        "source": "doc['location'].arcDistance(params.lat, params.lon) * 0.000621371",
+                        "params": {"lat": location["lat"], "lon": location["lon"]},
+                    }
+                }
+            }
+
+        try:
+            result = self.es.search(index=BUSINESS_INDEX_NAME, body=body)
+            businesses = []
+            for hit in result["hits"]["hits"]:
+                biz = hit["_source"]
+                biz["_provider"] = "local_business"
+                biz["_enhanced"] = True
+                biz["_score"] = hit.get("_score", 0)
+                # Add distance if available
+                if "fields" in hit and "distance_mi" in hit["fields"]:
+                    biz["_distance_mi"] = round(hit["fields"]["distance_mi"][0], 1)
+                elif "sort" in hit and location:
+                    biz["_distance_mi"] = round(hit["sort"][0], 1)
+                businesses.append(biz)
+            return businesses
+        except Exception as e:
+            logger.error("search_businesses failed: %s", e)
+            return []
+
+    def get_business_count(self):
+        """Get total count of indexed businesses."""
+        try:
+            result = self.es.count(index=BUSINESS_INDEX_NAME)
+            return result["count"]
+        except Exception:
+            return 0
+
+    def get_business_stats(self):
+        """Get business count breakdown by state and category."""
+        try:
+            body = {
+                "size": 0,
+                "aggs": {
+                    "by_state": {
+                        "terms": {"field": "state", "size": 50}
+                    },
+                    "by_category": {
+                        "terms": {"field": "business_category", "size": 20}
+                    },
+                    "by_city": {
+                        "terms": {"field": "city", "size": 50}
+                    },
+                }
+            }
+            result = self.es.search(index=BUSINESS_INDEX_NAME, body=body)
+            return {
+                "total": self.get_business_count(),
+                "by_state": {
+                    b["key"]: b["doc_count"]
+                    for b in result["aggregations"]["by_state"]["buckets"]
+                },
+                "by_category": {
+                    b["key"]: b["doc_count"]
+                    for b in result["aggregations"]["by_category"]["buckets"]
+                },
+                "by_city": {
+                    b["key"]: b["doc_count"]
+                    for b in result["aggregations"]["by_city"]["buckets"]
+                },
+            }
+        except Exception as e:
+            logger.error("get_business_stats failed: %s", e)
+            return {"total": 0, "by_state": {}, "by_category": {}, "by_city": {}}

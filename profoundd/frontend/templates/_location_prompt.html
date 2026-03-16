@@ -1,0 +1,98 @@
+{# Location prompt modal — GPS consent or ZIP code fallback #}
+<div id="locationPrompt" class="location-prompt" style="display:none;">
+    <div class="location-prompt-inner">
+        <h3>Find businesses near you</h3>
+        <button type="button" class="loc-gps-btn" onclick="requestGPS()">
+            &#128205; Use My Location
+        </button>
+        <div class="loc-divider"><span>or enter ZIP code</span></div>
+        <div class="loc-zip-row">
+            <input type="text" id="locZipInput" class="loc-zip-input" placeholder="ZIP code" maxlength="5" pattern="[0-9]{5}">
+            <button type="button" class="loc-zip-btn" onclick="submitZip()">Go</button>
+        </div>
+        <button type="button" class="loc-skip-btn" onclick="skipLocation()">Skip</button>
+        <p id="locError" class="loc-error" style="display:none;"></p>
+    </div>
+</div>
+
+<script>
+function showLocationPrompt() {
+    document.getElementById('locationPrompt').style.display = 'flex';
+}
+
+function hideLocationPrompt() {
+    document.getElementById('locationPrompt').style.display = 'none';
+}
+
+function requestGPS() {
+    var errEl = document.getElementById('locError');
+    errEl.style.display = 'none';
+
+    if (!navigator.geolocation) {
+        errEl.textContent = 'Geolocation not supported by your browser. Please enter a ZIP code.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            fetch('/api/set-location', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({lat: pos.coords.latitude, lon: pos.coords.longitude})
+            }).then(function(r) { return r.json(); }).then(function(data) {
+                if (data.ok) {
+                    hideLocationPrompt();
+                    window.location.reload();
+                }
+            });
+        },
+        function(err) {
+            errEl.textContent = 'Location access denied. Please enter a ZIP code instead.';
+            errEl.style.display = 'block';
+        },
+        {enableHighAccuracy: false, timeout: 10000}
+    );
+}
+
+function submitZip() {
+    var zip = document.getElementById('locZipInput').value.trim();
+    var errEl = document.getElementById('locError');
+    errEl.style.display = 'none';
+
+    if (!/^\d{5}$/.test(zip)) {
+        errEl.textContent = 'Please enter a 5-digit ZIP code.';
+        errEl.style.display = 'block';
+        return;
+    }
+
+    fetch('/api/set-location', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({zip: zip})
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.ok) {
+            hideLocationPrompt();
+            window.location.reload();
+        } else {
+            errEl.textContent = data.error || 'Unknown ZIP code.';
+            errEl.style.display = 'block';
+        }
+    });
+}
+
+function skipLocation() {
+    document.cookie = 'location_skipped=true;max-age=86400;path=/;samesite=lax';
+    hideLocationPrompt();
+}
+
+/* Auto-show prompt on first local search if no location set */
+(function() {
+    var hasBiz = {{ 'true' if business_results else 'false' }};
+    var hasLoc = document.cookie.indexOf('profoundd_loc=') !== -1;
+    var skipped = document.cookie.indexOf('location_skipped=') !== -1;
+    if (hasBiz && !hasLoc && !skipped) {
+        showLocationPrompt();
+    }
+})();
+</script>

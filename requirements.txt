@@ -33,6 +33,9 @@ openai>=1.50.0
 markdown>=3.5
 PyPDF2>=3.0.0
 
+# OSM / Local Business
+osmium>=3.7.0
+
 # Utilities
 requests==2.31.0
 python-dateutil==2.8.2

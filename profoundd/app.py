@@ -192,6 +192,9 @@ def create_app(config_override=None):
 
     # Initialize search engine
     search_engine = SearchEngine(app.config.get("ELASTICSEARCH_URL", "http://localhost:9200"))
+    # Ensure the business index exists alongside the articles index
+    if search_engine.is_available():
+        search_engine.create_business_index()
 
     # Create tables and default admin
     with app.app_context():
@@ -232,6 +235,103 @@ def create_app(config_override=None):
             if not trending:
                 trending = search_engine.get_latest(size=9)
         return render_template("index.html", categories=CATEGORIES, trending=trending)
+
+    # --- Location API for local business search ---
+    @app.route("/api/set-location", methods=["POST"])
+    def set_location():
+        """Store user location (GPS or ZIP) in a cookie for local business results."""
+        import json as _json
+        data = request.get_json(silent=True) or {}
+
+        lat = data.get("lat")
+        lon = data.get("lon")
+        zip_code = data.get("zip", "").strip()
+
+        if lat is not None and lon is not None:
+            # GPS location
+            loc = {"lat": float(lat), "lon": float(lon), "source": "gps"}
+            # Reverse-lookup city from ZIP data (approximate)
+            loc["city"], loc["state"] = _reverse_lookup_city(float(lat), float(lon))
+        elif zip_code:
+            # ZIP code lookup
+            zip_data = _lookup_zip(zip_code)
+            if not zip_data:
+                return jsonify({"error": "Unknown ZIP code"}), 400
+            loc = {
+                "lat": zip_data["lat"], "lon": zip_data["lon"],
+                "city": zip_data["city"], "state": zip_data["state"],
+                "source": "zip",
+            }
+        else:
+            return jsonify({"error": "Provide lat/lon or zip"}), 400
+
+        resp = jsonify({"ok": True, "city": loc.get("city", ""), "state": loc.get("state", "")})
+        resp.set_cookie(
+            "profoundd_loc", _json.dumps(loc),
+            max_age=365 * 24 * 3600,
+            httponly=False,  # JS needs to read this for the location indicator
+            samesite="Lax",
+            secure=request.is_secure,
+        )
+        return resp
+
+    @app.route("/api/clear-location", methods=["POST"])
+    def clear_location():
+        """Clear user location cookie."""
+        resp = jsonify({"ok": True})
+        resp.delete_cookie("profoundd_loc")
+        return resp
+
+    def _get_user_location():
+        """Read user location from cookie. Returns dict with lat/lon or None."""
+        import json as _json
+        loc_cookie = request.cookies.get("profoundd_loc")
+        if not loc_cookie:
+            return None
+        try:
+            loc = _json.loads(loc_cookie)
+            if "lat" in loc and "lon" in loc:
+                return loc
+        except Exception:
+            pass
+        return None
+
+    def _lookup_zip(zip_code):
+        """Look up a ZIP code from the static JSON file. Returns dict or None."""
+        zip_path = os.path.join(os.path.dirname(__file__), "data", "zipcodes.json")
+        if not hasattr(_lookup_zip, "_cache"):
+            try:
+                import json as _json
+                with open(zip_path) as f:
+                    _lookup_zip._cache = _json.load(f)
+            except Exception:
+                _lookup_zip._cache = {}
+        return _lookup_zip._cache.get(zip_code)
+
+    def _reverse_lookup_city(lat, lon):
+        """Approximate reverse city lookup from ZIP data. Returns (city, state)."""
+        if not hasattr(_reverse_lookup_city, "_index"):
+            # Build a simple index on first call
+            zip_path = os.path.join(os.path.dirname(__file__), "data", "zipcodes.json")
+            try:
+                import json as _json
+                with open(zip_path) as f:
+                    data = _json.load(f)
+                _reverse_lookup_city._index = list(data.values())
+            except Exception:
+                _reverse_lookup_city._index = []
+
+        # Find nearest ZIP centroid (simple distance, good enough)
+        best = None
+        best_dist = float("inf")
+        for entry in _reverse_lookup_city._index:
+            d = (entry["lat"] - lat) ** 2 + (entry["lon"] - lon) ** 2
+            if d < best_dist:
+                best_dist = d
+                best = entry
+        if best:
+            return best["city"], best["state"]
+        return "", ""
 
     @app.route("/search")
     def search():
@@ -287,6 +387,25 @@ def create_app(config_override=None):
                     if gr.get("url") not in existing_urls:
                         results["articles"].insert(insert_pos, gr)
                         insert_pos += 1
+
+            # Local business search (OSM data)
+            from profoundd.search.local_intent import detect_local_intent
+            local_intent = detect_local_intent(query)
+            business_results = []
+            if local_intent["is_local"]:
+                user_loc = _get_user_location()
+                biz_location = None
+                if user_loc:
+                    biz_location = {"lat": user_loc["lat"], "lon": user_loc["lon"]}
+                try:
+                    business_results = search_engine.search_businesses(
+                        query=local_intent["clean_query"],
+                        location=biz_location,
+                        radius_km=80,
+                        per_page=5,
+                    )
+                except Exception as e:
+                    logger.warning("Business search failed: %s", e)
 
             # Always fetch external web results so every search taps sources
             # beyond Profoundd's curated index — especially important for
@@ -355,7 +474,9 @@ def create_app(config_override=None):
                                query=query, category=category, sort_by=sort_by,
                                enhanced_providers=enhanced_providers,
                                web_fallback=web_fallback,
-                               web_promoted=web_promoted))
+                               web_promoted=web_promoted,
+                               business_results=business_results if page == 1 else [],
+                               user_location=_get_user_location()))
         resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         return resp
 

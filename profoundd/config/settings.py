@@ -36,6 +36,10 @@ class Config:
     CRAWL_DELAY_SECONDS = int(os.getenv("CRAWL_DELAY_SECONDS", "2"))
     CONCURRENT_REQUESTS = int(os.getenv("CONCURRENT_REQUESTS", "4"))
 
+    # OSM / Local Business
+    OSM_DATA_DIR = os.path.join(BASE_DIR, "data", "osm")
+    OSM_REFRESH_HOURS = int(os.getenv("OSM_REFRESH_HOURS", "24"))
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

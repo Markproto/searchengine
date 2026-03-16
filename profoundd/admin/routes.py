@@ -2000,3 +2000,95 @@ SEO_DESCRIPTION: [A 150-160 character meta description for search engines]"""
                            claims_data=None,
                            evidence=None,
                            total_evidence=0)
+
+
+# ------------------------------------------------------------------ #
+#  OSM Local Business Import                                          #
+# ------------------------------------------------------------------ #
+
+@admin_bp.route("/osm")
+@login_required
+def osm_manage():
+    """OSM business data management page."""
+    engine = SearchEngine(config.ELASTICSEARCH_URL)
+    stats = engine.get_business_stats() if engine.is_available() else {
+        "total": 0, "by_state": {}, "by_category": {}, "by_city": {},
+    }
+    last_import = SiteSetting.get("osm_last_import", "Never")
+
+    from profoundd.crawler.osm_crawler import SUPPORTED_STATES
+    return render_template("admin/osm_import.html",
+                           stats=stats,
+                           supported_states=SUPPORTED_STATES,
+                           last_import=last_import)
+
+
+@admin_bp.route("/osm/import", methods=["POST"])
+@login_required
+def osm_import_all():
+    """Trigger OSM import for all supported states in background."""
+    import threading
+    from flask import current_app
+
+    engine = SearchEngine(config.ELASTICSEARCH_URL)
+    if not engine.is_available():
+        flash("Elasticsearch is not available. Cannot import.", "error")
+        return redirect(url_for("admin.osm_manage"))
+
+    app = current_app._get_current_object()
+
+    def run_import():
+        with app.app_context():
+            from profoundd.crawler.osm_crawler import import_all_states
+            data_dir = app.config.get("OSM_DATA_DIR", "data/osm")
+            results = import_all_states(engine, data_dir)
+            total = sum(r.get("indexed", 0) for r in results)
+            SiteSetting.set(
+                "osm_last_import",
+                datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+            )
+            db.session.commit()
+            app.logger.info("OSM import complete: %d businesses indexed across %d states",
+                            total, len(results))
+
+    threading.Thread(target=run_import, daemon=True).start()
+    flash("OSM import started in background for all supported states.", "success")
+    return redirect(url_for("admin.osm_manage"))
+
+
+@admin_bp.route("/osm/import/<state_key>", methods=["POST"])
+@login_required
+def osm_import_state(state_key):
+    """Trigger OSM import for a single state in background."""
+    import threading
+    from flask import current_app
+    from profoundd.crawler.osm_crawler import SUPPORTED_STATES
+
+    if state_key not in SUPPORTED_STATES:
+        flash(f"Unknown state: {state_key}", "error")
+        return redirect(url_for("admin.osm_manage"))
+
+    engine = SearchEngine(config.ELASTICSEARCH_URL)
+    if not engine.is_available():
+        flash("Elasticsearch is not available.", "error")
+        return redirect(url_for("admin.osm_manage"))
+
+    app = current_app._get_current_object()
+
+    def run_import():
+        with app.app_context():
+            from profoundd.crawler.osm_crawler import import_state
+            data_dir = app.config.get("OSM_DATA_DIR", "data/osm")
+            engine.create_business_index()
+            result = import_state(engine, state_key, data_dir)
+            SiteSetting.set(
+                "osm_last_import",
+                datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+            )
+            db.session.commit()
+            if result:
+                app.logger.info("OSM import %s: %d indexed", state_key, result.get("indexed", 0))
+
+    threading.Thread(target=run_import, daemon=True).start()
+    flash(f"OSM import started for {SUPPORTED_STATES[state_key]['label']}.", "success")
+    return redirect(url_for("admin.osm_manage"))

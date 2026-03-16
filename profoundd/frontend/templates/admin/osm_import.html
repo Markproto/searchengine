@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}OSM Business Data{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>Local Business Data (OpenStreetMap)</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+    </div>
+
+    <div class="admin-section">
+        <h2>Overview</h2>
+        <p class="action-desc">Business listings from OpenStreetMap Geofabrik extracts. Data is free and open under ODbL license.</p>
+        <div style="display:flex;gap:2rem;flex-wrap:wrap;margin:1rem 0;">
+            <div class="stat-card">
+                <span class="stat-value">{{ stats.total | default(0) }}</span>
+                <span class="stat-label">Total Businesses</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">{{ stats.by_state | length }}</span>
+                <span class="stat-label">States Indexed</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value">{{ last_import }}</span>
+                <span class="stat-label">Last Import</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-section">
+        <h2>Import Controls</h2>
+        <form method="POST" action="{{ url_for('admin.osm_import_all') }}" style="margin-bottom:1rem;">
+            <button type="submit" class="btn btn-primary" onclick="return confirm('This will download and import all state extracts. Continue?')">
+                Import All States
+            </button>
+        </form>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;">
+            {% for key, state in supported_states.items() %}
+            <div class="admin-card" style="padding:1rem;">
+                <h3>{{ state.label }} ({{ state.abbrev }})</h3>
+                <p style="font-size:0.85rem;color:var(--text-secondary);">
+                    {% if stats.by_state and state.abbrev in stats.by_state %}
+                    {{ stats.by_state[state.abbrev] }} businesses indexed
+                    {% else %}
+                    Not yet imported
+                    {% endif %}
+                </p>
+                <form method="POST" action="{{ url_for('admin.osm_import_state', state_key=key) }}" style="margin-top:0.5rem;">
+                    <button type="submit" class="btn btn-sm btn-secondary">Import {{ state.label }}</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if stats.by_category %}
+    <div class="admin-section">
+        <h2>By Category</h2>
+        <table class="admin-table">
+            <thead><tr><th>Category</th><th>Count</th></tr></thead>
+            <tbody>
+                {% for cat, count in stats.by_category.items() | sort(attribute='1', reverse=True) %}
+                <tr><td>{{ cat | title }}</td><td>{{ count }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if stats.by_city %}
+    <div class="admin-section">
+        <h2>Top Cities</h2>
+        <table class="admin-table">
+            <thead><tr><th>City</th><th>Count</th></tr></thead>
+            <tbody>
+                {% for city, count in stats.by_city.items() | sort(attribute='1', reverse=True) %}
+                <tr><td>{{ city }}</td><td>{{ count }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <div class="admin-section">
+        <h2>Adding a New State</h2>
+        <p class="action-desc">To add a new state, edit <code>SUPPORTED_STATES</code> in <code>profoundd/crawler/osm_crawler.py</code>:</p>
+        <pre style="background:var(--bg-input);padding:1rem;border-radius:var(--radius-sm);font-size:0.85rem;overflow-x:auto;">"washington": {
+    "url": "https://download.geofabrik.de/north-america/us/washington-latest.osm.pbf",
+    "filename": "washington-latest.osm.pbf",
+    "abbrev": "WA",
+    "label": "Washington",
+},</pre>
+        <p class="action-desc" style="margin-top:0.5rem;">Then add city names to <code>KNOWN_CITIES</code> in <code>profoundd/search/local_intent.py</code> and click Import.</p>
+    </div>
+</div>
+{% endblock %}
