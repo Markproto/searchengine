@@ -376,9 +376,28 @@ def create_app(config_override=None):
         if ai_count >= 5:
             return jsonify({"answer": "", "error": "limit_reached", "remaining": 0})
 
-        # Get search results to summarize
+        # Get search results to summarize (local index + Grokipedia + web)
         results = search_engine.search(query=query, category="all", page=1)
         articles = results.get("articles", [])
+
+        # Include Grokipedia articles so AI can cite them
+        try:
+            grok_articles = fetch_grokipedia(query, max_results=3)
+            if grok_articles:
+                articles = grok_articles + articles
+        except Exception:
+            pass
+
+        # Include web results so AI has broader coverage
+        searxng_url = app.config.get("SEARXNG_URL", "")
+        if searxng_url:
+            try:
+                web_articles = fetch_searxng(query, searxng_url, max_results=5)
+                if web_articles:
+                    articles.extend(web_articles)
+            except Exception:
+                pass
+
         if not articles:
             return jsonify({"answer": "", "error": "No results to summarize", "remaining": 5 - ai_count})
 
