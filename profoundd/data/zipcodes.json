@@ -1,1 +1,4934 @@
-{"97001":{"lat":45.08,"lon":-121.17,"city":"Antelope","state":"OR"},"97002":{"lat":45.23,"lon":-122.76,"city":"Aurora","state":"OR"},"97003":{"lat":45.5,"lon":-122.87,"city":"Beaverton","state":"OR"},"97004":{"lat":45.24,"lon":-122.46,"city":"Beavercreek","state":"OR"},"97005":{"lat":45.49,"lon":-122.8,"city":"Beaverton","state":"OR"},"97006":{"lat":45.52,"lon":-122.85,"city":"Beaverton","state":"OR"},"97007":{"lat":45.47,"lon":-122.85,"city":"Beaverton","state":"OR"},"97008":{"lat":45.46,"lon":-122.8,"city":"Beaverton","state":"OR"},"97009":{"lat":45.42,"lon":-122.23,"city":"Boring","state":"OR"},"97010":{"lat":45.54,"lon":-122.01,"city":"Bridal Veil","state":"OR"},"97011":{"lat":45.38,"lon":-122.09,"city":"Brightwood","state":"OR"},"97013":{"lat":45.22,"lon":-122.6,"city":"Canby","state":"OR"},"97014":{"lat":45.59,"lon":-121.96,"city":"Cascade Locks","state":"OR"},"97015":{"lat":45.4,"lon":-122.57,"city":"Clackamas","state":"OR"},"97016":{"lat":46.04,"lon":-123.31,"city":"Clatskanie","state":"OR"},"97017":{"lat":45.18,"lon":-122.39,"city":"Colton","state":"OR"},"97018":{"lat":45.9,"lon":-122.81,"city":"Columbia City","state":"OR"},"97019":{"lat":45.53,"lon":-122.07,"city":"Corbett","state":"OR"},"97020":{"lat":45.15,"lon":-122.76,"city":"Donald","state":"OR"},"97021":{"lat":45.35,"lon":-121.18,"city":"Dufur","state":"OR"},"97022":{"lat":45.35,"lon":-122.18,"city":"Eagle Creek","state":"OR"},"97023":{"lat":45.3,"lon":-122.33,"city":"Estacada","state":"OR"},"97024":{"lat":45.55,"lon":-122.43,"city":"Fairview","state":"OR"},"97026":{"lat":45.08,"lon":-122.77,"city":"Gervais","state":"OR"},"97027":{"lat":45.4,"lon":-122.61,"city":"Gladstone","state":"OR"},"97028":{"lat":45.3,"lon":-121.76,"city":"Government Camp","state":"OR"},"97030":{"lat":45.5,"lon":-122.43,"city":"Gresham","state":"OR"},"97031":{"lat":45.71,"lon":-121.52,"city":"Hood River","state":"OR"},"97032":{"lat":45.13,"lon":-122.77,"city":"Hubbard","state":"OR"},"97033":{"lat":44.98,"lon":-120.17,"city":"Kent","state":"OR"},"97034":{"lat":45.42,"lon":-122.72,"city":"Lake Oswego","state":"OR"},"97035":{"lat":45.41,"lon":-122.72,"city":"Lake Oswego","state":"OR"},"97036":{"lat":45.22,"lon":-122.53,"city":"Marylhurst","state":"OR"},"97037":{"lat":45.08,"lon":-121.23,"city":"Maupin","state":"OR"},"97038":{"lat":45.15,"lon":-122.55,"city":"Molalla","state":"OR"},"97039":{"lat":45.47,"lon":-120.72,"city":"Moro","state":"OR"},"97040":{"lat":45.62,"lon":-121.16,"city":"Mosier","state":"OR"},"97041":{"lat":45.33,"lon":-121.57,"city":"Mount Hood Parkdale","state":"OR"},"97042":{"lat":45.22,"lon":-122.48,"city":"Mulino","state":"OR"},"97045":{"lat":45.36,"lon":-122.58,"city":"Oregon City","state":"OR"},"97048":{"lat":46.04,"lon":-123.18,"city":"Rainier","state":"OR"},"97049":{"lat":45.35,"lon":-121.93,"city":"Rhododendron","state":"OR"},"97050":{"lat":45.69,"lon":-120.83,"city":"Rufus","state":"OR"},"97051":{"lat":45.87,"lon":-122.89,"city":"Saint Helens","state":"OR"},"97053":{"lat":45.8,"lon":-122.87,"city":"Warren","state":"OR"},"97054":{"lat":45.92,"lon":-122.96,"city":"Deer Island","state":"OR"},"97055":{"lat":45.38,"lon":-122.12,"city":"Sandy","state":"OR"},"97056":{"lat":45.8,"lon":-122.99,"city":"Scappoose","state":"OR"},"97058":{"lat":45.6,"lon":-121.18,"city":"The Dalles","state":"OR"},"97060":{"lat":45.54,"lon":-122.39,"city":"Troutdale","state":"OR"},"97062":{"lat":45.37,"lon":-122.76,"city":"Tualatin","state":"OR"},"97063":{"lat":45.24,"lon":-121.01,"city":"Tygh Valley","state":"OR"},"97064":{"lat":45.82,"lon":-123.2,"city":"Vernonia","state":"OR"},"97065":{"lat":45.44,"lon":-120.6,"city":"Wasco","state":"OR"},"97067":{"lat":45.31,"lon":-122.02,"city":"Welches","state":"OR"},"97068":{"lat":45.37,"lon":-122.66,"city":"West Linn","state":"OR"},"97070":{"lat":45.3,"lon":-122.77,"city":"Wilsonville","state":"OR"},"97071":{"lat":45.08,"lon":-122.81,"city":"Woodburn","state":"OR"},"97078":{"lat":45.48,"lon":-122.88,"city":"Beaverton","state":"OR"},"97080":{"lat":45.5,"lon":-122.44,"city":"Gresham","state":"OR"},"97086":{"lat":45.44,"lon":-122.54,"city":"Happy Valley","state":"OR"},"97089":{"lat":45.43,"lon":-122.47,"city":"Damascus","state":"OR"},"97101":{"lat":45.07,"lon":-123.19,"city":"Amity","state":"OR"},"97103":{"lat":46.19,"lon":-123.83,"city":"Astoria","state":"OR"},"97106":{"lat":45.66,"lon":-123.05,"city":"Banks","state":"OR"},"97107":{"lat":45.56,"lon":-123.87,"city":"Bay City","state":"OR"},"97108":{"lat":45.32,"lon":-123.68,"city":"Beaver","state":"OR"},"97109":{"lat":45.73,"lon":-123.17,"city":"Buxton","state":"OR"},"97110":{"lat":45.94,"lon":-123.96,"city":"Cannon Beach","state":"OR"},"97111":{"lat":45.28,"lon":-123.18,"city":"Carlton","state":"OR"},"97112":{"lat":45.22,"lon":-123.85,"city":"Cloverdale","state":"OR"},"97113":{"lat":45.55,"lon":-123.02,"city":"Cornelius","state":"OR"},"97114":{"lat":45.22,"lon":-123.07,"city":"Dayton","state":"OR"},"97115":{"lat":45.32,"lon":-122.97,"city":"Dundee","state":"OR"},"97116":{"lat":45.6,"lon":-123.17,"city":"Forest Grove","state":"OR"},"97117":{"lat":45.65,"lon":-123.33,"city":"Gales Creek","state":"OR"},"97118":{"lat":45.55,"lon":-123.92,"city":"Garibaldi","state":"OR"},"97119":{"lat":45.47,"lon":-123.04,"city":"Gaston","state":"OR"},"97122":{"lat":45.46,"lon":-123.77,"city":"Hebo","state":"OR"},"97123":{"lat":45.53,"lon":-122.98,"city":"Hillsboro","state":"OR"},"97124":{"lat":45.55,"lon":-122.95,"city":"Hillsboro","state":"OR"},"97125":{"lat":45.54,"lon":-123.01,"city":"Manning","state":"OR"},"97127":{"lat":45.33,"lon":-123.12,"city":"Lafayette","state":"OR"},"97128":{"lat":45.21,"lon":-123.2,"city":"McMinnville","state":"OR"},"97130":{"lat":45.72,"lon":-123.94,"city":"Manzanita","state":"OR"},"97131":{"lat":45.74,"lon":-123.81,"city":"Nehalem","state":"OR"},"97132":{"lat":45.3,"lon":-122.97,"city":"Newberg","state":"OR"},"97133":{"lat":45.68,"lon":-123.2,"city":"North Plains","state":"OR"},"97134":{"lat":45.46,"lon":-123.97,"city":"Oceanside","state":"OR"},"97135":{"lat":45.2,"lon":-123.96,"city":"Pacific City","state":"OR"},"97136":{"lat":45.63,"lon":-123.92,"city":"Rockaway Beach","state":"OR"},"97137":{"lat":45.1,"lon":-122.83,"city":"Saint Paul","state":"OR"},"97138":{"lat":45.99,"lon":-123.92,"city":"Seaside","state":"OR"},"97140":{"lat":45.37,"lon":-122.87,"city":"Sherwood","state":"OR"},"97141":{"lat":45.46,"lon":-123.84,"city":"Tillamook","state":"OR"},"97144":{"lat":45.74,"lon":-123.49,"city":"Timber","state":"OR"},"97145":{"lat":45.84,"lon":-123.97,"city":"Tolovana Park","state":"OR"},"97146":{"lat":46.11,"lon":-123.92,"city":"Warrenton","state":"OR"},"97148":{"lat":45.36,"lon":-123.31,"city":"Yamhill","state":"OR"},"97149":{"lat":45.09,"lon":-123.95,"city":"Neskowin","state":"OR"},"97201":{"lat":45.51,"lon":-122.69,"city":"Portland","state":"OR"},"97202":{"lat":45.48,"lon":-122.64,"city":"Portland","state":"OR"},"97203":{"lat":45.59,"lon":-122.75,"city":"Portland","state":"OR"},"97204":{"lat":45.52,"lon":-122.68,"city":"Portland","state":"OR"},"97205":{"lat":45.52,"lon":-122.7,"city":"Portland","state":"OR"},"97206":{"lat":45.48,"lon":-122.6,"city":"Portland","state":"OR"},"97207":{"lat":45.51,"lon":-122.68,"city":"Portland","state":"OR"},"97208":{"lat":45.53,"lon":-122.68,"city":"Portland","state":"OR"},"97209":{"lat":45.53,"lon":-122.68,"city":"Portland","state":"OR"},"97210":{"lat":45.54,"lon":-122.73,"city":"Portland","state":"OR"},"97211":{"lat":45.57,"lon":-122.64,"city":"Portland","state":"OR"},"97212":{"lat":45.55,"lon":-122.64,"city":"Portland","state":"OR"},"97213":{"lat":45.55,"lon":-122.6,"city":"Portland","state":"OR"},"97214":{"lat":45.51,"lon":-122.64,"city":"Portland","state":"OR"},"97215":{"lat":45.51,"lon":-122.6,"city":"Portland","state":"OR"},"97216":{"lat":45.51,"lon":-122.56,"city":"Portland","state":"OR"},"97217":{"lat":45.59,"lon":-122.69,"city":"Portland","state":"OR"},"97218":{"lat":45.57,"lon":-122.6,"city":"Portland","state":"OR"},"97219":{"lat":45.46,"lon":-122.7,"city":"Portland","state":"OR"},"97220":{"lat":45.55,"lon":-122.56,"city":"Portland","state":"OR"},"97221":{"lat":45.5,"lon":-122.73,"city":"Portland","state":"OR"},"97222":{"lat":45.44,"lon":-122.62,"city":"Milwaukie","state":"OR"},"97223":{"lat":45.44,"lon":-122.76,"city":"Tigard","state":"OR"},"97224":{"lat":45.41,"lon":-122.78,"city":"Tigard","state":"OR"},"97225":{"lat":45.5,"lon":-122.78,"city":"Portland","state":"OR"},"97227":{"lat":45.54,"lon":-122.67,"city":"Portland","state":"OR"},"97229":{"lat":45.55,"lon":-122.8,"city":"Portland","state":"OR"},"97230":{"lat":45.55,"lon":-122.5,"city":"Portland","state":"OR"},"97231":{"lat":45.63,"lon":-122.83,"city":"Portland","state":"OR"},"97232":{"lat":45.53,"lon":-122.64,"city":"Portland","state":"OR"},"97233":{"lat":45.51,"lon":-122.5,"city":"Portland","state":"OR"},"97236":{"lat":45.48,"lon":-122.51,"city":"Portland","state":"OR"},"97239":{"lat":45.49,"lon":-122.69,"city":"Portland","state":"OR"},"97266":{"lat":45.48,"lon":-122.56,"city":"Portland","state":"OR"},"97267":{"lat":45.43,"lon":-122.62,"city":"Milwaukie","state":"OR"},"97301":{"lat":44.94,"lon":-123.03,"city":"Salem","state":"OR"},"97302":{"lat":44.9,"lon":-123.06,"city":"Salem","state":"OR"},"97303":{"lat":44.98,"lon":-123.05,"city":"Salem","state":"OR"},"97304":{"lat":44.95,"lon":-123.09,"city":"Salem","state":"OR"},"97305":{"lat":44.98,"lon":-122.97,"city":"Salem","state":"OR"},"97306":{"lat":44.88,"lon":-123.05,"city":"Salem","state":"OR"},"97317":{"lat":44.92,"lon":-122.96,"city":"Salem","state":"OR"},"97321":{"lat":44.64,"lon":-123.1,"city":"Albany","state":"OR"},"97322":{"lat":44.62,"lon":-123.06,"city":"Albany","state":"OR"},"97324":{"lat":44.38,"lon":-123.57,"city":"Alsea","state":"OR"},"97325":{"lat":44.82,"lon":-122.88,"city":"Aumsville","state":"OR"},"97326":{"lat":44.63,"lon":-123.31,"city":"Blodgett","state":"OR"},"97327":{"lat":44.56,"lon":-123.14,"city":"Brownsville","state":"OR"},"97330":{"lat":44.57,"lon":-123.26,"city":"Corvallis","state":"OR"},"97331":{"lat":44.56,"lon":-123.28,"city":"Corvallis","state":"OR"},"97333":{"lat":44.56,"lon":-123.23,"city":"Corvallis","state":"OR"},"97338":{"lat":44.84,"lon":-123.31,"city":"Dallas","state":"OR"},"97341":{"lat":44.63,"lon":-124.06,"city":"Depoe Bay","state":"OR"},"97343":{"lat":44.47,"lon":-123.92,"city":"Eddyville","state":"OR"},"97344":{"lat":44.76,"lon":-123.36,"city":"Falls City","state":"OR"},"97345":{"lat":44.4,"lon":-122.33,"city":"Foster","state":"OR"},"97346":{"lat":44.76,"lon":-122.42,"city":"Gates","state":"OR"},"97348":{"lat":44.39,"lon":-123.28,"city":"Halsey","state":"OR"},"97350":{"lat":44.75,"lon":-122.15,"city":"Idanha","state":"OR"},"97351":{"lat":44.85,"lon":-123.17,"city":"Independence","state":"OR"},"97355":{"lat":44.48,"lon":-122.9,"city":"Lebanon","state":"OR"},"97357":{"lat":44.73,"lon":-123.87,"city":"Logsden","state":"OR"},"97358":{"lat":44.75,"lon":-122.59,"city":"Lyons","state":"OR"},"97360":{"lat":44.74,"lon":-122.29,"city":"Mill City","state":"OR"},"97361":{"lat":44.79,"lon":-123.31,"city":"Monmouth","state":"OR"},"97365":{"lat":44.63,"lon":-124.05,"city":"Newport","state":"OR"},"97366":{"lat":44.58,"lon":-124.06,"city":"South Beach","state":"OR"},"97367":{"lat":44.96,"lon":-124.02,"city":"Lincoln City","state":"OR"},"97368":{"lat":45.02,"lon":-123.98,"city":"Otis","state":"OR"},"97370":{"lat":44.58,"lon":-123.31,"city":"Philomath","state":"OR"},"97374":{"lat":44.8,"lon":-122.8,"city":"Scio","state":"OR"},"97375":{"lat":44.97,"lon":-122.6,"city":"Scotts Mills","state":"OR"},"97376":{"lat":44.48,"lon":-124.07,"city":"Seal Rock","state":"OR"},"97377":{"lat":44.44,"lon":-123.19,"city":"Shedd","state":"OR"},"97378":{"lat":45.07,"lon":-123.4,"city":"Sheridan","state":"OR"},"97380":{"lat":44.52,"lon":-123.92,"city":"Siletz","state":"OR"},"97381":{"lat":44.99,"lon":-122.76,"city":"Silverton","state":"OR"},"97383":{"lat":44.84,"lon":-122.73,"city":"Stayton","state":"OR"},"97385":{"lat":44.81,"lon":-122.67,"city":"Sublimity","state":"OR"},"97386":{"lat":44.4,"lon":-122.73,"city":"Sweet Home","state":"OR"},"97388":{"lat":44.86,"lon":-124.03,"city":"Gleneden Beach","state":"OR"},"97389":{"lat":44.55,"lon":-123.07,"city":"Tangent","state":"OR"},"97390":{"lat":44.41,"lon":-123.83,"city":"Tidewater","state":"OR"},"97391":{"lat":44.43,"lon":-124.0,"city":"Toledo","state":"OR"},"97392":{"lat":44.78,"lon":-122.92,"city":"Turner","state":"OR"},"97394":{"lat":44.39,"lon":-124.11,"city":"Waldport","state":"OR"},"97396":{"lat":45.07,"lon":-123.57,"city":"Willamina","state":"OR"},"97401":{"lat":44.05,"lon":-123.09,"city":"Eugene","state":"OR"},"97402":{"lat":44.05,"lon":-123.14,"city":"Eugene","state":"OR"},"97403":{"lat":44.03,"lon":-123.07,"city":"Eugene","state":"OR"},"97404":{"lat":44.1,"lon":-123.13,"city":"Eugene","state":"OR"},"97405":{"lat":43.98,"lon":-123.11,"city":"Eugene","state":"OR"},"97408":{"lat":44.11,"lon":-123.06,"city":"Eugene","state":"OR"},"97420":{"lat":43.36,"lon":-124.21,"city":"Coos Bay","state":"OR"},"97423":{"lat":43.11,"lon":-124.4,"city":"Coquille","state":"OR"},"97424":{"lat":43.77,"lon":-123.05,"city":"Cottage Grove","state":"OR"},"97426":{"lat":43.99,"lon":-123.18,"city":"Creswell","state":"OR"},"97430":{"lat":43.78,"lon":-123.55,"city":"Deadwood","state":"OR"},"97431":{"lat":43.79,"lon":-123.36,"city":"Dexter","state":"OR"},"97432":{"lat":43.14,"lon":-123.43,"city":"Dillard","state":"OR"},"97434":{"lat":43.85,"lon":-122.72,"city":"Dorena","state":"OR"},"97435":{"lat":43.72,"lon":-123.35,"city":"Drain","state":"OR"},"97436":{"lat":43.6,"lon":-123.66,"city":"Elkton","state":"OR"},"97437":{"lat":44.06,"lon":-123.36,"city":"Elmira","state":"OR"},"97438":{"lat":43.89,"lon":-122.53,"city":"Fall Creek","state":"OR"},"97439":{"lat":43.97,"lon":-124.1,"city":"Florence","state":"OR"},"97440":{"lat":44.06,"lon":-123.12,"city":"Eugene","state":"OR"},"97441":{"lat":43.67,"lon":-124.12,"city":"Gardiner","state":"OR"},"97442":{"lat":42.69,"lon":-123.6,"city":"Glendale","state":"OR"},"97443":{"lat":43.3,"lon":-123.18,"city":"Glide","state":"OR"},"97444":{"lat":42.41,"lon":-124.42,"city":"Gold Beach","state":"OR"},"97446":{"lat":44.31,"lon":-123.11,"city":"Harrisburg","state":"OR"},"97448":{"lat":44.1,"lon":-123.4,"city":"Junction City","state":"OR"},"97449":{"lat":43.38,"lon":-124.1,"city":"Lakeside","state":"OR"},"97450":{"lat":42.6,"lon":-124.07,"city":"Langlois","state":"OR"},"97451":{"lat":43.86,"lon":-123.2,"city":"Lowell","state":"OR"},"97452":{"lat":43.89,"lon":-122.73,"city":"Lowell","state":"OR"},"97453":{"lat":44.1,"lon":-123.72,"city":"Mapleton","state":"OR"},"97455":{"lat":43.92,"lon":-122.9,"city":"Pleasant Hill","state":"OR"},"97456":{"lat":44.37,"lon":-123.29,"city":"Monroe","state":"OR"},"97457":{"lat":43.03,"lon":-123.63,"city":"Myrtle Creek","state":"OR"},"97458":{"lat":43.12,"lon":-124.12,"city":"Myrtle Point","state":"OR"},"97459":{"lat":43.4,"lon":-124.23,"city":"North Bend","state":"OR"},"97461":{"lat":44.08,"lon":-123.52,"city":"Noti","state":"OR"},"97462":{"lat":43.54,"lon":-123.28,"city":"Oakland","state":"OR"},"97463":{"lat":43.74,"lon":-122.42,"city":"Oakridge","state":"OR"},"97465":{"lat":42.7,"lon":-124.45,"city":"Port Orford","state":"OR"},"97466":{"lat":42.93,"lon":-124.24,"city":"Powers","state":"OR"},"97467":{"lat":43.68,"lon":-123.25,"city":"Reedsport","state":"OR"},"97469":{"lat":43.21,"lon":-123.35,"city":"Riddle","state":"OR"},"97470":{"lat":43.22,"lon":-123.36,"city":"Roseburg","state":"OR"},"97471":{"lat":43.25,"lon":-123.44,"city":"Roseburg","state":"OR"},"97473":{"lat":43.58,"lon":-123.54,"city":"Scottsburg","state":"OR"},"97477":{"lat":44.05,"lon":-122.96,"city":"Springfield","state":"OR"},"97478":{"lat":44.07,"lon":-122.9,"city":"Springfield","state":"OR"},"97479":{"lat":43.38,"lon":-123.29,"city":"Sutherlin","state":"OR"},"97480":{"lat":44.02,"lon":-123.86,"city":"Swisshome","state":"OR"},"97484":{"lat":42.99,"lon":-123.28,"city":"Tiller","state":"OR"},"97486":{"lat":43.43,"lon":-123.51,"city":"Umpqua","state":"OR"},"97487":{"lat":43.93,"lon":-123.2,"city":"Veneta","state":"OR"},"97488":{"lat":44.15,"lon":-122.48,"city":"Vida","state":"OR"},"97489":{"lat":44.12,"lon":-122.23,"city":"Walterville","state":"OR"},"97490":{"lat":44.03,"lon":-123.62,"city":"Walton","state":"OR"},"97492":{"lat":43.7,"lon":-122.05,"city":"Westfir","state":"OR"},"97493":{"lat":43.97,"lon":-124.1,"city":"Florence","state":"OR"},"97494":{"lat":43.14,"lon":-123.56,"city":"Winston","state":"OR"},"97495":{"lat":43.22,"lon":-123.39,"city":"Roseburg","state":"OR"},"97496":{"lat":43.1,"lon":-123.62,"city":"Winston","state":"OR"},"97497":{"lat":42.61,"lon":-123.38,"city":"Wolf Creek","state":"OR"},"97498":{"lat":44.28,"lon":-124.11,"city":"Yachats","state":"OR"},"97499":{"lat":43.28,"lon":-123.2,"city":"Yoncalla","state":"OR"},"97501":{"lat":42.33,"lon":-122.88,"city":"Medford","state":"OR"},"97502":{"lat":42.38,"lon":-122.91,"city":"Central Point","state":"OR"},"97503":{"lat":42.45,"lon":-122.78,"city":"White City","state":"OR"},"97504":{"lat":42.31,"lon":-122.84,"city":"Medford","state":"OR"},"97520":{"lat":42.19,"lon":-122.71,"city":"Ashland","state":"OR"},"97522":{"lat":42.47,"lon":-122.27,"city":"Butte Falls","state":"OR"},"97523":{"lat":42.17,"lon":-123.64,"city":"Cave Junction","state":"OR"},"97524":{"lat":42.47,"lon":-122.77,"city":"Eagle Point","state":"OR"},"97525":{"lat":42.43,"lon":-123.03,"city":"Gold Hill","state":"OR"},"97526":{"lat":42.44,"lon":-123.33,"city":"Grants Pass","state":"OR"},"97527":{"lat":42.41,"lon":-123.36,"city":"Grants Pass","state":"OR"},"97528":{"lat":42.48,"lon":-123.41,"city":"Grants Pass","state":"OR"},"97530":{"lat":42.31,"lon":-122.97,"city":"Jacksonville","state":"OR"},"97531":{"lat":42.04,"lon":-123.65,"city":"Kerby","state":"OR"},"97532":{"lat":42.57,"lon":-123.3,"city":"Merlin","state":"OR"},"97534":{"lat":42.06,"lon":-123.32,"city":"O Brien","state":"OR"},"97535":{"lat":42.28,"lon":-122.82,"city":"Phoenix","state":"OR"},"97536":{"lat":42.63,"lon":-122.83,"city":"Prospect","state":"OR"},"97537":{"lat":42.52,"lon":-123.2,"city":"Rogue River","state":"OR"},"97538":{"lat":42.16,"lon":-123.47,"city":"Selma","state":"OR"},"97539":{"lat":42.44,"lon":-122.68,"city":"Shady Cove","state":"OR"},"97540":{"lat":42.25,"lon":-122.77,"city":"Talent","state":"OR"},"97541":{"lat":42.76,"lon":-122.56,"city":"Trail","state":"OR"},"97543":{"lat":42.34,"lon":-123.46,"city":"Wilderville","state":"OR"},"97544":{"lat":42.15,"lon":-123.33,"city":"Williams","state":"OR"},"97601":{"lat":42.2,"lon":-121.77,"city":"Klamath Falls","state":"OR"},"97603":{"lat":42.18,"lon":-121.72,"city":"Klamath Falls","state":"OR"},"97620":{"lat":42.17,"lon":-120.35,"city":"Adel","state":"OR"},"97621":{"lat":42.43,"lon":-121.19,"city":"Beatty","state":"OR"},"97622":{"lat":42.36,"lon":-120.39,"city":"Bly","state":"OR"},"97623":{"lat":42.17,"lon":-121.52,"city":"Bonanza","state":"OR"},"97624":{"lat":42.77,"lon":-121.54,"city":"Chiloquin","state":"OR"},"97625":{"lat":42.07,"lon":-121.62,"city":"Dairy","state":"OR"},"97627":{"lat":42.11,"lon":-121.95,"city":"Keno","state":"OR"},"97630":{"lat":42.19,"lon":-120.34,"city":"Lakeview","state":"OR"},"97632":{"lat":42.0,"lon":-121.48,"city":"Malin","state":"OR"},"97633":{"lat":42.0,"lon":-121.58,"city":"Merrill","state":"OR"},"97634":{"lat":42.26,"lon":-121.82,"city":"Midland","state":"OR"},"97635":{"lat":41.92,"lon":-120.31,"city":"New Pine Creek","state":"OR"},"97636":{"lat":42.78,"lon":-120.36,"city":"Paisley","state":"OR"},"97637":{"lat":42.48,"lon":-119.76,"city":"Plush","state":"OR"},"97638":{"lat":43.0,"lon":-120.43,"city":"Silver Lake","state":"OR"},"97639":{"lat":42.44,"lon":-121.46,"city":"Sprague River","state":"OR"},"97640":{"lat":43.36,"lon":-120.78,"city":"Summer Lake","state":"OR"},"97701":{"lat":44.06,"lon":-121.31,"city":"Bend","state":"OR"},"97702":{"lat":43.99,"lon":-121.3,"city":"Bend","state":"OR"},"97707":{"lat":43.87,"lon":-121.5,"city":"Bend","state":"OR"},"97708":{"lat":44.06,"lon":-121.31,"city":"Bend","state":"OR"},"97709":{"lat":44.06,"lon":-121.31,"city":"Bend","state":"OR"},"97710":{"lat":42.53,"lon":-118.64,"city":"Fields","state":"OR"},"97711":{"lat":44.64,"lon":-121.21,"city":"Ashwood","state":"OR"},"97712":{"lat":43.97,"lon":-120.87,"city":"Brothers","state":"OR"},"97720":{"lat":43.59,"lon":-118.96,"city":"Burns","state":"OR"},"97730":{"lat":44.57,"lon":-121.64,"city":"Camp Sherman","state":"OR"},"97731":{"lat":43.36,"lon":-121.97,"city":"Chemult","state":"OR"},"97732":{"lat":43.8,"lon":-118.78,"city":"Crane","state":"OR"},"97733":{"lat":43.53,"lon":-121.92,"city":"Crescent","state":"OR"},"97734":{"lat":44.3,"lon":-121.07,"city":"Culver","state":"OR"},"97735":{"lat":43.37,"lon":-120.38,"city":"Fort Rock","state":"OR"},"97736":{"lat":43.3,"lon":-118.95,"city":"Frenchglen","state":"OR"},"97737":{"lat":43.52,"lon":-121.62,"city":"Gilchrist","state":"OR"},"97738":{"lat":43.6,"lon":-119.06,"city":"Hines","state":"OR"},"97739":{"lat":43.74,"lon":-121.5,"city":"La Pine","state":"OR"},"97741":{"lat":44.6,"lon":-121.28,"city":"Madras","state":"OR"},"97750":{"lat":44.77,"lon":-120.2,"city":"Mitchell","state":"OR"},"97751":{"lat":44.3,"lon":-119.82,"city":"Paulina","state":"OR"},"97752":{"lat":44.13,"lon":-120.18,"city":"Post","state":"OR"},"97753":{"lat":44.29,"lon":-121.15,"city":"Powell Butte","state":"OR"},"97754":{"lat":44.3,"lon":-120.73,"city":"Prineville","state":"OR"},"97756":{"lat":44.27,"lon":-121.17,"city":"Redmond","state":"OR"},"97758":{"lat":43.59,"lon":-119.52,"city":"Riley","state":"OR"},"97759":{"lat":44.29,"lon":-121.55,"city":"Sisters","state":"OR"},"97760":{"lat":44.56,"lon":-121.5,"city":"Terrebonne","state":"OR"},"97761":{"lat":44.79,"lon":-121.22,"city":"Warm Springs","state":"OR"},"97801":{"lat":45.67,"lon":-118.79,"city":"Pendleton","state":"OR"},"97810":{"lat":45.73,"lon":-118.47,"city":"Adams","state":"OR"},"97812":{"lat":45.63,"lon":-120.19,"city":"Arlington","state":"OR"},"97813":{"lat":45.82,"lon":-118.48,"city":"Athena","state":"OR"},"97814":{"lat":44.78,"lon":-117.83,"city":"Baker City","state":"OR"},"97817":{"lat":44.33,"lon":-118.96,"city":"Bates","state":"OR"},"97818":{"lat":45.85,"lon":-119.26,"city":"Boardman","state":"OR"},"97819":{"lat":44.57,"lon":-117.98,"city":"Bridgeport","state":"OR"},"97820":{"lat":44.39,"lon":-118.95,"city":"Canyon City","state":"OR"},"97823":{"lat":45.27,"lon":-120.18,"city":"Condon","state":"OR"},"97824":{"lat":45.32,"lon":-117.8,"city":"Cove","state":"OR"},"97825":{"lat":44.45,"lon":-119.0,"city":"Dayville","state":"OR"},"97826":{"lat":45.73,"lon":-118.99,"city":"Echo","state":"OR"},"97827":{"lat":45.35,"lon":-117.92,"city":"Elgin","state":"OR"},"97828":{"lat":45.56,"lon":-117.22,"city":"Enterprise","state":"OR"},"97830":{"lat":44.67,"lon":-119.55,"city":"Fossil","state":"OR"},"97833":{"lat":44.76,"lon":-118.13,"city":"Haines","state":"OR"},"97834":{"lat":44.96,"lon":-117.13,"city":"Halfway","state":"OR"},"97835":{"lat":45.77,"lon":-119.0,"city":"Helix","state":"OR"},"97836":{"lat":45.33,"lon":-119.59,"city":"Heppner","state":"OR"},"97837":{"lat":44.01,"lon":-118.0,"city":"Hereford","state":"OR"},"97838":{"lat":45.84,"lon":-119.28,"city":"Hermiston","state":"OR"},"97839":{"lat":45.56,"lon":-119.44,"city":"Lexington","state":"OR"},"97840":{"lat":44.94,"lon":-116.83,"city":"Oxbow","state":"OR"},"97841":{"lat":45.31,"lon":-118.09,"city":"Imbler","state":"OR"},"97842":{"lat":45.45,"lon":-116.7,"city":"Imnaha","state":"OR"},"97843":{"lat":45.52,"lon":-119.49,"city":"Ione","state":"OR"},"97844":{"lat":45.73,"lon":-119.52,"city":"Irrigon","state":"OR"},"97845":{"lat":44.42,"lon":-118.95,"city":"John Day","state":"OR"},"97846":{"lat":45.33,"lon":-117.23,"city":"Joseph","state":"OR"},"97848":{"lat":44.55,"lon":-119.19,"city":"Kimberly","state":"OR"},"97850":{"lat":45.33,"lon":-118.09,"city":"La Grande","state":"OR"},"97856":{"lat":44.6,"lon":-119.25,"city":"Long Creek","state":"OR"},"97857":{"lat":45.45,"lon":-117.52,"city":"Lostine","state":"OR"},"97859":{"lat":45.68,"lon":-118.42,"city":"Meacham","state":"OR"},"97862":{"lat":45.93,"lon":-118.79,"city":"Milton Freewater","state":"OR"},"97864":{"lat":44.73,"lon":-119.12,"city":"Monument","state":"OR"},"97865":{"lat":44.23,"lon":-119.18,"city":"Mount Vernon","state":"OR"},"97867":{"lat":45.07,"lon":-118.39,"city":"North Powder","state":"OR"},"97868":{"lat":45.34,"lon":-119.08,"city":"Pilot Rock","state":"OR"},"97869":{"lat":44.31,"lon":-118.72,"city":"Prairie City","state":"OR"},"97870":{"lat":44.63,"lon":-117.12,"city":"Richland","state":"OR"},"97873":{"lat":44.13,"lon":-119.08,"city":"Seneca","state":"OR"},"97874":{"lat":44.78,"lon":-120.13,"city":"Spray","state":"OR"},"97875":{"lat":45.8,"lon":-119.35,"city":"Stanfield","state":"OR"},"97876":{"lat":45.42,"lon":-118.43,"city":"Summerville","state":"OR"},"97877":{"lat":44.53,"lon":-118.26,"city":"Sumpter","state":"OR"},"97880":{"lat":45.38,"lon":-119.16,"city":"Ukiah","state":"OR"},"97882":{"lat":45.91,"lon":-119.38,"city":"Umatilla","state":"OR"},"97883":{"lat":45.11,"lon":-118.04,"city":"Union","state":"OR"},"97884":{"lat":44.34,"lon":-118.33,"city":"Unity","state":"OR"},"97885":{"lat":45.68,"lon":-117.55,"city":"Wallowa","state":"OR"},"97886":{"lat":45.79,"lon":-118.33,"city":"Weston","state":"OR"},"85001":{"lat":33.45,"lon":-112.07,"city":"Phoenix","state":"AZ"},"85003":{"lat":33.45,"lon":-112.08,"city":"Phoenix","state":"AZ"},"85004":{"lat":33.45,"lon":-112.07,"city":"Phoenix","state":"AZ"},"85006":{"lat":33.46,"lon":-112.04,"city":"Phoenix","state":"AZ"},"85007":{"lat":33.45,"lon":-112.1,"city":"Phoenix","state":"AZ"},"85008":{"lat":33.46,"lon":-112.0,"city":"Phoenix","state":"AZ"},"85009":{"lat":33.45,"lon":-112.12,"city":"Phoenix","state":"AZ"},"85012":{"lat":33.51,"lon":-112.07,"city":"Phoenix","state":"AZ"},"85013":{"lat":33.51,"lon":-112.08,"city":"Phoenix","state":"AZ"},"85014":{"lat":33.51,"lon":-112.05,"city":"Phoenix","state":"AZ"},"85015":{"lat":33.51,"lon":-112.1,"city":"Phoenix","state":"AZ"},"85016":{"lat":33.51,"lon":-112.02,"city":"Phoenix","state":"AZ"},"85017":{"lat":33.51,"lon":-112.12,"city":"Phoenix","state":"AZ"},"85018":{"lat":33.5,"lon":-111.98,"city":"Phoenix","state":"AZ"},"85019":{"lat":33.51,"lon":-112.14,"city":"Phoenix","state":"AZ"},"85020":{"lat":33.57,"lon":-112.05,"city":"Phoenix","state":"AZ"},"85021":{"lat":33.57,"lon":-112.1,"city":"Phoenix","state":"AZ"},"85022":{"lat":33.63,"lon":-112.05,"city":"Phoenix","state":"AZ"},"85023":{"lat":33.63,"lon":-112.1,"city":"Phoenix","state":"AZ"},"85024":{"lat":33.68,"lon":-112.03,"city":"Phoenix","state":"AZ"},"85027":{"lat":33.68,"lon":-112.1,"city":"Phoenix","state":"AZ"},"85028":{"lat":33.59,"lon":-112.0,"city":"Phoenix","state":"AZ"},"85029":{"lat":33.6,"lon":-112.12,"city":"Phoenix","state":"AZ"},"85031":{"lat":33.49,"lon":-112.15,"city":"Phoenix","state":"AZ"},"85032":{"lat":33.62,"lon":-111.99,"city":"Phoenix","state":"AZ"},"85033":{"lat":33.49,"lon":-112.18,"city":"Phoenix","state":"AZ"},"85034":{"lat":33.43,"lon":-112.01,"city":"Phoenix","state":"AZ"},"85035":{"lat":33.46,"lon":-112.18,"city":"Phoenix","state":"AZ"},"85037":{"lat":33.46,"lon":-112.24,"city":"Phoenix","state":"AZ"},"85040":{"lat":33.39,"lon":-112.02,"city":"Phoenix","state":"AZ"},"85041":{"lat":33.39,"lon":-112.08,"city":"Phoenix","state":"AZ"},"85042":{"lat":33.37,"lon":-112.02,"city":"Phoenix","state":"AZ"},"85043":{"lat":33.43,"lon":-112.18,"city":"Phoenix","state":"AZ"},"85044":{"lat":33.33,"lon":-111.98,"city":"Phoenix","state":"AZ"},"85045":{"lat":33.3,"lon":-112.0,"city":"Phoenix","state":"AZ"},"85048":{"lat":33.31,"lon":-111.98,"city":"Phoenix","state":"AZ"},"85050":{"lat":33.68,"lon":-111.97,"city":"Phoenix","state":"AZ"},"85051":{"lat":33.57,"lon":-112.12,"city":"Phoenix","state":"AZ"},"85053":{"lat":33.63,"lon":-112.12,"city":"Phoenix","state":"AZ"},"85054":{"lat":33.68,"lon":-111.93,"city":"Phoenix","state":"AZ"},"85083":{"lat":33.73,"lon":-112.13,"city":"Phoenix","state":"AZ"},"85085":{"lat":33.78,"lon":-112.08,"city":"Phoenix","state":"AZ"},"85086":{"lat":33.82,"lon":-112.02,"city":"Phoenix","state":"AZ"},"85087":{"lat":33.88,"lon":-112.05,"city":"Phoenix","state":"AZ"},"85118":{"lat":33.22,"lon":-111.5,"city":"Gold Canyon","state":"AZ"},"85119":{"lat":33.41,"lon":-111.55,"city":"Apache Junction","state":"AZ"},"85120":{"lat":33.41,"lon":-111.55,"city":"Apache Junction","state":"AZ"},"85121":{"lat":32.99,"lon":-111.55,"city":"Sacaton","state":"AZ"},"85122":{"lat":32.88,"lon":-111.76,"city":"Casa Grande","state":"AZ"},"85128":{"lat":32.98,"lon":-111.53,"city":"Coolidge","state":"AZ"},"85131":{"lat":32.87,"lon":-111.47,"city":"Eloy","state":"AZ"},"85132":{"lat":33.02,"lon":-111.88,"city":"Florence","state":"AZ"},"85138":{"lat":33.05,"lon":-111.72,"city":"Maricopa","state":"AZ"},"85139":{"lat":33.09,"lon":-111.94,"city":"Maricopa","state":"AZ"},"85140":{"lat":33.27,"lon":-111.63,"city":"San Tan Valley","state":"AZ"},"85142":{"lat":33.27,"lon":-111.63,"city":"Queen Creek","state":"AZ"},"85143":{"lat":33.27,"lon":-111.63,"city":"San Tan Valley","state":"AZ"},"85145":{"lat":32.73,"lon":-111.5,"city":"Red Rock","state":"AZ"},"85147":{"lat":33.07,"lon":-111.39,"city":"Sacaton","state":"AZ"},"85172":{"lat":32.98,"lon":-111.53,"city":"Coolidge","state":"AZ"},"85192":{"lat":33.17,"lon":-110.89,"city":"Winkelman","state":"AZ"},"85193":{"lat":32.88,"lon":-111.76,"city":"Casa Grande","state":"AZ"},"85194":{"lat":32.88,"lon":-111.76,"city":"Casa Grande","state":"AZ"},"85201":{"lat":33.43,"lon":-111.82,"city":"Mesa","state":"AZ"},"85202":{"lat":33.39,"lon":-111.86,"city":"Mesa","state":"AZ"},"85203":{"lat":33.43,"lon":-111.8,"city":"Mesa","state":"AZ"},"85204":{"lat":33.4,"lon":-111.78,"city":"Mesa","state":"AZ"},"85205":{"lat":33.44,"lon":-111.73,"city":"Mesa","state":"AZ"},"85206":{"lat":33.39,"lon":-111.73,"city":"Mesa","state":"AZ"},"85207":{"lat":33.44,"lon":-111.67,"city":"Mesa","state":"AZ"},"85208":{"lat":33.39,"lon":-111.67,"city":"Mesa","state":"AZ"},"85209":{"lat":33.38,"lon":-111.63,"city":"Mesa","state":"AZ"},"85210":{"lat":33.39,"lon":-111.86,"city":"Mesa","state":"AZ"},"85212":{"lat":33.35,"lon":-111.6,"city":"Mesa","state":"AZ"},"85213":{"lat":33.44,"lon":-111.78,"city":"Mesa","state":"AZ"},"85215":{"lat":33.47,"lon":-111.73,"city":"Mesa","state":"AZ"},"85224":{"lat":33.3,"lon":-111.87,"city":"Chandler","state":"AZ"},"85225":{"lat":33.31,"lon":-111.83,"city":"Chandler","state":"AZ"},"85226":{"lat":33.31,"lon":-111.93,"city":"Chandler","state":"AZ"},"85233":{"lat":33.34,"lon":-111.8,"city":"Gilbert","state":"AZ"},"85234":{"lat":33.36,"lon":-111.76,"city":"Gilbert","state":"AZ"},"85236":{"lat":33.34,"lon":-111.73,"city":"Higley","state":"AZ"},"85248":{"lat":33.26,"lon":-111.8,"city":"Chandler","state":"AZ"},"85249":{"lat":33.24,"lon":-111.73,"city":"Chandler","state":"AZ"},"85250":{"lat":33.5,"lon":-111.92,"city":"Scottsdale","state":"AZ"},"85251":{"lat":33.5,"lon":-111.92,"city":"Scottsdale","state":"AZ"},"85253":{"lat":33.54,"lon":-111.9,"city":"Scottsdale","state":"AZ"},"85254":{"lat":33.6,"lon":-111.93,"city":"Scottsdale","state":"AZ"},"85255":{"lat":33.68,"lon":-111.85,"city":"Scottsdale","state":"AZ"},"85256":{"lat":33.5,"lon":-111.84,"city":"Scottsdale","state":"AZ"},"85257":{"lat":33.46,"lon":-111.92,"city":"Scottsdale","state":"AZ"},"85258":{"lat":33.56,"lon":-111.89,"city":"Scottsdale","state":"AZ"},"85259":{"lat":33.59,"lon":-111.82,"city":"Scottsdale","state":"AZ"},"85260":{"lat":33.61,"lon":-111.89,"city":"Scottsdale","state":"AZ"},"85262":{"lat":33.72,"lon":-111.82,"city":"Scottsdale","state":"AZ"},"85263":{"lat":33.73,"lon":-111.72,"city":"Rio Verde","state":"AZ"},"85264":{"lat":33.55,"lon":-111.67,"city":"Fort McDowell","state":"AZ"},"85266":{"lat":33.68,"lon":-111.89,"city":"Scottsdale","state":"AZ"},"85268":{"lat":33.47,"lon":-111.67,"city":"Fountain Hills","state":"AZ"},"85281":{"lat":33.42,"lon":-111.94,"city":"Tempe","state":"AZ"},"85282":{"lat":33.39,"lon":-111.94,"city":"Tempe","state":"AZ"},"85283":{"lat":33.37,"lon":-111.94,"city":"Tempe","state":"AZ"},"85284":{"lat":33.34,"lon":-111.94,"city":"Tempe","state":"AZ"},"85286":{"lat":33.35,"lon":-111.9,"city":"Chandler","state":"AZ"},"85295":{"lat":33.3,"lon":-111.74,"city":"Gilbert","state":"AZ"},"85296":{"lat":33.33,"lon":-111.73,"city":"Gilbert","state":"AZ"},"85297":{"lat":33.28,"lon":-111.72,"city":"Gilbert","state":"AZ"},"85298":{"lat":33.25,"lon":-111.68,"city":"Gilbert","state":"AZ"},"85301":{"lat":33.54,"lon":-112.18,"city":"Glendale","state":"AZ"},"85302":{"lat":33.56,"lon":-112.2,"city":"Glendale","state":"AZ"},"85303":{"lat":33.54,"lon":-112.22,"city":"Glendale","state":"AZ"},"85304":{"lat":33.58,"lon":-112.18,"city":"Glendale","state":"AZ"},"85305":{"lat":33.54,"lon":-112.25,"city":"Glendale","state":"AZ"},"85306":{"lat":33.6,"lon":-112.18,"city":"Glendale","state":"AZ"},"85307":{"lat":33.5,"lon":-112.3,"city":"Goodyear","state":"AZ"},"85308":{"lat":33.63,"lon":-112.18,"city":"Glendale","state":"AZ"},"85309":{"lat":33.6,"lon":-112.32,"city":"Luke Air Force Base","state":"AZ"},"85310":{"lat":33.67,"lon":-112.18,"city":"Glendale","state":"AZ"},"85320":{"lat":33.98,"lon":-112.87,"city":"Aguila","state":"AZ"},"85321":{"lat":31.95,"lon":-112.81,"city":"Ajo","state":"AZ"},"85322":{"lat":33.07,"lon":-112.74,"city":"Arlington","state":"AZ"},"85323":{"lat":33.38,"lon":-112.18,"city":"Avondale","state":"AZ"},"85326":{"lat":33.42,"lon":-112.6,"city":"Buckeye","state":"AZ"},"85331":{"lat":33.83,"lon":-111.92,"city":"Cave Creek","state":"AZ"},"85335":{"lat":33.52,"lon":-112.42,"city":"El Mirage","state":"AZ"},"85337":{"lat":32.9,"lon":-112.72,"city":"Gila Bend","state":"AZ"},"85338":{"lat":33.39,"lon":-112.38,"city":"Goodyear","state":"AZ"},"85339":{"lat":33.38,"lon":-112.13,"city":"Laveen","state":"AZ"},"85340":{"lat":33.57,"lon":-112.48,"city":"Litchfield Park","state":"AZ"},"85341":{"lat":31.95,"lon":-112.76,"city":"Lukeville","state":"AZ"},"85342":{"lat":33.88,"lon":-112.35,"city":"Morristown","state":"AZ"},"85343":{"lat":33.38,"lon":-112.4,"city":"Palo Verde","state":"AZ"},"85345":{"lat":33.56,"lon":-112.28,"city":"Peoria","state":"AZ"},"85351":{"lat":33.62,"lon":-112.3,"city":"Sun City","state":"AZ"},"85353":{"lat":33.42,"lon":-112.3,"city":"Tolleson","state":"AZ"},"85354":{"lat":33.93,"lon":-112.5,"city":"Tonopah","state":"AZ"},"85355":{"lat":33.57,"lon":-112.32,"city":"Waddell","state":"AZ"},"85356":{"lat":32.73,"lon":-114.62,"city":"Wellton","state":"AZ"},"85360":{"lat":34.32,"lon":-113.62,"city":"Wenden","state":"AZ"},"85361":{"lat":33.65,"lon":-112.37,"city":"Wittmann","state":"AZ"},"85362":{"lat":34.5,"lon":-112.4,"city":"Yarnell","state":"AZ"},"85363":{"lat":33.55,"lon":-112.38,"city":"Youngtown","state":"AZ"},"85364":{"lat":32.65,"lon":-114.62,"city":"Yuma","state":"AZ"},"85365":{"lat":32.69,"lon":-114.48,"city":"Yuma","state":"AZ"},"85367":{"lat":32.6,"lon":-114.48,"city":"Yuma","state":"AZ"},"85373":{"lat":33.67,"lon":-112.27,"city":"Sun City West","state":"AZ"},"85374":{"lat":33.73,"lon":-112.3,"city":"Surprise","state":"AZ"},"85375":{"lat":33.73,"lon":-112.27,"city":"Sun City West","state":"AZ"},"85377":{"lat":33.82,"lon":-111.92,"city":"Carefree","state":"AZ"},"85378":{"lat":33.68,"lon":-112.23,"city":"Surprise","state":"AZ"},"85379":{"lat":33.65,"lon":-112.35,"city":"Surprise","state":"AZ"},"85381":{"lat":33.57,"lon":-112.23,"city":"Peoria","state":"AZ"},"85382":{"lat":33.62,"lon":-112.23,"city":"Peoria","state":"AZ"},"85383":{"lat":33.72,"lon":-112.23,"city":"Peoria","state":"AZ"},"85387":{"lat":33.72,"lon":-112.38,"city":"Surprise","state":"AZ"},"85388":{"lat":33.62,"lon":-112.38,"city":"Surprise","state":"AZ"},"85390":{"lat":33.82,"lon":-112.53,"city":"Wickenburg","state":"AZ"},"85392":{"lat":33.38,"lon":-112.35,"city":"Avondale","state":"AZ"},"85395":{"lat":33.47,"lon":-112.33,"city":"Goodyear","state":"AZ"},"85396":{"lat":33.45,"lon":-112.42,"city":"Buckeye","state":"AZ"},"85501":{"lat":33.39,"lon":-110.79,"city":"Globe","state":"AZ"},"85530":{"lat":32.85,"lon":-109.97,"city":"Bylas","state":"AZ"},"85531":{"lat":33.0,"lon":-110.27,"city":"Claypool","state":"AZ"},"85532":{"lat":33.43,"lon":-110.9,"city":"Claypool","state":"AZ"},"85534":{"lat":32.99,"lon":-109.33,"city":"Clifton","state":"AZ"},"85535":{"lat":32.92,"lon":-109.72,"city":"Fort Thomas","state":"AZ"},"85536":{"lat":32.77,"lon":-109.88,"city":"Geronimo","state":"AZ"},"85539":{"lat":33.39,"lon":-110.87,"city":"Miami","state":"AZ"},"85540":{"lat":32.97,"lon":-109.34,"city":"Morenci","state":"AZ"},"85541":{"lat":34.23,"lon":-111.33,"city":"Payson","state":"AZ"},"85542":{"lat":33.79,"lon":-110.35,"city":"Peridot","state":"AZ"},"85543":{"lat":32.84,"lon":-109.79,"city":"Pima","state":"AZ"},"85544":{"lat":34.35,"lon":-111.47,"city":"Pine","state":"AZ"},"85545":{"lat":33.57,"lon":-111.12,"city":"Roosevelt","state":"AZ"},"85546":{"lat":32.73,"lon":-109.74,"city":"Safford","state":"AZ"},"85547":{"lat":33.71,"lon":-111.36,"city":"Payson","state":"AZ"},"85548":{"lat":32.84,"lon":-109.59,"city":"Thatcher","state":"AZ"},"85550":{"lat":33.21,"lon":-110.51,"city":"San Carlos","state":"AZ"},"85551":{"lat":32.82,"lon":-109.85,"city":"Solomon","state":"AZ"},"85552":{"lat":32.85,"lon":-109.68,"city":"Thatcher","state":"AZ"},"85553":{"lat":33.69,"lon":-110.95,"city":"Tonto Basin","state":"AZ"},"85554":{"lat":34.52,"lon":-111.1,"city":"Young","state":"AZ"},"85601":{"lat":31.71,"lon":-111.07,"city":"Arivaca","state":"AZ"},"85602":{"lat":32.04,"lon":-110.22,"city":"Benson","state":"AZ"},"85603":{"lat":31.43,"lon":-109.89,"city":"Bisbee","state":"AZ"},"85606":{"lat":32.0,"lon":-109.84,"city":"Cochise","state":"AZ"},"85607":{"lat":31.38,"lon":-109.56,"city":"Douglas","state":"AZ"},"85610":{"lat":31.88,"lon":-109.72,"city":"Elfrida","state":"AZ"},"85611":{"lat":31.67,"lon":-110.52,"city":"Elgin","state":"AZ"},"85613":{"lat":31.55,"lon":-110.35,"city":"Fort Huachuca","state":"AZ"},"85614":{"lat":31.83,"lon":-111.0,"city":"Green Valley","state":"AZ"},"85615":{"lat":31.46,"lon":-110.22,"city":"Hereford","state":"AZ"},"85616":{"lat":31.55,"lon":-110.22,"city":"Huachuca City","state":"AZ"},"85617":{"lat":31.38,"lon":-109.93,"city":"McNeal","state":"AZ"},"85618":{"lat":32.64,"lon":-110.68,"city":"Mammoth","state":"AZ"},"85619":{"lat":32.39,"lon":-110.78,"city":"Mount Lemmon","state":"AZ"},"85620":{"lat":31.33,"lon":-109.54,"city":"Naco","state":"AZ"},"85621":{"lat":31.34,"lon":-110.94,"city":"Nogales","state":"AZ"},"85622":{"lat":31.95,"lon":-111.05,"city":"Sahuarita","state":"AZ"},"85623":{"lat":32.61,"lon":-111.1,"city":"Oracle","state":"AZ"},"85624":{"lat":31.52,"lon":-110.78,"city":"Patagonia","state":"AZ"},"85625":{"lat":31.72,"lon":-109.69,"city":"Pearce","state":"AZ"},"85627":{"lat":32.18,"lon":-110.05,"city":"Pomerene","state":"AZ"},"85629":{"lat":31.95,"lon":-111.0,"city":"Sahuarita","state":"AZ"},"85630":{"lat":31.9,"lon":-110.17,"city":"Saint David","state":"AZ"},"85631":{"lat":32.53,"lon":-111.03,"city":"San Manuel","state":"AZ"},"85632":{"lat":32.48,"lon":-109.71,"city":"San Simon","state":"AZ"},"85633":{"lat":31.8,"lon":-111.52,"city":"Sasabe","state":"AZ"},"85634":{"lat":32.15,"lon":-111.6,"city":"Sells","state":"AZ"},"85635":{"lat":31.55,"lon":-110.25,"city":"Sierra Vista","state":"AZ"},"85637":{"lat":31.63,"lon":-110.55,"city":"Sonoita","state":"AZ"},"85638":{"lat":31.68,"lon":-110.04,"city":"Tombstone","state":"AZ"},"85639":{"lat":31.93,"lon":-111.48,"city":"Tubac","state":"AZ"},"85640":{"lat":31.61,"lon":-111.06,"city":"Tumacacori","state":"AZ"},"85641":{"lat":31.98,"lon":-110.62,"city":"Vail","state":"AZ"},"85643":{"lat":32.13,"lon":-109.95,"city":"Willcox","state":"AZ"},"85645":{"lat":31.78,"lon":-111.05,"city":"Amado","state":"AZ"},"85646":{"lat":31.73,"lon":-111.03,"city":"Tubac","state":"AZ"},"85648":{"lat":31.4,"lon":-110.96,"city":"Rio Rico","state":"AZ"},"85650":{"lat":31.53,"lon":-110.3,"city":"Sierra Vista","state":"AZ"},"85653":{"lat":32.42,"lon":-111.33,"city":"Marana","state":"AZ"},"85654":{"lat":32.33,"lon":-111.21,"city":"Rillito","state":"AZ"},"85658":{"lat":32.42,"lon":-111.17,"city":"Marana","state":"AZ"},"85701":{"lat":32.22,"lon":-110.97,"city":"Tucson","state":"AZ"},"85704":{"lat":32.33,"lon":-110.97,"city":"Tucson","state":"AZ"},"85705":{"lat":32.27,"lon":-110.98,"city":"Tucson","state":"AZ"},"85706":{"lat":32.15,"lon":-110.92,"city":"Tucson","state":"AZ"},"85707":{"lat":32.19,"lon":-110.87,"city":"Tucson","state":"AZ"},"85708":{"lat":32.19,"lon":-110.87,"city":"Tucson","state":"AZ"},"85710":{"lat":32.22,"lon":-110.83,"city":"Tucson","state":"AZ"},"85711":{"lat":32.22,"lon":-110.88,"city":"Tucson","state":"AZ"},"85712":{"lat":32.25,"lon":-110.88,"city":"Tucson","state":"AZ"},"85713":{"lat":32.19,"lon":-110.97,"city":"Tucson","state":"AZ"},"85714":{"lat":32.17,"lon":-110.92,"city":"Tucson","state":"AZ"},"85715":{"lat":32.24,"lon":-110.83,"city":"Tucson","state":"AZ"},"85716":{"lat":32.25,"lon":-110.92,"city":"Tucson","state":"AZ"},"85718":{"lat":32.33,"lon":-110.92,"city":"Tucson","state":"AZ"},"85719":{"lat":32.25,"lon":-110.95,"city":"Tucson","state":"AZ"},"85726":{"lat":32.22,"lon":-110.97,"city":"Tucson","state":"AZ"},"85730":{"lat":32.17,"lon":-110.83,"city":"Tucson","state":"AZ"},"85735":{"lat":32.1,"lon":-111.28,"city":"Tucson","state":"AZ"},"85736":{"lat":31.95,"lon":-111.25,"city":"Tucson","state":"AZ"},"85737":{"lat":32.42,"lon":-111.0,"city":"Tucson","state":"AZ"},"85739":{"lat":32.47,"lon":-110.8,"city":"Tucson","state":"AZ"},"85741":{"lat":32.35,"lon":-111.08,"city":"Tucson","state":"AZ"},"85742":{"lat":32.4,"lon":-111.1,"city":"Tucson","state":"AZ"},"85743":{"lat":32.33,"lon":-111.17,"city":"Tucson","state":"AZ"},"85745":{"lat":32.25,"lon":-111.03,"city":"Tucson","state":"AZ"},"85746":{"lat":32.12,"lon":-111.03,"city":"Tucson","state":"AZ"},"85747":{"lat":32.12,"lon":-110.82,"city":"Tucson","state":"AZ"},"85748":{"lat":32.18,"lon":-110.77,"city":"Tucson","state":"AZ"},"85749":{"lat":32.27,"lon":-110.73,"city":"Tucson","state":"AZ"},"85750":{"lat":32.3,"lon":-110.83,"city":"Tucson","state":"AZ"},"85755":{"lat":32.42,"lon":-110.92,"city":"Tucson","state":"AZ"},"85756":{"lat":32.08,"lon":-110.88,"city":"Tucson","state":"AZ"},"85757":{"lat":32.12,"lon":-111.08,"city":"Tucson","state":"AZ"},"86001":{"lat":35.2,"lon":-111.65,"city":"Flagstaff","state":"AZ"},"86003":{"lat":35.19,"lon":-111.6,"city":"Flagstaff","state":"AZ"},"86004":{"lat":35.22,"lon":-111.55,"city":"Flagstaff","state":"AZ"},"86005":{"lat":35.13,"lon":-111.7,"city":"Flagstaff","state":"AZ"},"86011":{"lat":35.18,"lon":-111.65,"city":"Flagstaff","state":"AZ"},"86015":{"lat":35.18,"lon":-111.65,"city":"Flagstaff","state":"AZ"},"86017":{"lat":34.95,"lon":-111.77,"city":"Munds Park","state":"AZ"},"86018":{"lat":35.27,"lon":-111.95,"city":"Parks","state":"AZ"},"86020":{"lat":35.7,"lon":-111.45,"city":"Cameron","state":"AZ"},"86022":{"lat":36.87,"lon":-112.07,"city":"Fredonia","state":"AZ"},"86023":{"lat":35.93,"lon":-112.13,"city":"Grand Canyon","state":"AZ"},"86024":{"lat":34.77,"lon":-111.5,"city":"Happy Jack","state":"AZ"},"86025":{"lat":34.95,"lon":-110.13,"city":"Holbrook","state":"AZ"},"86028":{"lat":35.08,"lon":-109.78,"city":"Petrified Forest","state":"AZ"},"86029":{"lat":35.72,"lon":-110.07,"city":"Sun Valley","state":"AZ"},"86030":{"lat":35.83,"lon":-110.62,"city":"Hotevilla","state":"AZ"},"86031":{"lat":35.02,"lon":-110.33,"city":"Indian Wells","state":"AZ"},"86032":{"lat":34.98,"lon":-110.33,"city":"Joseph City","state":"AZ"},"86033":{"lat":35.88,"lon":-110.38,"city":"Kayenta","state":"AZ"},"86034":{"lat":35.72,"lon":-110.38,"city":"Keams Canyon","state":"AZ"},"86035":{"lat":34.92,"lon":-110.47,"city":"Leupp","state":"AZ"},"86036":{"lat":36.72,"lon":-111.63,"city":"Marble Canyon","state":"AZ"},"86038":{"lat":34.85,"lon":-111.42,"city":"Mormon Lake","state":"AZ"},"86039":{"lat":35.72,"lon":-110.5,"city":"Kykotsmovi Village","state":"AZ"},"86040":{"lat":36.87,"lon":-111.4,"city":"Page","state":"AZ"},"86042":{"lat":35.55,"lon":-110.63,"city":"Polacca","state":"AZ"},"86043":{"lat":36.07,"lon":-110.53,"city":"Shonto","state":"AZ"},"86044":{"lat":36.5,"lon":-111.3,"city":"Tonalea","state":"AZ"},"86045":{"lat":36.08,"lon":-111.35,"city":"Tuba City","state":"AZ"},"86046":{"lat":35.25,"lon":-112.18,"city":"Williams","state":"AZ"},"86047":{"lat":34.9,"lon":-110.68,"city":"Winslow","state":"AZ"},"86052":{"lat":36.73,"lon":-112.2,"city":"North Rim","state":"AZ"},"86053":{"lat":36.62,"lon":-110.88,"city":"Kayenta","state":"AZ"},"86054":{"lat":36.67,"lon":-110.62,"city":"Shonto","state":"AZ"},"86301":{"lat":34.55,"lon":-112.47,"city":"Prescott","state":"AZ"},"86303":{"lat":34.52,"lon":-112.5,"city":"Prescott","state":"AZ"},"86305":{"lat":34.58,"lon":-112.55,"city":"Prescott","state":"AZ"},"86312":{"lat":34.6,"lon":-112.32,"city":"Prescott Valley","state":"AZ"},"86313":{"lat":34.55,"lon":-112.47,"city":"Prescott","state":"AZ"},"86314":{"lat":34.6,"lon":-112.38,"city":"Prescott Valley","state":"AZ"},"86315":{"lat":34.6,"lon":-112.4,"city":"Prescott Valley","state":"AZ"},"86320":{"lat":34.85,"lon":-112.47,"city":"Ash Fork","state":"AZ"},"86321":{"lat":34.53,"lon":-113.03,"city":"Bagdad","state":"AZ"},"86322":{"lat":34.57,"lon":-111.87,"city":"Camp Verde","state":"AZ"},"86323":{"lat":34.77,"lon":-112.45,"city":"Chino Valley","state":"AZ"},"86324":{"lat":34.72,"lon":-112.02,"city":"Clarkdale","state":"AZ"},"86325":{"lat":34.78,"lon":-111.75,"city":"Cornville","state":"AZ"},"86326":{"lat":34.73,"lon":-112.0,"city":"Cottonwood","state":"AZ"},"86327":{"lat":34.47,"lon":-112.23,"city":"Dewey","state":"AZ"},"86329":{"lat":34.53,"lon":-112.27,"city":"Humboldt","state":"AZ"},"86331":{"lat":34.68,"lon":-111.95,"city":"Jerome","state":"AZ"},"86332":{"lat":34.33,"lon":-112.48,"city":"Kirkland","state":"AZ"},"86333":{"lat":34.43,"lon":-112.13,"city":"Mayer","state":"AZ"},"86334":{"lat":34.8,"lon":-112.3,"city":"Paulden","state":"AZ"},"86335":{"lat":34.7,"lon":-111.73,"city":"Rimrock","state":"AZ"},"86336":{"lat":34.87,"lon":-111.77,"city":"Sedona","state":"AZ"},"86337":{"lat":35.33,"lon":-112.88,"city":"Seligman","state":"AZ"},"86338":{"lat":34.57,"lon":-112.78,"city":"Skull Valley","state":"AZ"},"86343":{"lat":34.22,"lon":-112.23,"city":"Crown King","state":"AZ"},"86351":{"lat":34.78,"lon":-111.77,"city":"Sedona","state":"AZ"},"86401":{"lat":35.18,"lon":-114.05,"city":"Kingman","state":"AZ"},"86402":{"lat":35.18,"lon":-114.05,"city":"Kingman","state":"AZ"},"86403":{"lat":34.48,"lon":-114.35,"city":"Lake Havasu City","state":"AZ"},"86404":{"lat":34.52,"lon":-114.32,"city":"Lake Havasu City","state":"AZ"},"86406":{"lat":34.48,"lon":-114.33,"city":"Lake Havasu City","state":"AZ"},"86409":{"lat":35.2,"lon":-114.05,"city":"Kingman","state":"AZ"},"86411":{"lat":35.35,"lon":-114.25,"city":"Dolan Springs","state":"AZ"},"86413":{"lat":35.17,"lon":-114.58,"city":"Golden Valley","state":"AZ"},"86426":{"lat":35.1,"lon":-114.57,"city":"Fort Mohave","state":"AZ"},"86429":{"lat":35.17,"lon":-114.57,"city":"Bullhead City","state":"AZ"},"86430":{"lat":35.13,"lon":-114.55,"city":"Bullhead City","state":"AZ"},"86431":{"lat":34.75,"lon":-114.27,"city":"Chloride","state":"AZ"},"86432":{"lat":36.8,"lon":-113.1,"city":"Colorado City","state":"AZ"},"86433":{"lat":35.02,"lon":-114.62,"city":"Oatman","state":"AZ"},"86434":{"lat":35.5,"lon":-113.58,"city":"Peach Springs","state":"AZ"},"86435":{"lat":36.12,"lon":-113.18,"city":"Supai","state":"AZ"},"86436":{"lat":34.73,"lon":-114.62,"city":"Topock","state":"AZ"},"86437":{"lat":35.33,"lon":-113.82,"city":"Valentine","state":"AZ"},"86440":{"lat":35.05,"lon":-114.6,"city":"Mohave Valley","state":"AZ"},"86441":{"lat":35.1,"lon":-114.55,"city":"Bullhead City","state":"AZ"},"86442":{"lat":35.15,"lon":-114.58,"city":"Bullhead City","state":"AZ"},"86443":{"lat":36.02,"lon":-114.07,"city":"Meadview","state":"AZ"},"86444":{"lat":35.93,"lon":-113.87,"city":"Dolan Springs","state":"AZ"},"86445":{"lat":35.6,"lon":-114.33,"city":"Willow Beach","state":"AZ"}}
+{
+  "85003": {
+    "lat": 33.4508,
+    "lon": -112.0784,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85004": {
+    "lat": 33.4515,
+    "lon": -112.0699,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85006": {
+    "lat": 33.4651,
+    "lon": -112.0479,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85007": {
+    "lat": 33.4471,
+    "lon": -112.0912,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85008": {
+    "lat": 33.4633,
+    "lon": -111.9868,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85009": {
+    "lat": 33.4428,
+    "lon": -112.1282,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85012": {
+    "lat": 33.5073,
+    "lon": -112.0704,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85013": {
+    "lat": 33.5101,
+    "lon": -112.0829,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85014": {
+    "lat": 33.5085,
+    "lon": -112.0567,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85015": {
+    "lat": 33.5092,
+    "lon": -112.1018,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85016": {
+    "lat": 33.5136,
+    "lon": -112.0297,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85017": {
+    "lat": 33.5091,
+    "lon": -112.1237,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85018": {
+    "lat": 33.5054,
+    "lon": -111.9858,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85019": {
+    "lat": 33.5092,
+    "lon": -112.143,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85020": {
+    "lat": 33.5673,
+    "lon": -112.0546,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85021": {
+    "lat": 33.56,
+    "lon": -112.094,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85022": {
+    "lat": 33.6272,
+    "lon": -112.0518,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85023": {
+    "lat": 33.6315,
+    "lon": -112.0947,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85024": {
+    "lat": 33.7355,
+    "lon": -112.0335,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85027": {
+    "lat": 33.6819,
+    "lon": -112.0996,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85028": {
+    "lat": 33.5755,
+    "lon": -112.0091,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85029": {
+    "lat": 33.595,
+    "lon": -112.1103,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85031": {
+    "lat": 33.4949,
+    "lon": -112.1683,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85032": {
+    "lat": 33.6263,
+    "lon": -112.0038,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85033": {
+    "lat": 33.4944,
+    "lon": -112.2116,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85034": {
+    "lat": 33.4349,
+    "lon": -112.02,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85035": {
+    "lat": 33.4714,
+    "lon": -112.1947,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85037": {
+    "lat": 33.4906,
+    "lon": -112.2647,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85040": {
+    "lat": 33.4061,
+    "lon": -112.0266,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85041": {
+    "lat": 33.3859,
+    "lon": -112.1088,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85042": {
+    "lat": 33.3688,
+    "lon": -112.0425,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85043": {
+    "lat": 33.4324,
+    "lon": -112.1965,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85044": {
+    "lat": 33.3424,
+    "lon": -112.0018,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85045": {
+    "lat": 33.2992,
+    "lon": -112.1085,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85048": {
+    "lat": 33.3126,
+    "lon": -112.0558,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85050": {
+    "lat": 33.6863,
+    "lon": -111.9963,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85051": {
+    "lat": 33.5591,
+    "lon": -112.1332,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85053": {
+    "lat": 33.6299,
+    "lon": -112.1316,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85054": {
+    "lat": 33.6731,
+    "lon": -111.9461,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85083": {
+    "lat": 33.7246,
+    "lon": -112.1585,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85085": {
+    "lat": 33.7529,
+    "lon": -112.0893,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85086": {
+    "lat": 33.8155,
+    "lon": -112.1202,
+    "city": "Phoenix",
+    "state": "AZ"
+  },
+  "85087": {
+    "lat": 33.9235,
+    "lon": -112.1279,
+    "city": "New River",
+    "state": "AZ"
+  },
+  "85118": {
+    "lat": 33.3534,
+    "lon": -111.3504,
+    "city": "Gold Canyon",
+    "state": "AZ"
+  },
+  "85119": {
+    "lat": 33.4097,
+    "lon": -111.502,
+    "city": "Apache Junction",
+    "state": "AZ"
+  },
+  "85120": {
+    "lat": 33.403,
+    "lon": -111.5679,
+    "city": "Apache Junction",
+    "state": "AZ"
+  },
+  "85121": {
+    "lat": 33.1435,
+    "lon": -111.9213,
+    "city": "Bapchule",
+    "state": "AZ"
+  },
+  "85122": {
+    "lat": 32.9172,
+    "lon": -111.7442,
+    "city": "Casa Grande",
+    "state": "AZ"
+  },
+  "85123": {
+    "lat": 32.7158,
+    "lon": -111.6956,
+    "city": "Arizona City",
+    "state": "AZ"
+  },
+  "85128": {
+    "lat": 32.9905,
+    "lon": -111.538,
+    "city": "Coolidge",
+    "state": "AZ"
+  },
+  "85131": {
+    "lat": 32.6739,
+    "lon": -111.5501,
+    "city": "Eloy",
+    "state": "AZ"
+  },
+  "85132": {
+    "lat": 32.9334,
+    "lon": -111.2045,
+    "city": "Florence",
+    "state": "AZ"
+  },
+  "85135": {
+    "lat": 33.0042,
+    "lon": -110.786,
+    "city": "Hayden",
+    "state": "AZ"
+  },
+  "85137": {
+    "lat": 33.1373,
+    "lon": -111.0019,
+    "city": "Kearny",
+    "state": "AZ"
+  },
+  "85138": {
+    "lat": 33.0069,
+    "lon": -111.9891,
+    "city": "Maricopa",
+    "state": "AZ"
+  },
+  "85139": {
+    "lat": 32.9759,
+    "lon": -112.1461,
+    "city": "Maricopa",
+    "state": "AZ"
+  },
+  "85140": {
+    "lat": 33.2445,
+    "lon": -111.5438,
+    "city": "San Tan Valley",
+    "state": "AZ"
+  },
+  "85141": {
+    "lat": 32.6733,
+    "lon": -111.4544,
+    "city": "Picacho",
+    "state": "AZ"
+  },
+  "85142": {
+    "lat": 33.1987,
+    "lon": -111.6381,
+    "city": "Queen Creek",
+    "state": "AZ"
+  },
+  "85143": {
+    "lat": 33.1586,
+    "lon": -111.519,
+    "city": "San Tan Valley",
+    "state": "AZ"
+  },
+  "85145": {
+    "lat": 32.5575,
+    "lon": -111.3679,
+    "city": "Red Rock",
+    "state": "AZ"
+  },
+  "85147": {
+    "lat": 33.1259,
+    "lon": -111.7372,
+    "city": "Sacaton",
+    "state": "AZ"
+  },
+  "85172": {
+    "lat": 32.8861,
+    "lon": -111.9538,
+    "city": "Stanfield",
+    "state": "AZ"
+  },
+  "85173": {
+    "lat": 33.2702,
+    "lon": -111.1234,
+    "city": "Superior",
+    "state": "AZ"
+  },
+  "85192": {
+    "lat": 32.9605,
+    "lon": -110.6887,
+    "city": "Winkelman",
+    "state": "AZ"
+  },
+  "85193": {
+    "lat": 32.7941,
+    "lon": -111.8202,
+    "city": "Casa Grande",
+    "state": "AZ"
+  },
+  "85194": {
+    "lat": 32.8984,
+    "lon": -111.6261,
+    "city": "Casa Grande",
+    "state": "AZ"
+  },
+  "85201": {
+    "lat": 33.4339,
+    "lon": -111.8502,
+    "city": "Mesa",
+    "state": "AZ"
+  },
+  "85202": {
+    "lat": 33.3825,
+    "lon": -111.8745,
+    "city": "Mesa",
+    "state": "AZ"
+  },
+  "85203": {
+    "lat": 33.45,
+    "lon": -111.804,
+    "city": "Mesa",
+    "state": "AZ"
+  },
+  "85204": {
+    "lat": 33.3968,
+    "lon": -111.7881,
+    "city": "Mesa",
+    "state": "AZ"
+  },
+  "85205": {
+    "lat": 33.4323,
+    "lon": -111.7187,
+    "city": "Mesa",
+    "state": "AZ"
+  },
+  "85206": {
+    "lat": 33.3967,
+    "lon": -111.7177,
+    "city": "Mesa",
+    "state": "AZ"
+  },
+  "85207": {
+    "lat": 33.4535,
+    "lon": -111.6368,
+    "city": "Mesa",
+    "state": "AZ"
+  },
+  "85208": {
+    "lat": 33.4016,
+    "lon": -111.6283,
+    "city": "Mesa",
+    "state": "AZ"
+  },
+  "85209": {
+    "lat": 33.3783,
+    "lon": -111.6376,
+    "city": "Mesa",
+    "state": "AZ"
+  },
+  "85210": {
+    "lat": 33.3899,
+    "lon": -111.8432,
+    "city": "Mesa",
+    "state": "AZ"
+  },
+  "85212": {
+    "lat": 33.3221,
+    "lon": -111.6354,
+    "city": "Mesa",
+    "state": "AZ"
+  },
+  "85213": {
+    "lat": 33.4485,
+    "lon": -111.77,
+    "city": "Mesa",
+    "state": "AZ"
+  },
+  "85215": {
+    "lat": 33.5111,
+    "lon": -111.5788,
+    "city": "Mesa",
+    "state": "AZ"
+  },
+  "85224": {
+    "lat": 33.3237,
+    "lon": -111.8764,
+    "city": "Chandler",
+    "state": "AZ"
+  },
+  "85225": {
+    "lat": 33.3174,
+    "lon": -111.8322,
+    "city": "Chandler",
+    "state": "AZ"
+  },
+  "85226": {
+    "lat": 33.259,
+    "lon": -112.0076,
+    "city": "Chandler",
+    "state": "AZ"
+  },
+  "85233": {
+    "lat": 33.3521,
+    "lon": -111.8113,
+    "city": "Gilbert",
+    "state": "AZ"
+  },
+  "85234": {
+    "lat": 33.3646,
+    "lon": -111.7394,
+    "city": "Gilbert",
+    "state": "AZ"
+  },
+  "85248": {
+    "lat": 33.218,
+    "lon": -111.8696,
+    "city": "Chandler",
+    "state": "AZ"
+  },
+  "85249": {
+    "lat": 33.2255,
+    "lon": -111.7971,
+    "city": "Chandler",
+    "state": "AZ"
+  },
+  "85250": {
+    "lat": 33.5358,
+    "lon": -111.8885,
+    "city": "Scottsdale",
+    "state": "AZ"
+  },
+  "85251": {
+    "lat": 33.4939,
+    "lon": -111.9195,
+    "city": "Scottsdale",
+    "state": "AZ"
+  },
+  "85253": {
+    "lat": 33.545,
+    "lon": -111.9585,
+    "city": "Paradise Valley",
+    "state": "AZ"
+  },
+  "85254": {
+    "lat": 33.615,
+    "lon": -111.952,
+    "city": "Scottsdale",
+    "state": "AZ"
+  },
+  "85255": {
+    "lat": 33.6832,
+    "lon": -111.8211,
+    "city": "Scottsdale",
+    "state": "AZ"
+  },
+  "85256": {
+    "lat": 33.502,
+    "lon": -111.8407,
+    "city": "Scottsdale",
+    "state": "AZ"
+  },
+  "85257": {
+    "lat": 33.4642,
+    "lon": -111.9159,
+    "city": "Scottsdale",
+    "state": "AZ"
+  },
+  "85258": {
+    "lat": 33.5647,
+    "lon": -111.8957,
+    "city": "Scottsdale",
+    "state": "AZ"
+  },
+  "85259": {
+    "lat": 33.6011,
+    "lon": -111.8095,
+    "city": "Scottsdale",
+    "state": "AZ"
+  },
+  "85260": {
+    "lat": 33.6096,
+    "lon": -111.8916,
+    "city": "Scottsdale",
+    "state": "AZ"
+  },
+  "85262": {
+    "lat": 33.8319,
+    "lon": -111.8106,
+    "city": "Scottsdale",
+    "state": "AZ"
+  },
+  "85263": {
+    "lat": 33.8269,
+    "lon": -111.5145,
+    "city": "Rio Verde",
+    "state": "AZ"
+  },
+  "85264": {
+    "lat": 33.6308,
+    "lon": -111.5326,
+    "city": "Fort Mcdowell",
+    "state": "AZ"
+  },
+  "85266": {
+    "lat": 33.767,
+    "lon": -111.9183,
+    "city": "Scottsdale",
+    "state": "AZ"
+  },
+  "85268": {
+    "lat": 33.607,
+    "lon": -111.74,
+    "city": "Fountain Hills",
+    "state": "AZ"
+  },
+  "85281": {
+    "lat": 33.4282,
+    "lon": -111.9312,
+    "city": "Tempe",
+    "state": "AZ"
+  },
+  "85282": {
+    "lat": 33.3941,
+    "lon": -111.9318,
+    "city": "Tempe",
+    "state": "AZ"
+  },
+  "85283": {
+    "lat": 33.3646,
+    "lon": -111.9321,
+    "city": "Tempe",
+    "state": "AZ"
+  },
+  "85284": {
+    "lat": 33.3372,
+    "lon": -111.9342,
+    "city": "Tempe",
+    "state": "AZ"
+  },
+  "85286": {
+    "lat": 33.2711,
+    "lon": -111.8312,
+    "city": "Chandler",
+    "state": "AZ"
+  },
+  "85295": {
+    "lat": 33.3054,
+    "lon": -111.7408,
+    "city": "Gilbert",
+    "state": "AZ"
+  },
+  "85296": {
+    "lat": 33.3354,
+    "lon": -111.7406,
+    "city": "Gilbert",
+    "state": "AZ"
+  },
+  "85297": {
+    "lat": 33.2778,
+    "lon": -111.7335,
+    "city": "Gilbert",
+    "state": "AZ"
+  },
+  "85298": {
+    "lat": 33.2419,
+    "lon": -111.7257,
+    "city": "Gilbert",
+    "state": "AZ"
+  },
+  "85301": {
+    "lat": 33.5318,
+    "lon": -112.178,
+    "city": "Glendale",
+    "state": "AZ"
+  },
+  "85302": {
+    "lat": 33.568,
+    "lon": -112.1779,
+    "city": "Glendale",
+    "state": "AZ"
+  },
+  "85303": {
+    "lat": 33.5327,
+    "lon": -112.2211,
+    "city": "Glendale",
+    "state": "AZ"
+  },
+  "85304": {
+    "lat": 33.5965,
+    "lon": -112.177,
+    "city": "Glendale",
+    "state": "AZ"
+  },
+  "85305": {
+    "lat": 33.5308,
+    "lon": -112.2564,
+    "city": "Glendale",
+    "state": "AZ"
+  },
+  "85306": {
+    "lat": 33.6239,
+    "lon": -112.1764,
+    "city": "Glendale",
+    "state": "AZ"
+  },
+  "85307": {
+    "lat": 33.5376,
+    "lon": -112.3136,
+    "city": "Glendale",
+    "state": "AZ"
+  },
+  "85308": {
+    "lat": 33.6605,
+    "lon": -112.1846,
+    "city": "Glendale",
+    "state": "AZ"
+  },
+  "85309": {
+    "lat": 33.5355,
+    "lon": -112.3767,
+    "city": "Luke Air Force Base",
+    "state": "AZ"
+  },
+  "85310": {
+    "lat": 33.6958,
+    "lon": -112.1719,
+    "city": "Glendale",
+    "state": "AZ"
+  },
+  "85320": {
+    "lat": 33.9185,
+    "lon": -113.2136,
+    "city": "Aguila",
+    "state": "AZ"
+  },
+  "85321": {
+    "lat": 32.2294,
+    "lon": -112.6543,
+    "city": "Ajo",
+    "state": "AZ"
+  },
+  "85322": {
+    "lat": 33.1741,
+    "lon": -112.851,
+    "city": "Arlington",
+    "state": "AZ"
+  },
+  "85323": {
+    "lat": 33.4194,
+    "lon": -112.3261,
+    "city": "Avondale",
+    "state": "AZ"
+  },
+  "85324": {
+    "lat": 34.1192,
+    "lon": -112.0443,
+    "city": "Black Canyon City",
+    "state": "AZ"
+  },
+  "85325": {
+    "lat": 33.9988,
+    "lon": -113.9016,
+    "city": "Bouse",
+    "state": "AZ"
+  },
+  "85326": {
+    "lat": 33.289,
+    "lon": -112.578,
+    "city": "Buckeye",
+    "state": "AZ"
+  },
+  "85328": {
+    "lat": 33.2263,
+    "lon": -114.6345,
+    "city": "Cibola",
+    "state": "AZ"
+  },
+  "85331": {
+    "lat": 33.8851,
+    "lon": -111.9349,
+    "city": "Cave Creek",
+    "state": "AZ"
+  },
+  "85332": {
+    "lat": 34.1908,
+    "lon": -112.9046,
+    "city": "Congress",
+    "state": "AZ"
+  },
+  "85333": {
+    "lat": 33.0234,
+    "lon": -113.281,
+    "city": "Dateland",
+    "state": "AZ"
+  },
+  "85334": {
+    "lat": 33.5222,
+    "lon": -114.5338,
+    "city": "Ehrenberg",
+    "state": "AZ"
+  },
+  "85335": {
+    "lat": 33.5919,
+    "lon": -112.3266,
+    "city": "El Mirage",
+    "state": "AZ"
+  },
+  "85336": {
+    "lat": 32.5453,
+    "lon": -114.7895,
+    "city": "San Luis",
+    "state": "AZ"
+  },
+  "85337": {
+    "lat": 32.9596,
+    "lon": -112.7033,
+    "city": "Gila Bend",
+    "state": "AZ"
+  },
+  "85338": {
+    "lat": 33.3735,
+    "lon": -112.4079,
+    "city": "Goodyear",
+    "state": "AZ"
+  },
+  "85339": {
+    "lat": 33.2377,
+    "lon": -112.1608,
+    "city": "Laveen",
+    "state": "AZ"
+  },
+  "85340": {
+    "lat": 33.5098,
+    "lon": -112.4132,
+    "city": "Litchfield Park",
+    "state": "AZ"
+  },
+  "85341": {
+    "lat": 31.8738,
+    "lon": -112.7848,
+    "city": "Lukeville",
+    "state": "AZ"
+  },
+  "85342": {
+    "lat": 33.9448,
+    "lon": -112.4531,
+    "city": "Morristown",
+    "state": "AZ"
+  },
+  "85343": {
+    "lat": 33.3391,
+    "lon": -112.6891,
+    "city": "Palo Verde",
+    "state": "AZ"
+  },
+  "85344": {
+    "lat": 34.0755,
+    "lon": -114.222,
+    "city": "Parker",
+    "state": "AZ"
+  },
+  "85345": {
+    "lat": 33.572,
+    "lon": -112.2462,
+    "city": "Peoria",
+    "state": "AZ"
+  },
+  "85346": {
+    "lat": 33.6362,
+    "lon": -114.1462,
+    "city": "Quartzsite",
+    "state": "AZ"
+  },
+  "85347": {
+    "lat": 32.7974,
+    "lon": -113.7896,
+    "city": "Roll",
+    "state": "AZ"
+  },
+  "85348": {
+    "lat": 33.7087,
+    "lon": -113.7144,
+    "city": "Salome",
+    "state": "AZ"
+  },
+  "85349": {
+    "lat": 32.4974,
+    "lon": -114.7524,
+    "city": "San Luis",
+    "state": "AZ"
+  },
+  "85350": {
+    "lat": 32.5535,
+    "lon": -114.6974,
+    "city": "Somerton",
+    "state": "AZ"
+  },
+  "85351": {
+    "lat": 33.6065,
+    "lon": -112.2821,
+    "city": "Sun City",
+    "state": "AZ"
+  },
+  "85352": {
+    "lat": 32.7194,
+    "lon": -113.8395,
+    "city": "Tacna",
+    "state": "AZ"
+  },
+  "85353": {
+    "lat": 33.4182,
+    "lon": -112.2729,
+    "city": "Tolleson",
+    "state": "AZ"
+  },
+  "85354": {
+    "lat": 33.4332,
+    "lon": -113.049,
+    "city": "Tonopah",
+    "state": "AZ"
+  },
+  "85355": {
+    "lat": 33.5762,
+    "lon": -112.4539,
+    "city": "Waddell",
+    "state": "AZ"
+  },
+  "85356": {
+    "lat": 32.689,
+    "lon": -114.1623,
+    "city": "Wellton",
+    "state": "AZ"
+  },
+  "85357": {
+    "lat": 33.9777,
+    "lon": -113.5032,
+    "city": "Wenden",
+    "state": "AZ"
+  },
+  "85360": {
+    "lat": 34.7093,
+    "lon": -113.5683,
+    "city": "Wikieup",
+    "state": "AZ"
+  },
+  "85361": {
+    "lat": 33.764,
+    "lon": -112.6147,
+    "city": "Wittmann",
+    "state": "AZ"
+  },
+  "85362": {
+    "lat": 34.2799,
+    "lon": -112.8347,
+    "city": "Yarnell",
+    "state": "AZ"
+  },
+  "85363": {
+    "lat": 33.5845,
+    "lon": -112.305,
+    "city": "Youngtown",
+    "state": "AZ"
+  },
+  "85364": {
+    "lat": 32.7031,
+    "lon": -114.6588,
+    "city": "Yuma",
+    "state": "AZ"
+  },
+  "85365": {
+    "lat": 33.0789,
+    "lon": -114.1505,
+    "city": "Yuma",
+    "state": "AZ"
+  },
+  "85367": {
+    "lat": 32.6717,
+    "lon": -114.3955,
+    "city": "Yuma",
+    "state": "AZ"
+  },
+  "85371": {
+    "lat": 33.8286,
+    "lon": -114.3758,
+    "city": "Poston",
+    "state": "AZ"
+  },
+  "85373": {
+    "lat": 33.6738,
+    "lon": -112.2996,
+    "city": "Sun City",
+    "state": "AZ"
+  },
+  "85374": {
+    "lat": 33.644,
+    "lon": -112.3767,
+    "city": "Surprise",
+    "state": "AZ"
+  },
+  "85375": {
+    "lat": 33.6856,
+    "lon": -112.366,
+    "city": "Sun City West",
+    "state": "AZ"
+  },
+  "85377": {
+    "lat": 33.8243,
+    "lon": -111.9153,
+    "city": "Carefree",
+    "state": "AZ"
+  },
+  "85379": {
+    "lat": 33.6021,
+    "lon": -112.3735,
+    "city": "Surprise",
+    "state": "AZ"
+  },
+  "85381": {
+    "lat": 33.6096,
+    "lon": -112.2317,
+    "city": "Peoria",
+    "state": "AZ"
+  },
+  "85382": {
+    "lat": 33.6551,
+    "lon": -112.2475,
+    "city": "Peoria",
+    "state": "AZ"
+  },
+  "85383": {
+    "lat": 33.8024,
+    "lon": -112.247,
+    "city": "Peoria",
+    "state": "AZ"
+  },
+  "85387": {
+    "lat": 33.7128,
+    "lon": -112.4381,
+    "city": "Surprise",
+    "state": "AZ"
+  },
+  "85388": {
+    "lat": 33.6079,
+    "lon": -112.4338,
+    "city": "Surprise",
+    "state": "AZ"
+  },
+  "85390": {
+    "lat": 33.8944,
+    "lon": -112.8602,
+    "city": "Wickenburg",
+    "state": "AZ"
+  },
+  "85392": {
+    "lat": 33.4778,
+    "lon": -112.3094,
+    "city": "Avondale",
+    "state": "AZ"
+  },
+  "85395": {
+    "lat": 33.4791,
+    "lon": -112.3945,
+    "city": "Goodyear",
+    "state": "AZ"
+  },
+  "85396": {
+    "lat": 33.5269,
+    "lon": -112.6507,
+    "city": "Buckeye",
+    "state": "AZ"
+  },
+  "85501": {
+    "lat": 33.5391,
+    "lon": -110.7534,
+    "city": "Globe",
+    "state": "AZ"
+  },
+  "85530": {
+    "lat": 33.1062,
+    "lon": -110.2373,
+    "city": "Bylas",
+    "state": "AZ"
+  },
+  "85531": {
+    "lat": 32.8772,
+    "lon": -109.7894,
+    "city": "Central",
+    "state": "AZ"
+  },
+  "85533": {
+    "lat": 33.321,
+    "lon": -109.3856,
+    "city": "Clifton",
+    "state": "AZ"
+  },
+  "85534": {
+    "lat": 32.7543,
+    "lon": -109.1406,
+    "city": "Duncan",
+    "state": "AZ"
+  },
+  "85535": {
+    "lat": 32.9899,
+    "lon": -109.9138,
+    "city": "Eden",
+    "state": "AZ"
+  },
+  "85536": {
+    "lat": 33.139,
+    "lon": -110.0026,
+    "city": "Fort Thomas",
+    "state": "AZ"
+  },
+  "85539": {
+    "lat": 33.361,
+    "lon": -110.913,
+    "city": "Miami",
+    "state": "AZ"
+  },
+  "85540": {
+    "lat": 32.9774,
+    "lon": -109.3575,
+    "city": "Morenci",
+    "state": "AZ"
+  },
+  "85541": {
+    "lat": 34.1948,
+    "lon": -111.3052,
+    "city": "Payson",
+    "state": "AZ"
+  },
+  "85542": {
+    "lat": 33.2966,
+    "lon": -110.3032,
+    "city": "Peridot",
+    "state": "AZ"
+  },
+  "85543": {
+    "lat": 32.9825,
+    "lon": -109.9676,
+    "city": "Pima",
+    "state": "AZ"
+  },
+  "85544": {
+    "lat": 34.3435,
+    "lon": -111.5353,
+    "city": "Pine",
+    "state": "AZ"
+  },
+  "85545": {
+    "lat": 33.5455,
+    "lon": -111.1249,
+    "city": "Roosevelt",
+    "state": "AZ"
+  },
+  "85546": {
+    "lat": 32.7113,
+    "lon": -109.5841,
+    "city": "Safford",
+    "state": "AZ"
+  },
+  "85550": {
+    "lat": 33.5311,
+    "lon": -110.4833,
+    "city": "San Carlos",
+    "state": "AZ"
+  },
+  "85551": {
+    "lat": 32.7209,
+    "lon": -109.5837,
+    "city": "Solomon",
+    "state": "AZ"
+  },
+  "85552": {
+    "lat": 32.8218,
+    "lon": -109.7694,
+    "city": "Thatcher",
+    "state": "AZ"
+  },
+  "85553": {
+    "lat": 33.8155,
+    "lon": -111.2288,
+    "city": "Tonto Basin",
+    "state": "AZ"
+  },
+  "85554": {
+    "lat": 33.986,
+    "lon": -110.9543,
+    "city": "Young",
+    "state": "AZ"
+  },
+  "85601": {
+    "lat": 31.5884,
+    "lon": -111.3159,
+    "city": "Arivaca",
+    "state": "AZ"
+  },
+  "85602": {
+    "lat": 32.1743,
+    "lon": -110.377,
+    "city": "Benson",
+    "state": "AZ"
+  },
+  "85603": {
+    "lat": 31.4339,
+    "lon": -109.9105,
+    "city": "Bisbee",
+    "state": "AZ"
+  },
+  "85605": {
+    "lat": 32.2994,
+    "lon": -109.4779,
+    "city": "Bowie",
+    "state": "AZ"
+  },
+  "85606": {
+    "lat": 32.0395,
+    "lon": -109.9103,
+    "city": "Cochise",
+    "state": "AZ"
+  },
+  "85607": {
+    "lat": 31.5212,
+    "lon": -109.3517,
+    "city": "Douglas",
+    "state": "AZ"
+  },
+  "85608": {
+    "lat": 31.4559,
+    "lon": -109.5861,
+    "city": "Douglas",
+    "state": "AZ"
+  },
+  "85609": {
+    "lat": 32.0659,
+    "lon": -110.1056,
+    "city": "Dragoon",
+    "state": "AZ"
+  },
+  "85610": {
+    "lat": 31.7411,
+    "lon": -109.7177,
+    "city": "Elfrida",
+    "state": "AZ"
+  },
+  "85611": {
+    "lat": 31.6614,
+    "lon": -110.5121,
+    "city": "Elgin",
+    "state": "AZ"
+  },
+  "85613": {
+    "lat": 31.5669,
+    "lon": -110.3851,
+    "city": "Fort Huachuca",
+    "state": "AZ"
+  },
+  "85614": {
+    "lat": 31.8228,
+    "lon": -110.9258,
+    "city": "Green Valley",
+    "state": "AZ"
+  },
+  "85615": {
+    "lat": 31.4019,
+    "lon": -110.2197,
+    "city": "Hereford",
+    "state": "AZ"
+  },
+  "85616": {
+    "lat": 31.6933,
+    "lon": -110.3331,
+    "city": "Huachuca City",
+    "state": "AZ"
+  },
+  "85617": {
+    "lat": 31.5483,
+    "lon": -109.7229,
+    "city": "McNeal",
+    "state": "AZ"
+  },
+  "85618": {
+    "lat": 32.7132,
+    "lon": -110.5558,
+    "city": "Mammoth",
+    "state": "AZ"
+  },
+  "85619": {
+    "lat": 32.4076,
+    "lon": -110.7332,
+    "city": "Mount Lemmon",
+    "state": "AZ"
+  },
+  "85620": {
+    "lat": 31.3372,
+    "lon": -109.9412,
+    "city": "Naco",
+    "state": "AZ"
+  },
+  "85621": {
+    "lat": 31.4229,
+    "lon": -111.0401,
+    "city": "Nogales",
+    "state": "AZ"
+  },
+  "85622": {
+    "lat": 31.8269,
+    "lon": -111.0755,
+    "city": "Green Valley",
+    "state": "AZ"
+  },
+  "85623": {
+    "lat": 32.7064,
+    "lon": -110.8053,
+    "city": "Oracle",
+    "state": "AZ"
+  },
+  "85624": {
+    "lat": 31.5153,
+    "lon": -110.6985,
+    "city": "Patagonia",
+    "state": "AZ"
+  },
+  "85625": {
+    "lat": 31.8885,
+    "lon": -109.6119,
+    "city": "Pearce",
+    "state": "AZ"
+  },
+  "85626": {
+    "lat": 31.3578,
+    "lon": -109.5666,
+    "city": "Pirtleville",
+    "state": "AZ"
+  },
+  "85627": {
+    "lat": 32.005,
+    "lon": -110.2412,
+    "city": "Pomerene",
+    "state": "AZ"
+  },
+  "85629": {
+    "lat": 31.9178,
+    "lon": -111.0191,
+    "city": "Sahuarita",
+    "state": "AZ"
+  },
+  "85630": {
+    "lat": 31.8888,
+    "lon": -110.169,
+    "city": "Saint David",
+    "state": "AZ"
+  },
+  "85631": {
+    "lat": 32.5914,
+    "lon": -110.5526,
+    "city": "San Manuel",
+    "state": "AZ"
+  },
+  "85632": {
+    "lat": 32.0424,
+    "lon": -109.1748,
+    "city": "San Simon",
+    "state": "AZ"
+  },
+  "85633": {
+    "lat": 31.6228,
+    "lon": -111.4957,
+    "city": "Sasabe",
+    "state": "AZ"
+  },
+  "85634": {
+    "lat": 32.0315,
+    "lon": -112.0065,
+    "city": "Sells",
+    "state": "AZ"
+  },
+  "85635": {
+    "lat": 31.5704,
+    "lon": -110.177,
+    "city": "Sierra Vista",
+    "state": "AZ"
+  },
+  "85637": {
+    "lat": 31.7282,
+    "lon": -110.6897,
+    "city": "Sonoita",
+    "state": "AZ"
+  },
+  "85638": {
+    "lat": 31.7151,
+    "lon": -110.0509,
+    "city": "Tombstone",
+    "state": "AZ"
+  },
+  "85640": {
+    "lat": 31.5619,
+    "lon": -111.0494,
+    "city": "Tumacacori",
+    "state": "AZ"
+  },
+  "85641": {
+    "lat": 32.049,
+    "lon": -110.6229,
+    "city": "Vail",
+    "state": "AZ"
+  },
+  "85643": {
+    "lat": 32.4038,
+    "lon": -109.9637,
+    "city": "Willcox",
+    "state": "AZ"
+  },
+  "85645": {
+    "lat": 31.7031,
+    "lon": -111.1595,
+    "city": "Amado",
+    "state": "AZ"
+  },
+  "85646": {
+    "lat": 31.6061,
+    "lon": -110.9902,
+    "city": "Tubac",
+    "state": "AZ"
+  },
+  "85648": {
+    "lat": 31.4873,
+    "lon": -111.0412,
+    "city": "Rio Rico",
+    "state": "AZ"
+  },
+  "85650": {
+    "lat": 31.5001,
+    "lon": -110.2021,
+    "city": "Sierra Vista",
+    "state": "AZ"
+  },
+  "85653": {
+    "lat": 32.3898,
+    "lon": -111.377,
+    "city": "Marana",
+    "state": "AZ"
+  },
+  "85654": {
+    "lat": 32.4153,
+    "lon": -111.1544,
+    "city": "Rillito",
+    "state": "AZ"
+  },
+  "85658": {
+    "lat": 32.5492,
+    "lon": -111.1484,
+    "city": "Marana",
+    "state": "AZ"
+  },
+  "85701": {
+    "lat": 32.2169,
+    "lon": -110.971,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85704": {
+    "lat": 32.3379,
+    "lon": -110.9855,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85705": {
+    "lat": 32.2713,
+    "lon": -110.9921,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85706": {
+    "lat": 32.1476,
+    "lon": -110.9334,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85707": {
+    "lat": 32.1792,
+    "lon": -110.887,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85708": {
+    "lat": 32.1819,
+    "lon": -110.8665,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85710": {
+    "lat": 32.2141,
+    "lon": -110.8238,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85711": {
+    "lat": 32.2152,
+    "lon": -110.8834,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85712": {
+    "lat": 32.2523,
+    "lon": -110.8865,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85713": {
+    "lat": 32.1953,
+    "lon": -111.0154,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85714": {
+    "lat": 32.1674,
+    "lon": -110.9508,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85715": {
+    "lat": 32.2489,
+    "lon": -110.8308,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85716": {
+    "lat": 32.2415,
+    "lon": -110.9232,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85718": {
+    "lat": 32.3334,
+    "lon": -110.9166,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85719": {
+    "lat": 32.2467,
+    "lon": -110.9487,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85723": {
+    "lat": 32.1802,
+    "lon": -110.9652,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85724": {
+    "lat": 32.2409,
+    "lon": -110.9455,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85726": {
+    "lat": 32.2048,
+    "lon": -110.9456,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85730": {
+    "lat": 32.1828,
+    "lon": -110.747,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85735": {
+    "lat": 32.0931,
+    "lon": -111.3472,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85736": {
+    "lat": 31.9011,
+    "lon": -111.3702,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85737": {
+    "lat": 32.4142,
+    "lon": -110.9466,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85739": {
+    "lat": 32.6165,
+    "lon": -110.9858,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85741": {
+    "lat": 32.3374,
+    "lon": -111.0395,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85742": {
+    "lat": 32.3947,
+    "lon": -111.0657,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85743": {
+    "lat": 32.3108,
+    "lon": -111.1882,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85745": {
+    "lat": 32.2588,
+    "lon": -111.0897,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85746": {
+    "lat": 32.0916,
+    "lon": -111.0444,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85747": {
+    "lat": 32.095,
+    "lon": -110.7654,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85748": {
+    "lat": 32.219,
+    "lon": -110.752,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85749": {
+    "lat": 32.2895,
+    "lon": -110.7318,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85750": {
+    "lat": 32.302,
+    "lon": -110.8402,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85755": {
+    "lat": 32.4684,
+    "lon": -110.9815,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85756": {
+    "lat": 32.0793,
+    "lon": -110.8989,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85757": {
+    "lat": 32.1285,
+    "lon": -111.1221,
+    "city": "Tucson",
+    "state": "AZ"
+  },
+  "85901": {
+    "lat": 34.2999,
+    "lon": -109.9999,
+    "city": "Show Low",
+    "state": "AZ"
+  },
+  "85911": {
+    "lat": 34.1355,
+    "lon": -110.3694,
+    "city": "Cibecue",
+    "state": "AZ"
+  },
+  "85912": {
+    "lat": 34.4268,
+    "lon": -109.9274,
+    "city": "White Mountain Lake",
+    "state": "AZ"
+  },
+  "85920": {
+    "lat": 33.8602,
+    "lon": -109.1765,
+    "city": "Alpine",
+    "state": "AZ"
+  },
+  "85922": {
+    "lat": 33.5084,
+    "lon": -109.1367,
+    "city": "Blue",
+    "state": "AZ"
+  },
+  "85923": {
+    "lat": 34.325,
+    "lon": -110.3405,
+    "city": "Clay Springs",
+    "state": "AZ"
+  },
+  "85924": {
+    "lat": 34.5746,
+    "lon": -109.6617,
+    "city": "Concho",
+    "state": "AZ"
+  },
+  "85925": {
+    "lat": 34.088,
+    "lon": -109.3232,
+    "city": "Eagar",
+    "state": "AZ"
+  },
+  "85926": {
+    "lat": 33.7742,
+    "lon": -109.9793,
+    "city": "Fort Apache",
+    "state": "AZ"
+  },
+  "85927": {
+    "lat": 34.0052,
+    "lon": -109.4664,
+    "city": "Greer",
+    "state": "AZ"
+  },
+  "85928": {
+    "lat": 34.5334,
+    "lon": -110.5581,
+    "city": "Heber",
+    "state": "AZ"
+  },
+  "85929": {
+    "lat": 34.1858,
+    "lon": -109.9365,
+    "city": "Lakeside",
+    "state": "AZ"
+  },
+  "85930": {
+    "lat": 34.0431,
+    "lon": -109.7226,
+    "city": "Mcnary",
+    "state": "AZ"
+  },
+  "85931": {
+    "lat": 34.4513,
+    "lon": -110.8644,
+    "city": "Forest Lakes",
+    "state": "AZ"
+  },
+  "85932": {
+    "lat": 33.9525,
+    "lon": -109.2147,
+    "city": "Nutrioso",
+    "state": "AZ"
+  },
+  "85933": {
+    "lat": 34.3562,
+    "lon": -110.5068,
+    "city": "Overgaard",
+    "state": "AZ"
+  },
+  "85934": {
+    "lat": 34.3003,
+    "lon": -110.2457,
+    "city": "Pinedale",
+    "state": "AZ"
+  },
+  "85935": {
+    "lat": 34.1153,
+    "lon": -109.8958,
+    "city": "Pinetop",
+    "state": "AZ"
+  },
+  "85936": {
+    "lat": 34.6454,
+    "lon": -109.2765,
+    "city": "Saint Johns",
+    "state": "AZ"
+  },
+  "85937": {
+    "lat": 34.5594,
+    "lon": -110.0607,
+    "city": "Snowflake",
+    "state": "AZ"
+  },
+  "85938": {
+    "lat": 34.1702,
+    "lon": -109.3315,
+    "city": "Springerville",
+    "state": "AZ"
+  },
+  "85939": {
+    "lat": 34.439,
+    "lon": -110.0858,
+    "city": "Taylor",
+    "state": "AZ"
+  },
+  "85940": {
+    "lat": 34.2525,
+    "lon": -109.6881,
+    "city": "Vernon",
+    "state": "AZ"
+  },
+  "85941": {
+    "lat": 33.8205,
+    "lon": -109.9709,
+    "city": "Whiteriver",
+    "state": "AZ"
+  },
+  "85942": {
+    "lat": 34.7431,
+    "lon": -109.9707,
+    "city": "Woodruff",
+    "state": "AZ"
+  },
+  "86001": {
+    "lat": 35.2895,
+    "lon": -111.6377,
+    "city": "Flagstaff",
+    "state": "AZ"
+  },
+  "86003": {
+    "lat": 35.2198,
+    "lon": -111.2141,
+    "city": "Flagstaff",
+    "state": "AZ"
+  },
+  "86004": {
+    "lat": 35.3876,
+    "lon": -111.3848,
+    "city": "Flagstaff",
+    "state": "AZ"
+  },
+  "86011": {
+    "lat": 35.1801,
+    "lon": -111.6551,
+    "city": "Flagstaff",
+    "state": "AZ"
+  },
+  "86015": {
+    "lat": 35.2324,
+    "lon": -111.8377,
+    "city": "Bellemont",
+    "state": "AZ"
+  },
+  "86016": {
+    "lat": 35.7505,
+    "lon": -111.6188,
+    "city": "Gray Mountain",
+    "state": "AZ"
+  },
+  "86017": {
+    "lat": 34.8982,
+    "lon": -111.6362,
+    "city": "Munds Park",
+    "state": "AZ"
+  },
+  "86018": {
+    "lat": 35.2715,
+    "lon": -111.9643,
+    "city": "Parks",
+    "state": "AZ"
+  },
+  "86020": {
+    "lat": 35.9922,
+    "lon": -111.5037,
+    "city": "Cameron",
+    "state": "AZ"
+  },
+  "86021": {
+    "lat": 36.9718,
+    "lon": -113.017,
+    "city": "Colorado City",
+    "state": "AZ"
+  },
+  "86022": {
+    "lat": 36.8414,
+    "lon": -112.5762,
+    "city": "Fredonia",
+    "state": "AZ"
+  },
+  "86023": {
+    "lat": 36.0573,
+    "lon": -112.0768,
+    "city": "Grand Canyon",
+    "state": "AZ"
+  },
+  "86024": {
+    "lat": 34.6615,
+    "lon": -111.3405,
+    "city": "Happy Jack",
+    "state": "AZ"
+  },
+  "86025": {
+    "lat": 34.9378,
+    "lon": -110.0996,
+    "city": "Holbrook",
+    "state": "AZ"
+  },
+  "86028": {
+    "lat": 34.9673,
+    "lon": -109.7402,
+    "city": "Petrified Forest Natl Pk",
+    "state": "AZ"
+  },
+  "86029": {
+    "lat": 35.0033,
+    "lon": -109.9954,
+    "city": "Sun Valley",
+    "state": "AZ"
+  },
+  "86030": {
+    "lat": 35.9762,
+    "lon": -110.7134,
+    "city": "Hotevilla",
+    "state": "AZ"
+  },
+  "86031": {
+    "lat": 35.3865,
+    "lon": -110.0527,
+    "city": "Indian Wells",
+    "state": "AZ"
+  },
+  "86032": {
+    "lat": 35.0427,
+    "lon": -110.3251,
+    "city": "Joseph City",
+    "state": "AZ"
+  },
+  "86033": {
+    "lat": 36.6726,
+    "lon": -110.2288,
+    "city": "Kayenta",
+    "state": "AZ"
+  },
+  "86034": {
+    "lat": 35.7902,
+    "lon": -110.1281,
+    "city": "Keams Canyon",
+    "state": "AZ"
+  },
+  "86035": {
+    "lat": 35.4461,
+    "lon": -110.9623,
+    "city": "Leupp",
+    "state": "AZ"
+  },
+  "86036": {
+    "lat": 36.737,
+    "lon": -111.8229,
+    "city": "Marble Canyon",
+    "state": "AZ"
+  },
+  "86038": {
+    "lat": 34.942,
+    "lon": -111.4306,
+    "city": "Mormon Lake",
+    "state": "AZ"
+  },
+  "86039": {
+    "lat": 36.0628,
+    "lon": -110.5321,
+    "city": "Kykotsmovi Village",
+    "state": "AZ"
+  },
+  "86040": {
+    "lat": 36.6961,
+    "lon": -111.4191,
+    "city": "Page",
+    "state": "AZ"
+  },
+  "86042": {
+    "lat": 35.8617,
+    "lon": -110.3875,
+    "city": "Polacca",
+    "state": "AZ"
+  },
+  "86043": {
+    "lat": 35.8072,
+    "lon": -110.5331,
+    "city": "Second Mesa",
+    "state": "AZ"
+  },
+  "86044": {
+    "lat": 36.7091,
+    "lon": -110.8411,
+    "city": "Tonalea",
+    "state": "AZ"
+  },
+  "86045": {
+    "lat": 36.0592,
+    "lon": -111.1213,
+    "city": "Tuba City",
+    "state": "AZ"
+  },
+  "86046": {
+    "lat": 35.43,
+    "lon": -112.1549,
+    "city": "Williams",
+    "state": "AZ"
+  },
+  "86047": {
+    "lat": 35.1513,
+    "lon": -110.6532,
+    "city": "Winslow",
+    "state": "AZ"
+  },
+  "86052": {
+    "lat": 36.3473,
+    "lon": -112.119,
+    "city": "North Rim",
+    "state": "AZ"
+  },
+  "86053": {
+    "lat": 36.7242,
+    "lon": -111.0733,
+    "city": "Kaibeto",
+    "state": "AZ"
+  },
+  "86054": {
+    "lat": 36.7237,
+    "lon": -110.61,
+    "city": "Shonto",
+    "state": "AZ"
+  },
+  "86301": {
+    "lat": 34.5917,
+    "lon": -112.4264,
+    "city": "Prescott",
+    "state": "AZ"
+  },
+  "86303": {
+    "lat": 34.4826,
+    "lon": -112.448,
+    "city": "Prescott",
+    "state": "AZ"
+  },
+  "86305": {
+    "lat": 34.8185,
+    "lon": -112.9584,
+    "city": "Prescott",
+    "state": "AZ"
+  },
+  "86313": {
+    "lat": 34.5536,
+    "lon": -112.4524,
+    "city": "Prescott",
+    "state": "AZ"
+  },
+  "86314": {
+    "lat": 34.626,
+    "lon": -112.3062,
+    "city": "Prescott Valley",
+    "state": "AZ"
+  },
+  "86315": {
+    "lat": 34.7034,
+    "lon": -112.2701,
+    "city": "Prescott Valley",
+    "state": "AZ"
+  },
+  "86320": {
+    "lat": 35.3537,
+    "lon": -112.6361,
+    "city": "Ash Fork",
+    "state": "AZ"
+  },
+  "86321": {
+    "lat": 34.4928,
+    "lon": -113.1031,
+    "city": "Bagdad",
+    "state": "AZ"
+  },
+  "86322": {
+    "lat": 34.4983,
+    "lon": -111.796,
+    "city": "Camp Verde",
+    "state": "AZ"
+  },
+  "86323": {
+    "lat": 34.7747,
+    "lon": -112.4079,
+    "city": "Chino Valley",
+    "state": "AZ"
+  },
+  "86324": {
+    "lat": 34.8546,
+    "lon": -112.1248,
+    "city": "Clarkdale",
+    "state": "AZ"
+  },
+  "86325": {
+    "lat": 34.7346,
+    "lon": -111.8979,
+    "city": "Cornville",
+    "state": "AZ"
+  },
+  "86326": {
+    "lat": 34.7,
+    "lon": -112.0236,
+    "city": "Cottonwood",
+    "state": "AZ"
+  },
+  "86327": {
+    "lat": 34.5713,
+    "lon": -112.105,
+    "city": "Dewey",
+    "state": "AZ"
+  },
+  "86329": {
+    "lat": 34.4716,
+    "lon": -112.225,
+    "city": "Humboldt",
+    "state": "AZ"
+  },
+  "86331": {
+    "lat": 34.7268,
+    "lon": -112.1439,
+    "city": "Jerome",
+    "state": "AZ"
+  },
+  "86332": {
+    "lat": 34.3205,
+    "lon": -112.6331,
+    "city": "Kirkland",
+    "state": "AZ"
+  },
+  "86333": {
+    "lat": 34.3283,
+    "lon": -112.0815,
+    "city": "Mayer",
+    "state": "AZ"
+  },
+  "86334": {
+    "lat": 34.9511,
+    "lon": -112.5453,
+    "city": "Paulden",
+    "state": "AZ"
+  },
+  "86335": {
+    "lat": 34.6944,
+    "lon": -111.6828,
+    "city": "Rimrock",
+    "state": "AZ"
+  },
+  "86336": {
+    "lat": 34.894,
+    "lon": -111.8741,
+    "city": "Sedona",
+    "state": "AZ"
+  },
+  "86337": {
+    "lat": 35.3556,
+    "lon": -113.0216,
+    "city": "Seligman",
+    "state": "AZ"
+  },
+  "86338": {
+    "lat": 34.5818,
+    "lon": -112.7539,
+    "city": "Skull Valley",
+    "state": "AZ"
+  },
+  "86343": {
+    "lat": 34.1934,
+    "lon": -112.2959,
+    "city": "Crown King",
+    "state": "AZ"
+  },
+  "86351": {
+    "lat": 34.7785,
+    "lon": -111.785,
+    "city": "Sedona",
+    "state": "AZ"
+  },
+  "86401": {
+    "lat": 35.1328,
+    "lon": -113.7033,
+    "city": "Kingman",
+    "state": "AZ"
+  },
+  "86403": {
+    "lat": 34.4814,
+    "lon": -114.3483,
+    "city": "Lake Havasu City",
+    "state": "AZ"
+  },
+  "86404": {
+    "lat": 34.6188,
+    "lon": -114.3065,
+    "city": "Lake Havasu City",
+    "state": "AZ"
+  },
+  "86406": {
+    "lat": 34.4228,
+    "lon": -114.125,
+    "city": "Lake Havasu City",
+    "state": "AZ"
+  },
+  "86409": {
+    "lat": 35.461,
+    "lon": -114.0285,
+    "city": "Kingman",
+    "state": "AZ"
+  },
+  "86411": {
+    "lat": 35.4267,
+    "lon": -113.6409,
+    "city": "Hackberry",
+    "state": "AZ"
+  },
+  "86413": {
+    "lat": 35.205,
+    "lon": -114.3321,
+    "city": "Golden Valley",
+    "state": "AZ"
+  },
+  "86426": {
+    "lat": 35.0052,
+    "lon": -114.5686,
+    "city": "Fort Mohave",
+    "state": "AZ"
+  },
+  "86429": {
+    "lat": 35.1626,
+    "lon": -114.4887,
+    "city": "Bullhead City",
+    "state": "AZ"
+  },
+  "86431": {
+    "lat": 35.4156,
+    "lon": -114.2198,
+    "city": "Chloride",
+    "state": "AZ"
+  },
+  "86432": {
+    "lat": 36.4612,
+    "lon": -113.5893,
+    "city": "Littlefield",
+    "state": "AZ"
+  },
+  "86433": {
+    "lat": 34.9176,
+    "lon": -114.3488,
+    "city": "Oatman",
+    "state": "AZ"
+  },
+  "86434": {
+    "lat": 35.693,
+    "lon": -113.6106,
+    "city": "Peach Springs",
+    "state": "AZ"
+  },
+  "86435": {
+    "lat": 36.054,
+    "lon": -112.9019,
+    "city": "Supai",
+    "state": "AZ"
+  },
+  "86436": {
+    "lat": 34.757,
+    "lon": -114.3861,
+    "city": "Topock",
+    "state": "AZ"
+  },
+  "86437": {
+    "lat": 35.3789,
+    "lon": -113.6141,
+    "city": "Valentine",
+    "state": "AZ"
+  },
+  "86438": {
+    "lat": 34.5712,
+    "lon": -113.843,
+    "city": "Yucca",
+    "state": "AZ"
+  },
+  "86440": {
+    "lat": 34.8876,
+    "lon": -114.5323,
+    "city": "Mohave Valley",
+    "state": "AZ"
+  },
+  "86441": {
+    "lat": 35.5692,
+    "lon": -114.3778,
+    "city": "Dolan Springs",
+    "state": "AZ"
+  },
+  "86442": {
+    "lat": 35.0868,
+    "lon": -114.567,
+    "city": "Bullhead City",
+    "state": "AZ"
+  },
+  "86443": {
+    "lat": 35.9836,
+    "lon": -114.4573,
+    "city": "Temple Bar Marina",
+    "state": "AZ"
+  },
+  "86444": {
+    "lat": 35.9004,
+    "lon": -114.0486,
+    "city": "Meadview",
+    "state": "AZ"
+  },
+  "86445": {
+    "lat": 35.776,
+    "lon": -114.5001,
+    "city": "Willow Beach",
+    "state": "AZ"
+  },
+  "86502": {
+    "lat": 35.222,
+    "lon": -109.5817,
+    "city": "Chambers",
+    "state": "AZ"
+  },
+  "86503": {
+    "lat": 36.1707,
+    "lon": -109.6421,
+    "city": "Chinle",
+    "state": "AZ"
+  },
+  "86504": {
+    "lat": 35.9315,
+    "lon": -109.1365,
+    "city": "Fort Defiance",
+    "state": "AZ"
+  },
+  "86505": {
+    "lat": 35.6245,
+    "lon": -109.7143,
+    "city": "Ganado",
+    "state": "AZ"
+  },
+  "86506": {
+    "lat": 35.3524,
+    "lon": -109.2294,
+    "city": "Houck",
+    "state": "AZ"
+  },
+  "86507": {
+    "lat": 36.4106,
+    "lon": -109.2635,
+    "city": "Lukachukai",
+    "state": "AZ"
+  },
+  "86508": {
+    "lat": 35.3297,
+    "lon": -109.0895,
+    "city": "Lupton",
+    "state": "AZ"
+  },
+  "86510": {
+    "lat": 36.2373,
+    "lon": -110.2307,
+    "city": "Pinon",
+    "state": "AZ"
+  },
+  "86511": {
+    "lat": 35.6475,
+    "lon": -109.2455,
+    "city": "Saint Michaels",
+    "state": "AZ"
+  },
+  "86512": {
+    "lat": 35.0984,
+    "lon": -109.2694,
+    "city": "Sanders",
+    "state": "AZ"
+  },
+  "86514": {
+    "lat": 36.885,
+    "lon": -109.3303,
+    "city": "Teec Nos Pos",
+    "state": "AZ"
+  },
+  "86515": {
+    "lat": 35.6828,
+    "lon": -108.9485,
+    "city": "Window Rock",
+    "state": "AZ"
+  },
+  "86520": {
+    "lat": 36.1105,
+    "lon": -109.936,
+    "city": "Blue Gap",
+    "state": "AZ"
+  },
+  "86535": {
+    "lat": 36.7807,
+    "lon": -109.8599,
+    "city": "Dennehotso",
+    "state": "AZ"
+  },
+  "86538": {
+    "lat": 36.4051,
+    "lon": -109.5993,
+    "city": "Many Farms",
+    "state": "AZ"
+  },
+  "86540": {
+    "lat": 35.9345,
+    "lon": -109.4625,
+    "city": "Nazlini",
+    "state": "AZ"
+  },
+  "86544": {
+    "lat": 36.6259,
+    "lon": -109.1464,
+    "city": "Red Valley",
+    "state": "AZ"
+  },
+  "86545": {
+    "lat": 36.7059,
+    "lon": -109.6074,
+    "city": "Rock Point",
+    "state": "AZ"
+  },
+  "86547": {
+    "lat": 36.5041,
+    "lon": -109.4967,
+    "city": "Round Rock",
+    "state": "AZ"
+  },
+  "86556": {
+    "lat": 36.269,
+    "lon": -109.2101,
+    "city": "Tsaile",
+    "state": "AZ"
+  },
+  "97001": {
+    "lat": 44.9244,
+    "lon": -120.65,
+    "city": "Antelope",
+    "state": "OR"
+  },
+  "97002": {
+    "lat": 45.2371,
+    "lon": -122.799,
+    "city": "Aurora",
+    "state": "OR"
+  },
+  "97004": {
+    "lat": 45.2511,
+    "lon": -122.4601,
+    "city": "Beavercreek",
+    "state": "OR"
+  },
+  "97005": {
+    "lat": 45.4909,
+    "lon": -122.8035,
+    "city": "Beaverton",
+    "state": "OR"
+  },
+  "97006": {
+    "lat": 45.517,
+    "lon": -122.8599,
+    "city": "Beaverton",
+    "state": "OR"
+  },
+  "97007": {
+    "lat": 45.4543,
+    "lon": -122.8796,
+    "city": "Beaverton",
+    "state": "OR"
+  },
+  "97008": {
+    "lat": 45.4602,
+    "lon": -122.8042,
+    "city": "Beaverton",
+    "state": "OR"
+  },
+  "97009": {
+    "lat": 45.4243,
+    "lon": -122.3379,
+    "city": "Boring",
+    "state": "OR"
+  },
+  "97011": {
+    "lat": 45.3872,
+    "lon": -122.0265,
+    "city": "Brightwood",
+    "state": "OR"
+  },
+  "97013": {
+    "lat": 45.2181,
+    "lon": -122.6717,
+    "city": "Canby",
+    "state": "OR"
+  },
+  "97014": {
+    "lat": 45.5841,
+    "lon": -122.0183,
+    "city": "Cascade Locks",
+    "state": "OR"
+  },
+  "97015": {
+    "lat": 45.4148,
+    "lon": -122.5383,
+    "city": "Clackamas",
+    "state": "OR"
+  },
+  "97016": {
+    "lat": 46.0588,
+    "lon": -123.2688,
+    "city": "Clatskanie",
+    "state": "OR"
+  },
+  "97017": {
+    "lat": 45.1718,
+    "lon": -122.385,
+    "city": "Colton",
+    "state": "OR"
+  },
+  "97018": {
+    "lat": 45.895,
+    "lon": -122.8108,
+    "city": "Columbia City",
+    "state": "OR"
+  },
+  "97019": {
+    "lat": 45.5102,
+    "lon": -122.2111,
+    "city": "Corbett",
+    "state": "OR"
+  },
+  "97020": {
+    "lat": 45.222,
+    "lon": -122.8376,
+    "city": "Donald",
+    "state": "OR"
+  },
+  "97021": {
+    "lat": 45.3871,
+    "lon": -121.1422,
+    "city": "Dufur",
+    "state": "OR"
+  },
+  "97022": {
+    "lat": 45.346,
+    "lon": -122.3304,
+    "city": "Eagle Creek",
+    "state": "OR"
+  },
+  "97023": {
+    "lat": 45.2353,
+    "lon": -122.2261,
+    "city": "Estacada",
+    "state": "OR"
+  },
+  "97024": {
+    "lat": 45.5472,
+    "lon": -122.4415,
+    "city": "Fairview",
+    "state": "OR"
+  },
+  "97026": {
+    "lat": 45.1067,
+    "lon": -122.9511,
+    "city": "Gervais",
+    "state": "OR"
+  },
+  "97027": {
+    "lat": 45.3869,
+    "lon": -122.5928,
+    "city": "Gladstone",
+    "state": "OR"
+  },
+  "97028": {
+    "lat": 45.2823,
+    "lon": -121.7527,
+    "city": "Government Camp",
+    "state": "OR"
+  },
+  "97029": {
+    "lat": 45.2874,
+    "lon": -120.8085,
+    "city": "Grass Valley",
+    "state": "OR"
+  },
+  "97030": {
+    "lat": 45.509,
+    "lon": -122.4319,
+    "city": "Gresham",
+    "state": "OR"
+  },
+  "97031": {
+    "lat": 45.6247,
+    "lon": -121.5455,
+    "city": "Hood River",
+    "state": "OR"
+  },
+  "97032": {
+    "lat": 45.1792,
+    "lon": -122.7853,
+    "city": "Hubbard",
+    "state": "OR"
+  },
+  "97033": {
+    "lat": 45.2336,
+    "lon": -120.5876,
+    "city": "Kent",
+    "state": "OR"
+  },
+  "97034": {
+    "lat": 45.4093,
+    "lon": -122.6838,
+    "city": "Lake Oswego",
+    "state": "OR"
+  },
+  "97035": {
+    "lat": 45.4132,
+    "lon": -122.7251,
+    "city": "Lake Oswego",
+    "state": "OR"
+  },
+  "97037": {
+    "lat": 45.0676,
+    "lon": -121.0261,
+    "city": "Maupin",
+    "state": "OR"
+  },
+  "97038": {
+    "lat": 45.0876,
+    "lon": -122.5577,
+    "city": "Molalla",
+    "state": "OR"
+  },
+  "97039": {
+    "lat": 45.456,
+    "lon": -120.6645,
+    "city": "Moro",
+    "state": "OR"
+  },
+  "97040": {
+    "lat": 45.6248,
+    "lon": -121.388,
+    "city": "Mosier",
+    "state": "OR"
+  },
+  "97041": {
+    "lat": 45.4397,
+    "lon": -121.6199,
+    "city": "Mount Hood Parkdale",
+    "state": "OR"
+  },
+  "97042": {
+    "lat": 45.2058,
+    "lon": -122.5345,
+    "city": "Mulino",
+    "state": "OR"
+  },
+  "97045": {
+    "lat": 45.3284,
+    "lon": -122.5307,
+    "city": "Oregon City",
+    "state": "OR"
+  },
+  "97048": {
+    "lat": 46.0446,
+    "lon": -122.9809,
+    "city": "Rainier",
+    "state": "OR"
+  },
+  "97049": {
+    "lat": 45.3586,
+    "lon": -121.8651,
+    "city": "Rhododendron",
+    "state": "OR"
+  },
+  "97050": {
+    "lat": 45.6828,
+    "lon": -120.7713,
+    "city": "Rufus",
+    "state": "OR"
+  },
+  "97051": {
+    "lat": 45.8847,
+    "lon": -122.9121,
+    "city": "Saint Helens",
+    "state": "OR"
+  },
+  "97053": {
+    "lat": 45.8271,
+    "lon": -122.8858,
+    "city": "Warren",
+    "state": "OR"
+  },
+  "97054": {
+    "lat": 45.9481,
+    "lon": -122.9337,
+    "city": "Deer Island",
+    "state": "OR"
+  },
+  "97055": {
+    "lat": 45.3887,
+    "lon": -122.1551,
+    "city": "Sandy",
+    "state": "OR"
+  },
+  "97056": {
+    "lat": 45.7813,
+    "lon": -122.9547,
+    "city": "Scappoose",
+    "state": "OR"
+  },
+  "97057": {
+    "lat": 45.0028,
+    "lon": -120.7499,
+    "city": "Shaniko",
+    "state": "OR"
+  },
+  "97058": {
+    "lat": 45.5388,
+    "lon": -121.1533,
+    "city": "The Dalles",
+    "state": "OR"
+  },
+  "97060": {
+    "lat": 45.5342,
+    "lon": -122.3703,
+    "city": "Troutdale",
+    "state": "OR"
+  },
+  "97062": {
+    "lat": 45.3687,
+    "lon": -122.762,
+    "city": "Tualatin",
+    "state": "OR"
+  },
+  "97063": {
+    "lat": 45.223,
+    "lon": -121.2926,
+    "city": "Tygh Valley",
+    "state": "OR"
+  },
+  "97064": {
+    "lat": 45.8727,
+    "lon": -123.2283,
+    "city": "Vernonia",
+    "state": "OR"
+  },
+  "97065": {
+    "lat": 45.5989,
+    "lon": -120.6576,
+    "city": "Wasco",
+    "state": "OR"
+  },
+  "97067": {
+    "lat": 45.3064,
+    "lon": -122.0196,
+    "city": "Welches",
+    "state": "OR"
+  },
+  "97068": {
+    "lat": 45.353,
+    "lon": -122.6693,
+    "city": "West Linn",
+    "state": "OR"
+  },
+  "97070": {
+    "lat": 45.3076,
+    "lon": -122.7715,
+    "city": "Wilsonville",
+    "state": "OR"
+  },
+  "97071": {
+    "lat": 45.1359,
+    "lon": -122.8265,
+    "city": "Woodburn",
+    "state": "OR"
+  },
+  "97080": {
+    "lat": 45.4785,
+    "lon": -122.3895,
+    "city": "Gresham",
+    "state": "OR"
+  },
+  "97086": {
+    "lat": 45.4452,
+    "lon": -122.5282,
+    "city": "Happy Valley",
+    "state": "OR"
+  },
+  "97089": {
+    "lat": 45.4255,
+    "lon": -122.4433,
+    "city": "Damascus",
+    "state": "OR"
+  },
+  "97101": {
+    "lat": 45.0904,
+    "lon": -123.2173,
+    "city": "Amity",
+    "state": "OR"
+  },
+  "97102": {
+    "lat": 45.792,
+    "lon": -123.9546,
+    "city": "Arch Cape",
+    "state": "OR"
+  },
+  "97103": {
+    "lat": 46.1322,
+    "lon": -123.7032,
+    "city": "Astoria",
+    "state": "OR"
+  },
+  "97106": {
+    "lat": 45.6547,
+    "lon": -123.1335,
+    "city": "Banks",
+    "state": "OR"
+  },
+  "97107": {
+    "lat": 45.5543,
+    "lon": -123.8808,
+    "city": "Bay City",
+    "state": "OR"
+  },
+  "97108": {
+    "lat": 45.2689,
+    "lon": -123.7088,
+    "city": "Beaver",
+    "state": "OR"
+  },
+  "97109": {
+    "lat": 45.7378,
+    "lon": -123.1811,
+    "city": "Buxton",
+    "state": "OR"
+  },
+  "97110": {
+    "lat": 45.901,
+    "lon": -123.9554,
+    "city": "Cannon Beach",
+    "state": "OR"
+  },
+  "97111": {
+    "lat": 45.2916,
+    "lon": -123.1957,
+    "city": "Carlton",
+    "state": "OR"
+  },
+  "97112": {
+    "lat": 45.2603,
+    "lon": -123.8692,
+    "city": "Cloverdale",
+    "state": "OR"
+  },
+  "97113": {
+    "lat": 45.5055,
+    "lon": -123.0462,
+    "city": "Cornelius",
+    "state": "OR"
+  },
+  "97114": {
+    "lat": 45.1824,
+    "lon": -123.0718,
+    "city": "Dayton",
+    "state": "OR"
+  },
+  "97115": {
+    "lat": 45.2723,
+    "lon": -123.027,
+    "city": "Dundee",
+    "state": "OR"
+  },
+  "97116": {
+    "lat": 45.5826,
+    "lon": -123.1735,
+    "city": "Forest Grove",
+    "state": "OR"
+  },
+  "97117": {
+    "lat": 45.6129,
+    "lon": -123.2875,
+    "city": "Gales Creek",
+    "state": "OR"
+  },
+  "97118": {
+    "lat": 45.561,
+    "lon": -123.9112,
+    "city": "Garibaldi",
+    "state": "OR"
+  },
+  "97119": {
+    "lat": 45.4687,
+    "lon": -123.1997,
+    "city": "Gaston",
+    "state": "OR"
+  },
+  "97121": {
+    "lat": 46.1821,
+    "lon": -123.9568,
+    "city": "Hammond",
+    "state": "OR"
+  },
+  "97122": {
+    "lat": 45.1763,
+    "lon": -123.8196,
+    "city": "Hebo",
+    "state": "OR"
+  },
+  "97123": {
+    "lat": 45.4416,
+    "lon": -122.9841,
+    "city": "Hillsboro",
+    "state": "OR"
+  },
+  "97124": {
+    "lat": 45.5678,
+    "lon": -122.9464,
+    "city": "Hillsboro",
+    "state": "OR"
+  },
+  "97125": {
+    "lat": 45.6674,
+    "lon": -123.2122,
+    "city": "Manning",
+    "state": "OR"
+  },
+  "97127": {
+    "lat": 45.2461,
+    "lon": -123.1115,
+    "city": "Lafayette",
+    "state": "OR"
+  },
+  "97128": {
+    "lat": 45.197,
+    "lon": -123.2546,
+    "city": "Mcminnville",
+    "state": "OR"
+  },
+  "97130": {
+    "lat": 45.6963,
+    "lon": -123.9225,
+    "city": "Manzanita",
+    "state": "OR"
+  },
+  "97131": {
+    "lat": 45.7403,
+    "lon": -123.8208,
+    "city": "Nehalem",
+    "state": "OR"
+  },
+  "97132": {
+    "lat": 45.3223,
+    "lon": -122.9871,
+    "city": "Newberg",
+    "state": "OR"
+  },
+  "97133": {
+    "lat": 45.682,
+    "lon": -123.0196,
+    "city": "North Plains",
+    "state": "OR"
+  },
+  "97134": {
+    "lat": 45.4573,
+    "lon": -123.9657,
+    "city": "Oceanside",
+    "state": "OR"
+  },
+  "97135": {
+    "lat": 45.1951,
+    "lon": -123.9561,
+    "city": "Pacific City",
+    "state": "OR"
+  },
+  "97136": {
+    "lat": 45.6244,
+    "lon": -123.9161,
+    "city": "Rockaway Beach",
+    "state": "OR"
+  },
+  "97137": {
+    "lat": 45.2161,
+    "lon": -122.9588,
+    "city": "Saint Paul",
+    "state": "OR"
+  },
+  "97138": {
+    "lat": 45.9019,
+    "lon": -123.6715,
+    "city": "Seaside",
+    "state": "OR"
+  },
+  "97140": {
+    "lat": 45.355,
+    "lon": -122.8643,
+    "city": "Sherwood",
+    "state": "OR"
+  },
+  "97141": {
+    "lat": 45.4715,
+    "lon": -123.7552,
+    "city": "Tillamook",
+    "state": "OR"
+  },
+  "97144": {
+    "lat": 45.7405,
+    "lon": -123.3096,
+    "city": "Timber",
+    "state": "OR"
+  },
+  "97145": {
+    "lat": 45.851,
+    "lon": -123.9507,
+    "city": "Tolovana Park",
+    "state": "OR"
+  },
+  "97146": {
+    "lat": 46.1315,
+    "lon": -123.9199,
+    "city": "Warrenton",
+    "state": "OR"
+  },
+  "97147": {
+    "lat": 45.6888,
+    "lon": -123.8821,
+    "city": "Wheeler",
+    "state": "OR"
+  },
+  "97148": {
+    "lat": 45.3559,
+    "lon": -123.2466,
+    "city": "Yamhill",
+    "state": "OR"
+  },
+  "97149": {
+    "lat": 45.1052,
+    "lon": -123.9485,
+    "city": "Neskowin",
+    "state": "OR"
+  },
+  "97201": {
+    "lat": 45.5078,
+    "lon": -122.6898,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97202": {
+    "lat": 45.4829,
+    "lon": -122.6441,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97203": {
+    "lat": 45.6064,
+    "lon": -122.7536,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97204": {
+    "lat": 45.5183,
+    "lon": -122.6738,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97205": {
+    "lat": 45.519,
+    "lon": -122.702,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97206": {
+    "lat": 45.4819,
+    "lon": -122.5986,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97208": {
+    "lat": 45.5287,
+    "lon": -122.679,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97209": {
+    "lat": 45.5309,
+    "lon": -122.6844,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97210": {
+    "lat": 45.5469,
+    "lon": -122.73,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97211": {
+    "lat": 45.5813,
+    "lon": -122.6342,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97212": {
+    "lat": 45.5443,
+    "lon": -122.6437,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97213": {
+    "lat": 45.5378,
+    "lon": -122.5996,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97214": {
+    "lat": 45.5143,
+    "lon": -122.6431,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97215": {
+    "lat": 45.5147,
+    "lon": -122.5996,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97216": {
+    "lat": 45.5139,
+    "lon": -122.5584,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97217": {
+    "lat": 45.5999,
+    "lon": -122.7039,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97218": {
+    "lat": 45.5768,
+    "lon": -122.6007,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97219": {
+    "lat": 45.4539,
+    "lon": -122.6998,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97220": {
+    "lat": 45.5497,
+    "lon": -122.5592,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97221": {
+    "lat": 45.498,
+    "lon": -122.7278,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97222": {
+    "lat": 45.4413,
+    "lon": -122.6171,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97223": {
+    "lat": 45.4403,
+    "lon": -122.7795,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97224": {
+    "lat": 45.4055,
+    "lon": -122.7951,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97225": {
+    "lat": 45.5022,
+    "lon": -122.7701,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97227": {
+    "lat": 45.5443,
+    "lon": -122.6786,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97229": {
+    "lat": 45.5506,
+    "lon": -122.81,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97230": {
+    "lat": 45.5581,
+    "lon": -122.5075,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97231": {
+    "lat": 45.6795,
+    "lon": -122.8275,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97232": {
+    "lat": 45.5292,
+    "lon": -122.6438,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97233": {
+    "lat": 45.514,
+    "lon": -122.4995,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97236": {
+    "lat": 45.4847,
+    "lon": -122.5105,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97239": {
+    "lat": 45.4884,
+    "lon": -122.6906,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97266": {
+    "lat": 45.4828,
+    "lon": -122.5584,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97267": {
+    "lat": 45.4077,
+    "lon": -122.6149,
+    "city": "Portland",
+    "state": "OR"
+  },
+  "97301": {
+    "lat": 44.949,
+    "lon": -123.004,
+    "city": "Salem",
+    "state": "OR"
+  },
+  "97302": {
+    "lat": 44.9019,
+    "lon": -123.0679,
+    "city": "Salem",
+    "state": "OR"
+  },
+  "97303": {
+    "lat": 45.0305,
+    "lon": -123.0244,
+    "city": "Salem",
+    "state": "OR"
+  },
+  "97304": {
+    "lat": 45.009,
+    "lon": -123.1081,
+    "city": "Salem",
+    "state": "OR"
+  },
+  "97305": {
+    "lat": 45.0143,
+    "lon": -122.9287,
+    "city": "Salem",
+    "state": "OR"
+  },
+  "97306": {
+    "lat": 44.8447,
+    "lon": -123.0797,
+    "city": "Salem",
+    "state": "OR"
+  },
+  "97317": {
+    "lat": 44.9026,
+    "lon": -122.9074,
+    "city": "Salem",
+    "state": "OR"
+  },
+  "97321": {
+    "lat": 44.6519,
+    "lon": -123.1333,
+    "city": "Albany",
+    "state": "OR"
+  },
+  "97322": {
+    "lat": 44.6261,
+    "lon": -123.0189,
+    "city": "Albany",
+    "state": "OR"
+  },
+  "97324": {
+    "lat": 44.3557,
+    "lon": -123.6269,
+    "city": "Alsea",
+    "state": "OR"
+  },
+  "97325": {
+    "lat": 44.8314,
+    "lon": -122.8517,
+    "city": "Aumsville",
+    "state": "OR"
+  },
+  "97326": {
+    "lat": 44.6159,
+    "lon": -123.6012,
+    "city": "Blodgett",
+    "state": "OR"
+  },
+  "97327": {
+    "lat": 44.375,
+    "lon": -122.9476,
+    "city": "Brownsville",
+    "state": "OR"
+  },
+  "97329": {
+    "lat": 44.4113,
+    "lon": -122.3845,
+    "city": "Cascadia",
+    "state": "OR"
+  },
+  "97330": {
+    "lat": 44.6365,
+    "lon": -123.2766,
+    "city": "Corvallis",
+    "state": "OR"
+  },
+  "97331": {
+    "lat": 44.5646,
+    "lon": -123.2804,
+    "city": "Corvallis",
+    "state": "OR"
+  },
+  "97333": {
+    "lat": 44.4737,
+    "lon": -123.3073,
+    "city": "Corvallis",
+    "state": "OR"
+  },
+  "97338": {
+    "lat": 44.927,
+    "lon": -123.3463,
+    "city": "Dallas",
+    "state": "OR"
+  },
+  "97341": {
+    "lat": 44.8089,
+    "lon": -124.0512,
+    "city": "Depoe Bay",
+    "state": "OR"
+  },
+  "97342": {
+    "lat": 44.7397,
+    "lon": -121.8889,
+    "city": "Detroit",
+    "state": "OR"
+  },
+  "97343": {
+    "lat": 44.5586,
+    "lon": -123.7434,
+    "city": "Eddyville",
+    "state": "OR"
+  },
+  "97344": {
+    "lat": 44.8691,
+    "lon": -123.4646,
+    "city": "Falls City",
+    "state": "OR"
+  },
+  "97345": {
+    "lat": 44.4146,
+    "lon": -122.5708,
+    "city": "Foster",
+    "state": "OR"
+  },
+  "97346": {
+    "lat": 44.769,
+    "lon": -122.3579,
+    "city": "Gates",
+    "state": "OR"
+  },
+  "97347": {
+    "lat": 45.0771,
+    "lon": -123.6565,
+    "city": "Grand Ronde",
+    "state": "OR"
+  },
+  "97348": {
+    "lat": 44.3845,
+    "lon": -123.123,
+    "city": "Halsey",
+    "state": "OR"
+  },
+  "97350": {
+    "lat": 44.6408,
+    "lon": -121.9159,
+    "city": "Idanha",
+    "state": "OR"
+  },
+  "97351": {
+    "lat": 44.8383,
+    "lon": -123.1749,
+    "city": "Independence",
+    "state": "OR"
+  },
+  "97352": {
+    "lat": 44.7515,
+    "lon": -123.0314,
+    "city": "Jefferson",
+    "state": "OR"
+  },
+  "97355": {
+    "lat": 44.531,
+    "lon": -122.8227,
+    "city": "Lebanon",
+    "state": "OR"
+  },
+  "97357": {
+    "lat": 44.7395,
+    "lon": -123.8047,
+    "city": "Logsden",
+    "state": "OR"
+  },
+  "97358": {
+    "lat": 44.806,
+    "lon": -122.4127,
+    "city": "Lyons",
+    "state": "OR"
+  },
+  "97360": {
+    "lat": 44.7653,
+    "lon": -122.4746,
+    "city": "Mill City",
+    "state": "OR"
+  },
+  "97361": {
+    "lat": 44.7692,
+    "lon": -123.3392,
+    "city": "Monmouth",
+    "state": "OR"
+  },
+  "97362": {
+    "lat": 45.0692,
+    "lon": -122.7702,
+    "city": "Mount Angel",
+    "state": "OR"
+  },
+  "97364": {
+    "lat": 44.999,
+    "lon": -123.9868,
+    "city": "Neotsu",
+    "state": "OR"
+  },
+  "97365": {
+    "lat": 44.6687,
+    "lon": -124.0145,
+    "city": "Newport",
+    "state": "OR"
+  },
+  "97366": {
+    "lat": 44.5771,
+    "lon": -124.051,
+    "city": "South Beach",
+    "state": "OR"
+  },
+  "97367": {
+    "lat": 44.9156,
+    "lon": -123.9753,
+    "city": "Lincoln City",
+    "state": "OR"
+  },
+  "97368": {
+    "lat": 45.0059,
+    "lon": -123.9062,
+    "city": "Otis",
+    "state": "OR"
+  },
+  "97369": {
+    "lat": 44.7617,
+    "lon": -124.0517,
+    "city": "Otter Rock",
+    "state": "OR"
+  },
+  "97370": {
+    "lat": 44.5689,
+    "lon": -123.4603,
+    "city": "Philomath",
+    "state": "OR"
+  },
+  "97371": {
+    "lat": 44.9878,
+    "lon": -123.2065,
+    "city": "Rickreall",
+    "state": "OR"
+  },
+  "97373": {
+    "lat": 45.0571,
+    "lon": -122.7717,
+    "city": "Saint Benedict",
+    "state": "OR"
+  },
+  "97374": {
+    "lat": 44.6927,
+    "lon": -122.784,
+    "city": "Scio",
+    "state": "OR"
+  },
+  "97375": {
+    "lat": 44.9774,
+    "lon": -122.5964,
+    "city": "Scotts Mills",
+    "state": "OR"
+  },
+  "97376": {
+    "lat": 44.5085,
+    "lon": -123.9803,
+    "city": "Seal Rock",
+    "state": "OR"
+  },
+  "97377": {
+    "lat": 44.4639,
+    "lon": -123.1047,
+    "city": "Shedd",
+    "state": "OR"
+  },
+  "97378": {
+    "lat": 45.0735,
+    "lon": -123.4296,
+    "city": "Sheridan",
+    "state": "OR"
+  },
+  "97380": {
+    "lat": 44.7782,
+    "lon": -123.9368,
+    "city": "Siletz",
+    "state": "OR"
+  },
+  "97381": {
+    "lat": 44.9727,
+    "lon": -122.7457,
+    "city": "Silverton",
+    "state": "OR"
+  },
+  "97383": {
+    "lat": 44.7936,
+    "lon": -122.7217,
+    "city": "Stayton",
+    "state": "OR"
+  },
+  "97384": {
+    "lat": 44.779,
+    "lon": -122.6189,
+    "city": "Mehama",
+    "state": "OR"
+  },
+  "97385": {
+    "lat": 44.8665,
+    "lon": -122.7284,
+    "city": "Sublimity",
+    "state": "OR"
+  },
+  "97386": {
+    "lat": 44.3598,
+    "lon": -122.7517,
+    "city": "Sweet Home",
+    "state": "OR"
+  },
+  "97388": {
+    "lat": 44.8921,
+    "lon": -124.0219,
+    "city": "Gleneden Beach",
+    "state": "OR"
+  },
+  "97389": {
+    "lat": 44.5335,
+    "lon": -123.0897,
+    "city": "Tangent",
+    "state": "OR"
+  },
+  "97390": {
+    "lat": 44.315,
+    "lon": -123.8588,
+    "city": "Tidewater",
+    "state": "OR"
+  },
+  "97391": {
+    "lat": 44.6257,
+    "lon": -123.8958,
+    "city": "Toledo",
+    "state": "OR"
+  },
+  "97392": {
+    "lat": 44.7894,
+    "lon": -122.9414,
+    "city": "Turner",
+    "state": "OR"
+  },
+  "97394": {
+    "lat": 44.426,
+    "lon": -123.9772,
+    "city": "Waldport",
+    "state": "OR"
+  },
+  "97396": {
+    "lat": 45.1194,
+    "lon": -123.5216,
+    "city": "Willamina",
+    "state": "OR"
+  },
+  "97401": {
+    "lat": 44.0682,
+    "lon": -123.0818,
+    "city": "Eugene",
+    "state": "OR"
+  },
+  "97402": {
+    "lat": 44.0516,
+    "lon": -123.23,
+    "city": "Eugene",
+    "state": "OR"
+  },
+  "97403": {
+    "lat": 44.0358,
+    "lon": -123.053,
+    "city": "Eugene",
+    "state": "OR"
+  },
+  "97404": {
+    "lat": 44.1049,
+    "lon": -123.133,
+    "city": "Eugene",
+    "state": "OR"
+  },
+  "97405": {
+    "lat": 43.9397,
+    "lon": -123.1916,
+    "city": "Eugene",
+    "state": "OR"
+  },
+  "97406": {
+    "lat": 42.6214,
+    "lon": -124.014,
+    "city": "Agness",
+    "state": "OR"
+  },
+  "97408": {
+    "lat": 44.1447,
+    "lon": -123.0545,
+    "city": "Eugene",
+    "state": "OR"
+  },
+  "97410": {
+    "lat": 42.799,
+    "lon": -123.1479,
+    "city": "Azalea",
+    "state": "OR"
+  },
+  "97411": {
+    "lat": 43.0742,
+    "lon": -124.3592,
+    "city": "Bandon",
+    "state": "OR"
+  },
+  "97412": {
+    "lat": 44.196,
+    "lon": -123.5609,
+    "city": "Blachly",
+    "state": "OR"
+  },
+  "97413": {
+    "lat": 44.1006,
+    "lon": -122.028,
+    "city": "Blue River",
+    "state": "OR"
+  },
+  "97414": {
+    "lat": 42.9651,
+    "lon": -124.1739,
+    "city": "Broadbent",
+    "state": "OR"
+  },
+  "97415": {
+    "lat": 42.137,
+    "lon": -124.2359,
+    "city": "Brookings",
+    "state": "OR"
+  },
+  "97416": {
+    "lat": 43.0359,
+    "lon": -123.6854,
+    "city": "Camas Valley",
+    "state": "OR"
+  },
+  "97417": {
+    "lat": 42.9531,
+    "lon": -123.2301,
+    "city": "Canyonville",
+    "state": "OR"
+  },
+  "97419": {
+    "lat": 44.1758,
+    "lon": -123.4095,
+    "city": "Cheshire",
+    "state": "OR"
+  },
+  "97420": {
+    "lat": 43.3549,
+    "lon": -124.1462,
+    "city": "Coos Bay",
+    "state": "OR"
+  },
+  "97423": {
+    "lat": 43.1948,
+    "lon": -124.1729,
+    "city": "Coquille",
+    "state": "OR"
+  },
+  "97424": {
+    "lat": 43.7445,
+    "lon": -123.0545,
+    "city": "Cottage Grove",
+    "state": "OR"
+  },
+  "97426": {
+    "lat": 43.8999,
+    "lon": -123.0367,
+    "city": "Creswell",
+    "state": "OR"
+  },
+  "97429": {
+    "lat": 42.9683,
+    "lon": -123.0635,
+    "city": "Days Creek",
+    "state": "OR"
+  },
+  "97430": {
+    "lat": 44.1749,
+    "lon": -123.7052,
+    "city": "Deadwood",
+    "state": "OR"
+  },
+  "97431": {
+    "lat": 43.8745,
+    "lon": -122.8187,
+    "city": "Dexter",
+    "state": "OR"
+  },
+  "97434": {
+    "lat": 43.6677,
+    "lon": -122.7933,
+    "city": "Dorena",
+    "state": "OR"
+  },
+  "97435": {
+    "lat": 43.7004,
+    "lon": -123.3349,
+    "city": "Drain",
+    "state": "OR"
+  },
+  "97436": {
+    "lat": 43.6404,
+    "lon": -123.592,
+    "city": "Elkton",
+    "state": "OR"
+  },
+  "97437": {
+    "lat": 44.0969,
+    "lon": -123.3891,
+    "city": "Elmira",
+    "state": "OR"
+  },
+  "97438": {
+    "lat": 43.9509,
+    "lon": -122.6884,
+    "city": "Fall Creek",
+    "state": "OR"
+  },
+  "97439": {
+    "lat": 44.0661,
+    "lon": -124.0376,
+    "city": "Florence",
+    "state": "OR"
+  },
+  "97441": {
+    "lat": 43.751,
+    "lon": -124.1565,
+    "city": "Gardiner",
+    "state": "OR"
+  },
+  "97442": {
+    "lat": 42.7704,
+    "lon": -123.4047,
+    "city": "Glendale",
+    "state": "OR"
+  },
+  "97443": {
+    "lat": 43.247,
+    "lon": -123.0107,
+    "city": "Glide",
+    "state": "OR"
+  },
+  "97444": {
+    "lat": 42.4796,
+    "lon": -124.3444,
+    "city": "Gold Beach",
+    "state": "OR"
+  },
+  "97446": {
+    "lat": 44.2679,
+    "lon": -123.0575,
+    "city": "Harrisburg",
+    "state": "OR"
+  },
+  "97447": {
+    "lat": 43.2754,
+    "lon": -122.5155,
+    "city": "Idleyld Park",
+    "state": "OR"
+  },
+  "97448": {
+    "lat": 44.2105,
+    "lon": -123.2815,
+    "city": "Junction City",
+    "state": "OR"
+  },
+  "97449": {
+    "lat": 43.5761,
+    "lon": -124.0839,
+    "city": "Lakeside",
+    "state": "OR"
+  },
+  "97450": {
+    "lat": 42.9043,
+    "lon": -124.3974,
+    "city": "Langlois",
+    "state": "OR"
+  },
+  "97451": {
+    "lat": 43.8152,
+    "lon": -123.2679,
+    "city": "Lorane",
+    "state": "OR"
+  },
+  "97452": {
+    "lat": 43.8805,
+    "lon": -122.7212,
+    "city": "Lowell",
+    "state": "OR"
+  },
+  "97453": {
+    "lat": 43.9982,
+    "lon": -123.8595,
+    "city": "Mapleton",
+    "state": "OR"
+  },
+  "97454": {
+    "lat": 44.2216,
+    "lon": -122.8217,
+    "city": "Marcola",
+    "state": "OR"
+  },
+  "97455": {
+    "lat": 43.9646,
+    "lon": -122.9173,
+    "city": "Pleasant Hill",
+    "state": "OR"
+  },
+  "97456": {
+    "lat": 44.3403,
+    "lon": -123.3605,
+    "city": "Monroe",
+    "state": "OR"
+  },
+  "97457": {
+    "lat": 43.0543,
+    "lon": -123.2202,
+    "city": "Myrtle Creek",
+    "state": "OR"
+  },
+  "97458": {
+    "lat": 43.0597,
+    "lon": -124.0185,
+    "city": "Myrtle Point",
+    "state": "OR"
+  },
+  "97459": {
+    "lat": 43.4836,
+    "lon": -124.1728,
+    "city": "North Bend",
+    "state": "OR"
+  },
+  "97461": {
+    "lat": 44.0977,
+    "lon": -123.4895,
+    "city": "Noti",
+    "state": "OR"
+  },
+  "97462": {
+    "lat": 43.4863,
+    "lon": -123.3829,
+    "city": "Oakland",
+    "state": "OR"
+  },
+  "97463": {
+    "lat": 43.7477,
+    "lon": -122.4038,
+    "city": "Oakridge",
+    "state": "OR"
+  },
+  "97465": {
+    "lat": 42.7542,
+    "lon": -124.3822,
+    "city": "Port Orford",
+    "state": "OR"
+  },
+  "97466": {
+    "lat": 42.8668,
+    "lon": -124.0726,
+    "city": "Powers",
+    "state": "OR"
+  },
+  "97467": {
+    "lat": 43.7102,
+    "lon": -123.9564,
+    "city": "Reedsport",
+    "state": "OR"
+  },
+  "97469": {
+    "lat": 42.922,
+    "lon": -123.4247,
+    "city": "Riddle",
+    "state": "OR"
+  },
+  "97470": {
+    "lat": 43.2298,
+    "lon": -123.2343,
+    "city": "Roseburg",
+    "state": "OR"
+  },
+  "97471": {
+    "lat": 43.2202,
+    "lon": -123.4759,
+    "city": "Roseburg",
+    "state": "OR"
+  },
+  "97473": {
+    "lat": 43.678,
+    "lon": -123.8738,
+    "city": "Scottsburg",
+    "state": "OR"
+  },
+  "97476": {
+    "lat": 42.8355,
+    "lon": -124.4122,
+    "city": "Sixes",
+    "state": "OR"
+  },
+  "97477": {
+    "lat": 44.0588,
+    "lon": -123.0112,
+    "city": "Springfield",
+    "state": "OR"
+  },
+  "97478": {
+    "lat": 44.0909,
+    "lon": -122.8514,
+    "city": "Springfield",
+    "state": "OR"
+  },
+  "97479": {
+    "lat": 43.4024,
+    "lon": -123.1998,
+    "city": "Sutherlin",
+    "state": "OR"
+  },
+  "97480": {
+    "lat": 44.1358,
+    "lon": -123.8357,
+    "city": "Swisshome",
+    "state": "OR"
+  },
+  "97481": {
+    "lat": 43.1139,
+    "lon": -123.5521,
+    "city": "Tenmile",
+    "state": "OR"
+  },
+  "97484": {
+    "lat": 42.94,
+    "lon": -122.8502,
+    "city": "Tiller",
+    "state": "OR"
+  },
+  "97486": {
+    "lat": 43.382,
+    "lon": -123.5286,
+    "city": "Umpqua",
+    "state": "OR"
+  },
+  "97487": {
+    "lat": 43.9862,
+    "lon": -123.3909,
+    "city": "Veneta",
+    "state": "OR"
+  },
+  "97488": {
+    "lat": 44.1275,
+    "lon": -122.4452,
+    "city": "Vida",
+    "state": "OR"
+  },
+  "97489": {
+    "lat": 44.1371,
+    "lon": -122.6459,
+    "city": "Walterville",
+    "state": "OR"
+  },
+  "97490": {
+    "lat": 44.0042,
+    "lon": -123.612,
+    "city": "Walton",
+    "state": "OR"
+  },
+  "97492": {
+    "lat": 43.7214,
+    "lon": -122.4954,
+    "city": "Westfir",
+    "state": "OR"
+  },
+  "97493": {
+    "lat": 43.8979,
+    "lon": -124.0175,
+    "city": "Westlake",
+    "state": "OR"
+  },
+  "97494": {
+    "lat": 43.3304,
+    "lon": -123.3281,
+    "city": "Wilbur",
+    "state": "OR"
+  },
+  "97495": {
+    "lat": 43.2878,
+    "lon": -123.3054,
+    "city": "Winchester",
+    "state": "OR"
+  },
+  "97496": {
+    "lat": 43.0578,
+    "lon": -123.4901,
+    "city": "Winston",
+    "state": "OR"
+  },
+  "97497": {
+    "lat": 42.6668,
+    "lon": -123.3922,
+    "city": "Wolf Creek",
+    "state": "OR"
+  },
+  "97498": {
+    "lat": 44.2848,
+    "lon": -124.0201,
+    "city": "Yachats",
+    "state": "OR"
+  },
+  "97499": {
+    "lat": 43.5928,
+    "lon": -123.2555,
+    "city": "Yoncalla",
+    "state": "OR"
+  },
+  "97501": {
+    "lat": 42.2818,
+    "lon": -122.9054,
+    "city": "Medford",
+    "state": "OR"
+  },
+  "97502": {
+    "lat": 42.4172,
+    "lon": -122.9562,
+    "city": "Central Point",
+    "state": "OR"
+  },
+  "97503": {
+    "lat": 42.5904,
+    "lon": -122.9275,
+    "city": "White City",
+    "state": "OR"
+  },
+  "97504": {
+    "lat": 42.3269,
+    "lon": -122.7987,
+    "city": "Medford",
+    "state": "OR"
+  },
+  "97520": {
+    "lat": 42.1577,
+    "lon": -122.5513,
+    "city": "Ashland",
+    "state": "OR"
+  },
+  "97522": {
+    "lat": 42.5813,
+    "lon": -122.5283,
+    "city": "Butte Falls",
+    "state": "OR"
+  },
+  "97523": {
+    "lat": 42.121,
+    "lon": -123.5711,
+    "city": "Cave Junction",
+    "state": "OR"
+  },
+  "97524": {
+    "lat": 42.451,
+    "lon": -122.677,
+    "city": "Eagle Point",
+    "state": "OR"
+  },
+  "97525": {
+    "lat": 42.4437,
+    "lon": -123.0748,
+    "city": "Gold Hill",
+    "state": "OR"
+  },
+  "97526": {
+    "lat": 42.514,
+    "lon": -123.3402,
+    "city": "Grants Pass",
+    "state": "OR"
+  },
+  "97527": {
+    "lat": 42.3823,
+    "lon": -123.4081,
+    "city": "Grants Pass",
+    "state": "OR"
+  },
+  "97530": {
+    "lat": 42.1519,
+    "lon": -123.0576,
+    "city": "Jacksonville",
+    "state": "OR"
+  },
+  "97531": {
+    "lat": 42.2043,
+    "lon": -123.6494,
+    "city": "Kerby",
+    "state": "OR"
+  },
+  "97532": {
+    "lat": 42.5718,
+    "lon": -123.5221,
+    "city": "Merlin",
+    "state": "OR"
+  },
+  "97534": {
+    "lat": 42.0842,
+    "lon": -123.7598,
+    "city": "O'Brien",
+    "state": "OR"
+  },
+  "97535": {
+    "lat": 42.2677,
+    "lon": -122.8115,
+    "city": "Phoenix",
+    "state": "OR"
+  },
+  "97536": {
+    "lat": 42.7874,
+    "lon": -122.5056,
+    "city": "Prospect",
+    "state": "OR"
+  },
+  "97537": {
+    "lat": 42.5466,
+    "lon": -123.1412,
+    "city": "Rogue River",
+    "state": "OR"
+  },
+  "97538": {
+    "lat": 42.2737,
+    "lon": -123.5817,
+    "city": "Selma",
+    "state": "OR"
+  },
+  "97539": {
+    "lat": 42.6001,
+    "lon": -122.7904,
+    "city": "Shady Cove",
+    "state": "OR"
+  },
+  "97540": {
+    "lat": 42.1997,
+    "lon": -122.8085,
+    "city": "Talent",
+    "state": "OR"
+  },
+  "97541": {
+    "lat": 42.7385,
+    "lon": -122.7547,
+    "city": "Trail",
+    "state": "OR"
+  },
+  "97543": {
+    "lat": 42.3751,
+    "lon": -123.5621,
+    "city": "Wilderville",
+    "state": "OR"
+  },
+  "97544": {
+    "lat": 42.1322,
+    "lon": -123.3133,
+    "city": "Williams",
+    "state": "OR"
+  },
+  "97601": {
+    "lat": 42.4488,
+    "lon": -122.0747,
+    "city": "Klamath Falls",
+    "state": "OR"
+  },
+  "97603": {
+    "lat": 42.1409,
+    "lon": -121.6808,
+    "city": "Klamath Falls",
+    "state": "OR"
+  },
+  "97604": {
+    "lat": 42.9466,
+    "lon": -122.1772,
+    "city": "Crater Lake",
+    "state": "OR"
+  },
+  "97620": {
+    "lat": 42.2063,
+    "lon": -119.7839,
+    "city": "Adel",
+    "state": "OR"
+  },
+  "97621": {
+    "lat": 42.4766,
+    "lon": -121.2823,
+    "city": "Beatty",
+    "state": "OR"
+  },
+  "97622": {
+    "lat": 42.4192,
+    "lon": -121.034,
+    "city": "Bly",
+    "state": "OR"
+  },
+  "97623": {
+    "lat": 42.1816,
+    "lon": -121.3197,
+    "city": "Bonanza",
+    "state": "OR"
+  },
+  "97624": {
+    "lat": 42.7418,
+    "lon": -121.7055,
+    "city": "Chiloquin",
+    "state": "OR"
+  },
+  "97625": {
+    "lat": 42.3148,
+    "lon": -121.581,
+    "city": "Dairy",
+    "state": "OR"
+  },
+  "97626": {
+    "lat": 42.6686,
+    "lon": -122.0278,
+    "city": "Fort Klamath",
+    "state": "OR"
+  },
+  "97627": {
+    "lat": 42.1219,
+    "lon": -122.0189,
+    "city": "Keno",
+    "state": "OR"
+  },
+  "97630": {
+    "lat": 42.3132,
+    "lon": -120.3664,
+    "city": "Lakeview",
+    "state": "OR"
+  },
+  "97632": {
+    "lat": 42.0321,
+    "lon": -121.4233,
+    "city": "Malin",
+    "state": "OR"
+  },
+  "97633": {
+    "lat": 42.0309,
+    "lon": -121.5633,
+    "city": "Merrill",
+    "state": "OR"
+  },
+  "97634": {
+    "lat": 42.1283,
+    "lon": -121.8149,
+    "city": "Midland",
+    "state": "OR"
+  },
+  "97635": {
+    "lat": 41.9372,
+    "lon": -120.2987,
+    "city": "New Pine Creek",
+    "state": "OR"
+  },
+  "97636": {
+    "lat": 42.6109,
+    "lon": -120.5218,
+    "city": "Paisley",
+    "state": "OR"
+  },
+  "97637": {
+    "lat": 42.5258,
+    "lon": -119.914,
+    "city": "Plush",
+    "state": "OR"
+  },
+  "97638": {
+    "lat": 43.1395,
+    "lon": -120.9985,
+    "city": "Silver Lake",
+    "state": "OR"
+  },
+  "97639": {
+    "lat": 42.4515,
+    "lon": -121.4365,
+    "city": "Sprague River",
+    "state": "OR"
+  },
+  "97640": {
+    "lat": 42.8903,
+    "lon": -120.6717,
+    "city": "Summer Lake",
+    "state": "OR"
+  },
+  "97641": {
+    "lat": 43.2645,
+    "lon": -120.5188,
+    "city": "Christmas Valley",
+    "state": "OR"
+  },
+  "97701": {
+    "lat": 44.0148,
+    "lon": -121.3311,
+    "city": "Bend",
+    "state": "OR"
+  },
+  "97702": {
+    "lat": 43.9986,
+    "lon": -121.2436,
+    "city": "Bend",
+    "state": "OR"
+  },
+  "97707": {
+    "lat": 43.8258,
+    "lon": -121.4953,
+    "city": "Bend",
+    "state": "OR"
+  },
+  "97710": {
+    "lat": 42.1862,
+    "lon": -118.4757,
+    "city": "Fields",
+    "state": "OR"
+  },
+  "97711": {
+    "lat": 44.7229,
+    "lon": -120.6317,
+    "city": "Ashwood",
+    "state": "OR"
+  },
+  "97712": {
+    "lat": 43.7828,
+    "lon": -120.4531,
+    "city": "Brothers",
+    "state": "OR"
+  },
+  "97720": {
+    "lat": 43.5686,
+    "lon": -118.8471,
+    "city": "Burns",
+    "state": "OR"
+  },
+  "97721": {
+    "lat": 42.9041,
+    "lon": -118.5829,
+    "city": "Princeton",
+    "state": "OR"
+  },
+  "97722": {
+    "lat": 42.9508,
+    "lon": -118.695,
+    "city": "Diamond",
+    "state": "OR"
+  },
+  "97730": {
+    "lat": 44.5024,
+    "lon": -121.6471,
+    "city": "Camp Sherman",
+    "state": "OR"
+  },
+  "97731": {
+    "lat": 43.146,
+    "lon": -121.7975,
+    "city": "Chemult",
+    "state": "OR"
+  },
+  "97732": {
+    "lat": 43.3967,
+    "lon": -118.4532,
+    "city": "Crane",
+    "state": "OR"
+  },
+  "97733": {
+    "lat": 43.3792,
+    "lon": -121.9567,
+    "city": "Crescent",
+    "state": "OR"
+  },
+  "97734": {
+    "lat": 44.5404,
+    "lon": -121.3349,
+    "city": "Culver",
+    "state": "OR"
+  },
+  "97735": {
+    "lat": 43.4107,
+    "lon": -120.926,
+    "city": "Fort Rock",
+    "state": "OR"
+  },
+  "97736": {
+    "lat": 42.7148,
+    "lon": -119.0058,
+    "city": "Frenchglen",
+    "state": "OR"
+  },
+  "97737": {
+    "lat": 43.5027,
+    "lon": -121.7313,
+    "city": "Gilchrist",
+    "state": "OR"
+  },
+  "97738": {
+    "lat": 43.5226,
+    "lon": -119.1518,
+    "city": "Hines",
+    "state": "OR"
+  },
+  "97739": {
+    "lat": 43.6996,
+    "lon": -121.4622,
+    "city": "La Pine",
+    "state": "OR"
+  },
+  "97741": {
+    "lat": 44.6518,
+    "lon": -121.0527,
+    "city": "Madras",
+    "state": "OR"
+  },
+  "97750": {
+    "lat": 44.6386,
+    "lon": -120.1165,
+    "city": "Mitchell",
+    "state": "OR"
+  },
+  "97751": {
+    "lat": 44.1375,
+    "lon": -119.874,
+    "city": "Paulina",
+    "state": "OR"
+  },
+  "97752": {
+    "lat": 44.1373,
+    "lon": -120.2978,
+    "city": "Post",
+    "state": "OR"
+  },
+  "97753": {
+    "lat": 44.2352,
+    "lon": -121.0156,
+    "city": "Powell Butte",
+    "state": "OR"
+  },
+  "97754": {
+    "lat": 44.1522,
+    "lon": -120.5708,
+    "city": "Prineville",
+    "state": "OR"
+  },
+  "97756": {
+    "lat": 44.2785,
+    "lon": -121.2138,
+    "city": "Redmond",
+    "state": "OR"
+  },
+  "97758": {
+    "lat": 43.3884,
+    "lon": -119.8802,
+    "city": "Riley",
+    "state": "OR"
+  },
+  "97759": {
+    "lat": 44.3772,
+    "lon": -121.7839,
+    "city": "Sisters",
+    "state": "OR"
+  },
+  "97760": {
+    "lat": 44.3909,
+    "lon": -121.2378,
+    "city": "Terrebonne",
+    "state": "OR"
+  },
+  "97761": {
+    "lat": 44.8417,
+    "lon": -121.2984,
+    "city": "Warm Springs",
+    "state": "OR"
+  },
+  "97801": {
+    "lat": 45.6682,
+    "lon": -118.8157,
+    "city": "Pendleton",
+    "state": "OR"
+  },
+  "97810": {
+    "lat": 45.714,
+    "lon": -118.4581,
+    "city": "Adams",
+    "state": "OR"
+  },
+  "97812": {
+    "lat": 45.5594,
+    "lon": -120.2162,
+    "city": "Arlington",
+    "state": "OR"
+  },
+  "97813": {
+    "lat": 45.8504,
+    "lon": -118.5281,
+    "city": "Athena",
+    "state": "OR"
+  },
+  "97814": {
+    "lat": 44.8266,
+    "lon": -117.7625,
+    "city": "Baker City",
+    "state": "OR"
+  },
+  "97817": {
+    "lat": 44.7137,
+    "lon": -118.6471,
+    "city": "Bates",
+    "state": "OR"
+  },
+  "97818": {
+    "lat": 45.7748,
+    "lon": -119.87,
+    "city": "Boardman",
+    "state": "OR"
+  },
+  "97819": {
+    "lat": 44.4854,
+    "lon": -117.7604,
+    "city": "Bridgeport",
+    "state": "OR"
+  },
+  "97820": {
+    "lat": 44.1688,
+    "lon": -119.1998,
+    "city": "Canyon City",
+    "state": "OR"
+  },
+  "97823": {
+    "lat": 45.2428,
+    "lon": -120.2056,
+    "city": "Condon",
+    "state": "OR"
+  },
+  "97824": {
+    "lat": 45.34,
+    "lon": -117.7562,
+    "city": "Cove",
+    "state": "OR"
+  },
+  "97825": {
+    "lat": 44.3853,
+    "lon": -119.5166,
+    "city": "Dayville",
+    "state": "OR"
+  },
+  "97826": {
+    "lat": 45.6545,
+    "lon": -119.2267,
+    "city": "Echo",
+    "state": "OR"
+  },
+  "97827": {
+    "lat": 45.5879,
+    "lon": -117.8452,
+    "city": "Elgin",
+    "state": "OR"
+  },
+  "97828": {
+    "lat": 45.7068,
+    "lon": -117.2286,
+    "city": "Enterprise",
+    "state": "OR"
+  },
+  "97830": {
+    "lat": 44.9502,
+    "lon": -120.1893,
+    "city": "Fossil",
+    "state": "OR"
+  },
+  "97833": {
+    "lat": 44.929,
+    "lon": -118.0149,
+    "city": "Haines",
+    "state": "OR"
+  },
+  "97834": {
+    "lat": 44.9686,
+    "lon": -117.1892,
+    "city": "Halfway",
+    "state": "OR"
+  },
+  "97835": {
+    "lat": 45.91,
+    "lon": -118.7866,
+    "city": "Helix",
+    "state": "OR"
+  },
+  "97836": {
+    "lat": 45.2939,
+    "lon": -119.5015,
+    "city": "Heppner",
+    "state": "OR"
+  },
+  "97837": {
+    "lat": 44.5181,
+    "lon": -118.0364,
+    "city": "Hereford",
+    "state": "OR"
+  },
+  "97838": {
+    "lat": 45.8529,
+    "lon": -119.287,
+    "city": "Hermiston",
+    "state": "OR"
+  },
+  "97839": {
+    "lat": 45.5914,
+    "lon": -119.5927,
+    "city": "Lexington",
+    "state": "OR"
+  },
+  "97840": {
+    "lat": 44.9064,
+    "lon": -116.9271,
+    "city": "Oxbow",
+    "state": "OR"
+  },
+  "97841": {
+    "lat": 45.4651,
+    "lon": -117.9449,
+    "city": "Imbler",
+    "state": "OR"
+  },
+  "97842": {
+    "lat": 45.4675,
+    "lon": -116.7486,
+    "city": "Imnaha",
+    "state": "OR"
+  },
+  "97843": {
+    "lat": 45.5047,
+    "lon": -119.8979,
+    "city": "Ione",
+    "state": "OR"
+  },
+  "97844": {
+    "lat": 45.8742,
+    "lon": -119.5584,
+    "city": "Irrigon",
+    "state": "OR"
+  },
+  "97845": {
+    "lat": 44.4018,
+    "lon": -118.9031,
+    "city": "John Day",
+    "state": "OR"
+  },
+  "97846": {
+    "lat": 45.4659,
+    "lon": -117.0296,
+    "city": "Joseph",
+    "state": "OR"
+  },
+  "97848": {
+    "lat": 44.6756,
+    "lon": -119.5661,
+    "city": "Kimberly",
+    "state": "OR"
+  },
+  "97850": {
+    "lat": 45.3016,
+    "lon": -118.1167,
+    "city": "La Grande",
+    "state": "OR"
+  },
+  "97856": {
+    "lat": 44.8066,
+    "lon": -119.1217,
+    "city": "Long Creek",
+    "state": "OR"
+  },
+  "97857": {
+    "lat": 45.3781,
+    "lon": -117.5043,
+    "city": "Lostine",
+    "state": "OR"
+  },
+  "97859": {
+    "lat": 45.5291,
+    "lon": -118.4214,
+    "city": "Meacham",
+    "state": "OR"
+  },
+  "97862": {
+    "lat": 45.9234,
+    "lon": -118.3101,
+    "city": "Milton Freewater",
+    "state": "OR"
+  },
+  "97864": {
+    "lat": 44.8459,
+    "lon": -119.4453,
+    "city": "Monument",
+    "state": "OR"
+  },
+  "97865": {
+    "lat": 44.4472,
+    "lon": -119.191,
+    "city": "Mount Vernon",
+    "state": "OR"
+  },
+  "97867": {
+    "lat": 45.0691,
+    "lon": -117.9955,
+    "city": "North Powder",
+    "state": "OR"
+  },
+  "97868": {
+    "lat": 45.4118,
+    "lon": -118.8713,
+    "city": "Pilot Rock",
+    "state": "OR"
+  },
+  "97869": {
+    "lat": 44.402,
+    "lon": -118.6205,
+    "city": "Prairie City",
+    "state": "OR"
+  },
+  "97870": {
+    "lat": 44.7889,
+    "lon": -117.1879,
+    "city": "Richland",
+    "state": "OR"
+  },
+  "97873": {
+    "lat": 44.1321,
+    "lon": -119.0029,
+    "city": "Seneca",
+    "state": "OR"
+  },
+  "97874": {
+    "lat": 44.7775,
+    "lon": -119.8674,
+    "city": "Spray",
+    "state": "OR"
+  },
+  "97875": {
+    "lat": 45.8194,
+    "lon": -119.1383,
+    "city": "Stanfield",
+    "state": "OR"
+  },
+  "97876": {
+    "lat": 45.5165,
+    "lon": -118.0355,
+    "city": "Summerville",
+    "state": "OR"
+  },
+  "97877": {
+    "lat": 44.7926,
+    "lon": -118.3394,
+    "city": "Sumpter",
+    "state": "OR"
+  },
+  "97880": {
+    "lat": 45.0836,
+    "lon": -118.894,
+    "city": "Ukiah",
+    "state": "OR"
+  },
+  "97882": {
+    "lat": 45.8998,
+    "lon": -119.3552,
+    "city": "Umatilla",
+    "state": "OR"
+  },
+  "97883": {
+    "lat": 45.1552,
+    "lon": -117.6197,
+    "city": "Union",
+    "state": "OR"
+  },
+  "97884": {
+    "lat": 44.4564,
+    "lon": -118.2182,
+    "city": "Unity",
+    "state": "OR"
+  },
+  "97885": {
+    "lat": 45.6559,
+    "lon": -117.5118,
+    "city": "Wallowa",
+    "state": "OR"
+  },
+  "97886": {
+    "lat": 45.7987,
+    "lon": -118.2348,
+    "city": "Weston",
+    "state": "OR"
+  },
+  "97901": {
+    "lat": 43.6289,
+    "lon": -117.0901,
+    "city": "Adrian",
+    "state": "OR"
+  },
+  "97903": {
+    "lat": 44.2487,
+    "lon": -117.6206,
+    "city": "Brogan",
+    "state": "OR"
+  },
+  "97904": {
+    "lat": 43.8822,
+    "lon": -118.5106,
+    "city": "Drewsey",
+    "state": "OR"
+  },
+  "97905": {
+    "lat": 44.5738,
+    "lon": -117.4595,
+    "city": "Durkee",
+    "state": "OR"
+  },
+  "97906": {
+    "lat": 43.5261,
+    "lon": -117.7735,
+    "city": "Harper",
+    "state": "OR"
+  },
+  "97907": {
+    "lat": 44.4102,
+    "lon": -117.3431,
+    "city": "Huntington",
+    "state": "OR"
+  },
+  "97908": {
+    "lat": 44.3092,
+    "lon": -117.9394,
+    "city": "Ironside",
+    "state": "OR"
+  },
+  "97909": {
+    "lat": 44.2465,
+    "lon": -117.419,
+    "city": "Jamieson",
+    "state": "OR"
+  },
+  "97910": {
+    "lat": 42.7383,
+    "lon": -117.5054,
+    "city": "Jordan Valley",
+    "state": "OR"
+  },
+  "97911": {
+    "lat": 43.7542,
+    "lon": -118.057,
+    "city": "Juntura",
+    "state": "OR"
+  },
+  "97913": {
+    "lat": 43.6113,
+    "lon": -117.3201,
+    "city": "Nyssa",
+    "state": "OR"
+  },
+  "97914": {
+    "lat": 44.1132,
+    "lon": -117.0841,
+    "city": "Ontario",
+    "state": "OR"
+  },
+  "97918": {
+    "lat": 44.0416,
+    "lon": -117.3611,
+    "city": "Vale",
+    "state": "OR"
+  },
+  "97920": {
+    "lat": 44.0727,
+    "lon": -117.8464,
+    "city": "Westfall",
+    "state": "OR"
+  }
+}
