@@ -36,7 +36,11 @@
                     <span class="poll-margin {% if avg.margin > 0 %}margin-pos{% else %}margin-neg{% endif %}">{{ "%+.1f"|format(avg.margin) }}</span>
                 </span>
                 {% endif %}
+                <span class="ai-analyze-wrap" style="margin-left:auto">
+                    <button type="button" class="ai-analyze-btn" data-url="https://www.realclearpolitics.com" data-title="{{ race_data.info.label }}" data-summary="{% if race_data.polls and race_data.polls[0].is_average %}{{ race_data.info.label }}: {{ race_data.polls[0].candidate_1 }} {{ race_data.polls[0].candidate_1_pct }}% vs {{ race_data.polls[0].candidate_2 }} {{ race_data.polls[0].candidate_2_pct }}%, margin {{ race_data.polls[0].margin }}{% endif %}" data-source="RealClearPolitics">AI</button><span class="ai-help-icon" title="AI analysis of this poll data including historical accuracy context, pollster anomalies, and statistical notes. First 5 free.">?</span>
+                </span>
             </summary>
+            <div class="ai-analysis-panel" style="display:none"></div>
             <div class="polls-table-wrap">
                 <table class="polls-table">
                     <thead>
@@ -253,6 +257,55 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
         });
+    });
+});
+
+// AI Analysis on poll race groups
+document.querySelectorAll('.ai-analyze-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation(); // Don't toggle the details
+        var details = this.closest('details, .state-poll-detail');
+        var panel = details ? details.querySelector('.ai-analysis-panel') : null;
+        if (!panel) return;
+
+        if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
+
+        panel.style.display = 'block';
+        panel.innerHTML = '<div class="ai-loading">Analyzing poll data...</div>';
+
+        fetch('/api/article-analysis', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                url: this.dataset.url, title: this.dataset.title,
+                summary: this.dataset.summary, source: this.dataset.source
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error === 'login_required') {
+                panel.innerHTML = '<div class="ai-login-prompt"><p>' + data.message + '</p><a href="/auth/login" class="auth-btn">Log In</a></div>';
+            } else if (data.error === 'api_key_required') {
+                panel.innerHTML = '<div class="ai-login-prompt"><p>' + data.message + '</p><a href="/auth/settings" class="auth-btn">Add API Key</a></div>';
+            } else if (data.error) {
+                panel.innerHTML = '<div class="ai-error">' + data.error + '</div>';
+            } else {
+                var html = '<div class="ai-analysis-result">';
+                if (data.summary) html += '<div class="ai-section"><strong>Summary:</strong> ' + data.summary + '</div>';
+                if (data.sentiment) html += '<div class="ai-section"><span class="ai-sentiment sentiment-' + data.sentiment + '">' + data.sentiment.charAt(0).toUpperCase() + data.sentiment.slice(1) + '</span></div>';
+                if (data.bias_notes) html += '<div class="ai-section"><strong>Bias:</strong> ' + data.bias_notes + '</div>';
+                if (data.key_points && data.key_points.length) {
+                    html += '<div class="ai-section"><strong>Key Points:</strong><ul>';
+                    data.key_points.forEach(function(p) { html += '<li>' + p + '</li>'; });
+                    html += '</ul></div>';
+                }
+                if (data.market_relevance) html += '<div class="ai-section"><strong>Market Relevance:</strong> ' + data.market_relevance + '</div>';
+                if (data.credibility_notes) html += '<div class="ai-section"><strong>Credibility:</strong> ' + data.credibility_notes + '</div>';
+                html += '</div>';
+                panel.innerHTML = html;
+            }
+        })
+        .catch(function() { panel.innerHTML = '<div class="ai-error">Analysis failed.</div>'; });
     });
 });
 </script>

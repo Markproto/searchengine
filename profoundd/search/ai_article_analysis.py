@@ -69,11 +69,25 @@ def analyze_article(url, title, summary, source_name, provider, api_key, model=N
     if not content:
         content = f"{title}. {summary or ''}"
 
+    # Inject editorial context notes (pollster accuracy, anomalies, etc.)
+    context_notes = ""
+    try:
+        from profoundd.search.analysis_notes import get_context_notes
+        context_notes = get_context_notes(title or "", summary or "", source_name or "")
+    except Exception:
+        pass
+
     prompt = ANALYSIS_PROMPT.format(
         title=title or "Unknown",
         source=source_name or "Unknown",
         content=content[:8000],
     )
+
+    if context_notes:
+        prompt += f"\n\nThe following statistical context is provided for your reference. " \
+                  f"Include relevant statistics in your analysis where appropriate. " \
+                  f"Present these as factual data points — do not draw political conclusions, " \
+                  f"but help the reader understand the statistical landscape:\n\n{context_notes}"
 
     try:
         if provider == "anthropic":

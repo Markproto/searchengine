@@ -93,11 +93,15 @@
             <p class="pm-topic-desc">{{ article.content[:200] }}{% if article.content|length > 200 %}...{% endif %}</p>
             {% endif %}
             <div class="pm-topic-footer">
+                <span class="ai-analyze-wrap">
+                    <button type="button" class="ai-analyze-btn" data-url="{{ article.url }}" data-title="{{ article.title }}" data-summary="{{ article.summary[:300] if article.summary else '' }}" data-source="{{ article.source_name }}">AI</button><span class="ai-help-icon" title="Get an AI-powered analysis including sentiment, bias, and statistical context. First 5 are free.">?</span>
+                </span>
                 <a href="{{ article.url }}" target="_blank" rel="noopener" class="pm-view-link">View on {{ article.source_name }}</a>
                 {% if article.published_at %}
                 <span class="date">Ends {{ article.published_at[:10] }}</span>
                 {% endif %}
             </div>
+            <div class="ai-analysis-panel" style="display:none"></div>
         </div>
     </details>
     {% endmacro %}
@@ -284,4 +288,59 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+// AI Article Analysis (shared with search page)
+document.querySelectorAll('.ai-analyze-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var card = this.closest('.pm-topic-body, .result-body, .trending-card');
+        var panel = card ? card.querySelector('.ai-analysis-panel') : null;
+        if (!panel) {
+            // Try parent
+            panel = this.closest('.pm-topic, .trending-card');
+            if (panel) panel = panel.querySelector('.ai-analysis-panel');
+        }
+        if (!panel) return;
+
+        if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
+
+        panel.style.display = 'block';
+        panel.innerHTML = '<div class="ai-loading">Analyzing...</div>';
+
+        fetch('/api/article-analysis', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                url: this.dataset.url, title: this.dataset.title,
+                summary: this.dataset.summary, source: this.dataset.source
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error === 'login_required') {
+                panel.innerHTML = '<div class="ai-login-prompt"><p>' + data.message + '</p><a href="/auth/login" class="auth-btn">Log In</a></div>';
+            } else if (data.error === 'api_key_required') {
+                panel.innerHTML = '<div class="ai-login-prompt"><p>' + data.message + '</p><a href="/auth/settings" class="auth-btn">Add API Key</a></div>';
+            } else if (data.error) {
+                panel.innerHTML = '<div class="ai-error">Analysis failed: ' + data.error + '</div>';
+            } else {
+                var html = '<div class="ai-analysis-result">';
+                if (data.summary) html += '<div class="ai-section"><strong>Summary:</strong> ' + data.summary + '</div>';
+                if (data.sentiment) html += '<div class="ai-section"><span class="ai-sentiment sentiment-' + data.sentiment + '">' + data.sentiment.charAt(0).toUpperCase() + data.sentiment.slice(1) + '</span></div>';
+                if (data.bias_notes) html += '<div class="ai-section"><strong>Bias:</strong> ' + data.bias_notes + '</div>';
+                if (data.key_points && data.key_points.length) {
+                    html += '<div class="ai-section"><strong>Key Points:</strong><ul>';
+                    data.key_points.forEach(function(p) { html += '<li>' + p + '</li>'; });
+                    html += '</ul></div>';
+                }
+                if (data.market_relevance) html += '<div class="ai-section"><strong>Market Relevance:</strong> ' + data.market_relevance + '</div>';
+                if (data.credibility_notes) html += '<div class="ai-section"><strong>Credibility:</strong> ' + data.credibility_notes + '</div>';
+                html += '</div>';
+                panel.innerHTML = html;
+            }
+        })
+        .catch(function() { panel.innerHTML = '<div class="ai-error">Analysis failed. Please try again.</div>'; });
+    });
+});
+</script>
 {% endblock %}
