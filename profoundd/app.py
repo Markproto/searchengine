@@ -48,6 +48,8 @@ def create_app(config_override=None):
 
     # Register blueprints
     app.register_blueprint(admin_bp)
+    from profoundd.auth import auth_bp
+    app.register_blueprint(auth_bp)
 
     # Make categories and SEO tags available to all templates
     @app.context_processor
@@ -105,6 +107,8 @@ def create_app(config_override=None):
             "is_admin": request.path.startswith("/admin"),
             "get_newsroom_note": get_newsroom_note,
             "get_source_note": get_source_note,
+            "user_logged_in": session.get("user_logged_in", False),
+            "user_email": session.get("user_email", ""),
         }
 
     # --- Analytics: record page views when cookies are accepted ---
@@ -546,6 +550,121 @@ def create_app(config_override=None):
         resp = make_response(jsonify(ai_result))
         resp.set_cookie("ai_searches", f"{today}:{ai_count}",
                         max_age=86400, samesite="Lax", httponly=False)
+        return resp
+
+    @app.route("/api/article-analysis", methods=["POST"])
+    def api_article_analysis():
+        """AI-powered article analysis endpoint."""
+        from profoundd.search.ai_article_analysis import analyze_article
+        from profoundd.utils.models import PublicUser, AIAnalysis
+
+        data = request.get_json() or {}
+        article_url = data.get("url", "")
+        article_title = data.get("title", "")
+        article_summary = data.get("summary", "")
+        source_name = data.get("source", "")
+
+        if not article_url:
+            return jsonify({"error": "Missing article URL"}), 400
+
+        # Determine if user is anonymous or logged in
+        user_id = session.get("user_id")
+        user = db.session.get(PublicUser, user_id) if user_id else None
+        is_admin = session.get("admin_logged_in", False)
+
+        # Anonymous rate limiting (5 free uses via cookie)
+        anon_count = 0
+        if not user and not is_admin:
+            cookie = request.cookies.get("ai_analysis", "")
+            try:
+                anon_count = int(cookie) if cookie else 0
+            except ValueError:
+                anon_count = 0
+
+            if anon_count >= 5:
+                return jsonify({
+                    "error": "login_required",
+                    "message": "You've used your 5 free analyses. Log in and add your own API key to continue.",
+                    "login_url": "/auth/login",
+                }), 403
+
+        # Determine which API key and provider to use
+        if is_admin or (not user) or (user and not user.get_api_key()):
+            # Use Profoundd's own key
+            provider = "anthropic"
+            api_key = ""
+            try:
+                from profoundd.utils.models import SiteSetting
+                api_key = SiteSetting.get("ai_anthropic_key", "")
+                if not api_key:
+                    import os
+                    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+            except Exception:
+                import os
+                api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+
+            if not api_key:
+                return jsonify({"error": "AI service not configured"}), 500
+
+            # If user is logged in but no key, still check if they've exceeded free tier
+            if user and user.ai_uses_count >= 5 and not user.get_api_key():
+                return jsonify({
+                    "error": "api_key_required",
+                    "message": "You've used your 5 free analyses. Add your own API key in settings to continue.",
+                    "settings_url": "/auth/settings",
+                }), 403
+
+            model = "claude-haiku-4-5-20251001"
+        else:
+            # Use user's own key
+            provider = user.api_provider
+            api_key = user.get_api_key()
+            model = None  # use provider default
+
+        # Run analysis
+        result = analyze_article(
+            url=article_url,
+            title=article_title,
+            summary=article_summary,
+            source_name=source_name,
+            provider=provider,
+            api_key=api_key,
+            model=model,
+        )
+
+        if result.get("error"):
+            return jsonify(result), 500
+
+        # Save to DB
+        try:
+            analysis = AIAnalysis(
+                user_id=user.id if user else None,
+                article_url=article_url,
+                article_title=article_title,
+                query_text=article_summary[:500] if article_summary else "",
+                analysis_text=result.get("raw_text", ""),
+                provider_used=provider,
+                model_used=model or "",
+                sentiment=result.get("sentiment", ""),
+                bias_notes=result.get("bias_notes", ""),
+            )
+            db.session.add(analysis)
+            if user:
+                user.ai_uses_count = (user.ai_uses_count or 0) + 1
+            db.session.commit()
+        except Exception as e:
+            logger.warning("Failed to save AI analysis: %s", e)
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+
+        # Update anonymous cookie counter
+        resp = make_response(jsonify(result))
+        if not user and not is_admin:
+            resp.set_cookie("ai_analysis", str(anon_count + 1),
+                            max_age=86400 * 365, samesite="Lax", httponly=False)
+
         return resp
 
     @app.route("/category/<category_name>")

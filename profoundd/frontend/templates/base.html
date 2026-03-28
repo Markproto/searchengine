@@ -87,6 +87,11 @@
                 <a href="/category/rumble" class="nav-special" style="color:#85c742;font-weight:600">Rumble</a>
                 <a href="/submit">Suggest Source</a>
                 <a href="/about">About</a>
+                {% if user_logged_in %}
+                <a href="/auth/settings" class="nav-user-link" title="{{ user_email }}">Account</a>
+                {% else %}
+                <a href="/auth/login" class="nav-user-link">Log In</a>
+                {% endif %}
                 <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
                     <span class="theme-toggle-icon" id="themeIcon">☀️</span>
                     <span class="theme-toggle-track"></span>

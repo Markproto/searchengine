@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Log In - Profoundd{% endblock %}
+
+{% block content %}
+<div class="container auth-page">
+    <div class="auth-card">
+        <h1>Log In</h1>
+        <p class="auth-subtitle">Sign in to use AI-powered article analysis with your own API key.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash-msg flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="auth-form">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required placeholder="you@example.com" autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password <span class="optional">(optional — leave blank for magic link)</span></label>
+                <input type="password" id="password" name="password" placeholder="Enter password or leave blank for email link">
+            </div>
+
+            <button type="submit" class="auth-btn">Log In</button>
+        </form>
+
+        <div class="auth-links">
+            <p>Don't have an account? <a href="/auth/register">Create one</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -329,6 +329,73 @@ class NewsroomNote(db.Model):
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
+class PublicUser(db.Model):
+    """Public user accounts for AI analysis feature."""
+    __tablename__ = "public_users"
+
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(256))  # nullable — magic link first, password optional
+    magic_token = db.Column(db.String(128), index=True)
+    magic_token_expires = db.Column(db.DateTime)
+
+    # AI provider settings
+    api_provider = db.Column(db.String(20), default="")   # anthropic, openai, xai
+    api_key_encrypted = db.Column(db.Text, default="")     # encrypted API key
+
+    # Usage tracking
+    ai_uses_count = db.Column(db.Integer, default=0)
+    agreed_to_terms = db.Column(db.Boolean, default=False)
+    agreed_at = db.Column(db.DateTime)
+
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    last_login = db.Column(db.DateTime)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        if not self.password_hash:
+            return False
+        return check_password_hash(self.password_hash, password)
+
+    def set_api_key(self, key, provider):
+        """Store API key with basic obfuscation (base64). For production, use Fernet."""
+        import base64
+        self.api_provider = provider
+        self.api_key_encrypted = base64.b64encode(key.encode()).decode() if key else ""
+
+    def get_api_key(self):
+        """Retrieve stored API key."""
+        import base64
+        if not self.api_key_encrypted:
+            return ""
+        try:
+            return base64.b64decode(self.api_key_encrypted.encode()).decode()
+        except Exception:
+            return ""
+
+
+class AIAnalysis(db.Model):
+    """Stored AI analysis results for articles."""
+    __tablename__ = "ai_analyses"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("public_users.id"), nullable=True, index=True)
+    article_url = db.Column(db.String(1000), nullable=False, index=True)
+    article_title = db.Column(db.String(500))
+    query_text = db.Column(db.Text)           # what user asked or article context
+    analysis_text = db.Column(db.Text)         # full AI response
+    provider_used = db.Column(db.String(20))   # anthropic, openai, xai
+    model_used = db.Column(db.String(100))
+    sentiment = db.Column(db.String(20))       # positive, negative, neutral, mixed
+    bias_notes = db.Column(db.Text)
+    market_odds_json = db.Column(db.Text)      # JSON snapshot of related prediction market odds
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+    user = db.relationship("PublicUser", backref="analyses", lazy=True)
+
+
 class PollSnapshot(db.Model):
     """Cached polling data for accuracy tracking and display."""
     __tablename__ = "poll_snapshots"

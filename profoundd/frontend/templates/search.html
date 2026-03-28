@@ -207,7 +207,13 @@
             {% with note_url=article.url, note_title=article.title, note_summary=article.summary or '' %}
             {% include '_newsroom_note.html' %}
             {% endwith %}
+            <div class="ai-analysis-panel" style="display:none"></div>
             <div class="result-footer">
+                {% if not article.url.startswith('profoundd://') %}
+                <span class="ai-analyze-wrap">
+                    <button type="button" class="ai-analyze-btn" data-url="{{ article.url }}" data-title="{{ article.title }}" data-summary="{{ (article.summary or '')[:300] }}" data-source="{{ article.source_name }}">AI</button><span class="ai-help-icon" title="Get an AI-powered analysis of this article including sentiment, bias detection, and prediction market comparison. First 5 are free, then log in with your own API key.">?</span>
+                </span>
+                {% endif %}
                 <span class="result-url">{% if article.url.startswith('profoundd://bob/') %}<a href="/newsroom/{{ article.url.split('/')[-1] }}">NewsRoom Bob</a>{% elif article.url.startswith('profoundd://') %}<a href="/article/{{ article.url.split('/')[-1] }}">Profoundd Research</a>{% else %}{{ article.url[:80] }}{% if article.url|length > 80 %}...{% endif %}{% endif %}</span>
                 {% if article.published_at %}
                 <span class="result-date">{{ article.published_at[:10] }}</span>
@@ -338,4 +344,67 @@
 })();
 </script>
 {% endif %}
+
+<script>
+// AI Article Analysis
+document.querySelectorAll('.ai-analyze-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var panel = this.closest('.result-body, .result-card').querySelector('.ai-analysis-panel');
+        if (!panel) return;
+
+        // Toggle off if already showing
+        if (panel.style.display === 'block') {
+            panel.style.display = 'none';
+            return;
+        }
+
+        panel.style.display = 'block';
+        panel.innerHTML = '<div class="ai-loading">Analyzing article...</div>';
+
+        fetch('/api/article-analysis', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                url: this.dataset.url,
+                title: this.dataset.title,
+                summary: this.dataset.summary,
+                source: this.dataset.source
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error === 'login_required') {
+                panel.innerHTML = '<div class="ai-login-prompt">' +
+                    '<p>' + (data.message || 'Log in to continue.') + '</p>' +
+                    '<a href="' + (data.login_url || '/auth/login') + '" class="auth-btn">Log In</a>' +
+                    '</div>';
+            } else if (data.error === 'api_key_required') {
+                panel.innerHTML = '<div class="ai-login-prompt">' +
+                    '<p>' + (data.message || 'Add your API key to continue.') + '</p>' +
+                    '<a href="' + (data.settings_url || '/auth/settings') + '" class="auth-btn">Add API Key</a>' +
+                    '</div>';
+            } else if (data.error) {
+                panel.innerHTML = '<div class="ai-error">Analysis failed: ' + data.error + '</div>';
+            } else {
+                var html = '<div class="ai-analysis-result">';
+                if (data.summary) html += '<div class="ai-section"><strong>Summary:</strong> ' + data.summary + '</div>';
+                if (data.sentiment) html += '<div class="ai-section"><span class="ai-sentiment sentiment-' + data.sentiment + '">' + data.sentiment.charAt(0).toUpperCase() + data.sentiment.slice(1) + '</span></div>';
+                if (data.bias_notes) html += '<div class="ai-section"><strong>Bias:</strong> ' + data.bias_notes + '</div>';
+                if (data.key_points && data.key_points.length) {
+                    html += '<div class="ai-section"><strong>Key Points:</strong><ul>';
+                    data.key_points.forEach(function(p) { html += '<li>' + p + '</li>'; });
+                    html += '</ul></div>';
+                }
+                if (data.market_relevance) html += '<div class="ai-section"><strong>Market Relevance:</strong> ' + data.market_relevance + '</div>';
+                if (data.credibility_notes) html += '<div class="ai-section"><strong>Credibility:</strong> ' + data.credibility_notes + '</div>';
+                html += '</div>';
+                panel.innerHTML = html;
+            }
+        })
+        .catch(function(err) {
+            panel.innerHTML = '<div class="ai-error">Analysis failed. Please try again.</div>';
+        });
+    });
+});
+</script>
 {% endblock %}

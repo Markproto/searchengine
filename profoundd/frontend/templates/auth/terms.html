@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Terms of Use - Profoundd{% endblock %}
+
+{% block content %}
+<div class="container auth-page">
+    <div class="auth-card auth-card-wide">
+        <h1>Terms of Use</h1>
+        <p class="auth-subtitle">Profoundd AI Analysis Service</p>
+
+        <div class="terms-content">
+            <h3>1. Service Description</h3>
+            <p>Profoundd provides AI-powered article analysis including sentiment analysis, bias detection, key point extraction, and prediction market comparison. This service uses artificial intelligence models from third-party providers (Anthropic, OpenAI, xAI) to generate analysis.</p>
+
+            <h3>2. Account & API Keys</h3>
+            <p>Your first 5 AI analyses are provided free using Profoundd's resources. After that, you must provide your own API key from a supported provider (Claude/Anthropic, ChatGPT/OpenAI, or Grok/xAI). Your API key is stored with encryption and is used solely to process your own analysis requests. Profoundd does not share your API key with any third party beyond the selected AI provider.</p>
+
+            <h3>3. Data Collection & Usage</h3>
+            <p>When you use the AI analysis feature, Profoundd stores:</p>
+            <ul>
+                <li>The article URL, title, and summary analyzed</li>
+                <li>The AI-generated analysis text and metadata (sentiment, bias notes)</li>
+                <li>Your account information (email, usage count)</li>
+                <li>Timestamps and provider information</li>
+            </ul>
+            <p>This data may be used to improve the service, generate aggregate insights, and train future analysis features. Individual analysis data is not shared publicly but may be used in anonymized, aggregate form for research purposes.</p>
+
+            <h3>4. No Guarantee of Accuracy</h3>
+            <p>AI-generated analyses are provided for informational purposes only. Profoundd makes no guarantee regarding the accuracy, completeness, or reliability of AI-generated content. Sentiment analysis, bias detection, and market comparisons reflect AI model outputs, not editorial positions of Profoundd.</p>
+
+            <h3>5. Your Responsibilities</h3>
+            <ul>
+                <li>You are responsible for any costs incurred through your own API key usage</li>
+                <li>You agree not to use the service for unlawful purposes</li>
+                <li>You agree not to attempt to extract or reverse-engineer other users' data</li>
+                <li>You must be at least 18 years old to create an account</li>
+            </ul>
+
+            <h3>6. API Key Security</h3>
+            <p>While Profoundd takes reasonable measures to protect your API key, you are responsible for maintaining the security of your credentials. If you believe your key has been compromised, rotate it immediately through your AI provider's dashboard and update it in your Profoundd settings.</p>
+
+            <h3>7. Termination</h3>
+            <p>Profoundd may suspend or terminate accounts that violate these terms or abuse the service. You may delete your account at any time by contacting support.</p>
+
+            <h3>8. Changes to Terms</h3>
+            <p>Profoundd may update these terms at any time. Continued use of the service constitutes acceptance of updated terms.</p>
+        </div>
+
+        {% if session.get('user_logged_in') %}
+        {% set user_obj = none %}
+        <form method="POST" action="/auth/agree-terms" class="terms-agree-form">
+            <label class="form-check">
+                <input type="checkbox" name="agree" value="1" required>
+                I have read and agree to these Terms of Use
+            </label>
+            <button type="submit" class="auth-btn">Accept & Continue</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Create Account - Profoundd{% endblock %}
+
+{% block content %}
+<div class="container auth-page">
+    <div class="auth-card">
+        <h1>Create Account</h1>
+        <p class="auth-subtitle">Get AI-powered article analysis. First 5 analyses are free.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash-msg flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="auth-form">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required placeholder="you@example.com" autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password <span class="optional">(optional — you can use magic links instead)</span></label>
+                <input type="password" id="password" name="password" placeholder="8+ characters (optional)">
+            </div>
+
+            <div class="form-group form-check">
+                <label>
+                    <input type="checkbox" name="agree_terms" value="1" required>
+                    I agree to the <a href="/auth/terms" target="_blank">Terms of Use</a>
+                </label>
+            </div>
+
+            <button type="submit" class="auth-btn">Create Account</button>
+        </form>
+
+        <div class="auth-links">
+            <p>Already have an account? <a href="/auth/login">Log in</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
