@@ -798,12 +798,51 @@ POLYMARKET_TAG_MAP = {
 _TAG_ID_TO_SUBCATEGORY = {v: k for k, v in POLYMARKET_TAG_MAP.items()}
 
 
+def _save_polymarket_snapshots(events_data):
+    """
+    Save Polymarket event data to SQLite for future AI sentiment analysis.
+    Runs in a best-effort manner — failures are logged but don't break the fetch.
+    """
+    import json as _json
+    try:
+        from profoundd.utils.models import db, PolymarketSnapshot
+        from flask import current_app
+        if not current_app:
+            return
+        for ev in events_data:
+            snapshot = PolymarketSnapshot(
+                event_id=str(ev.get("event_id", "")),
+                event_slug=ev.get("event_slug", ""),
+                title=ev.get("title", ""),
+                description=(ev.get("description", "") or "")[:2000],
+                category=ev.get("subcategory", ""),
+                outcomes_json=_json.dumps(ev.get("outcomes", [])),
+                volume_total=ev.get("volume_total", 0),
+                volume_24hr=ev.get("volume_24hr", 0),
+                liquidity=ev.get("liquidity", 0),
+                end_date=ev.get("end_date", ""),
+                image_url=ev.get("image_url", ""),
+                market_slugs_json=_json.dumps(ev.get("market_slugs", [])),
+                tags_json=_json.dumps(ev.get("tag_labels", [])),
+            )
+            db.session.add(snapshot)
+        db.session.commit()
+        logger.info("Saved %d Polymarket snapshots to DB", len(events_data))
+    except Exception as e:
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        logger.debug("Polymarket snapshot save skipped: %s", e)
+
+
 def fetch_polymarket(query="", subcategory=None, max_results=20):
     """
     Fetch prediction market events from Polymarket's Gamma API.
     - If subcategory is given, filter by Polymarket tag ID.
     - If query is given, fetch a large batch and filter client-side.
-    - Returns article-like dicts with live odds in the summary.
+    - Caches snapshots to SQLite for AI sentiment analysis.
+    - Returns article-like dicts with embed slugs and live odds.
     """
     import json as _json
 
@@ -849,33 +888,44 @@ def fetch_polymarket(query="", subcategory=None, max_results=20):
             events = events[:max_results]
 
         articles = []
+        snapshot_data = []  # for DB caching
         for event in events:
             title = event.get("title", "")
             slug = event.get("slug", "")
+            event_id = event.get("id", "")
             description = event.get("description", "")
             image = event.get("image", "")
             volume = event.get("volume", 0)
+            volume_24hr = event.get("volume24hr", 0)
+            liquidity = event.get("liquidity", 0)
             end_date = event.get("endDate", "")
 
             # Detect subcategory from tags (API returns tag IDs as strings)
             event_subcategory = ""
+            tag_labels = []
             for tag in event.get("tags", []):
+                tag_labels.append(tag.get("label", ""))
                 try:
                     tag_id = int(tag.get("id", 0))
                 except (ValueError, TypeError):
                     continue
-                if tag_id in _TAG_ID_TO_SUBCATEGORY:
+                if tag_id in _TAG_ID_TO_SUBCATEGORY and not event_subcategory:
                     event_subcategory = _TAG_ID_TO_SUBCATEGORY[tag_id]
-                    break
 
-            # Build odds summary from the event's active markets
+            # Build odds summary and collect market slugs for embeds
             markets = event.get("markets", [])
             odds_parts = []
             polymarket_outcomes = []
+            market_slugs = []  # for embed iframes
 
             for market in markets:
                 if market.get("closed"):
                     continue
+
+                market_slug = market.get("slug", "")
+                if market_slug:
+                    market_slugs.append(market_slug)
+
                 question = market.get("question", "")
                 outcomes_raw = market.get("outcomes", "[]")
                 prices_raw = market.get("outcomePrices")
@@ -941,6 +991,9 @@ def fetch_polymarket(query="", subcategory=None, max_results=20):
 
             url = f"https://polymarket.com/event/{slug}" if slug else ""
 
+            # Pick the best market slug for the primary embed (highest volume active market)
+            primary_embed_slug = market_slugs[0] if market_slugs else ""
+
             articles.append({
                 "title": title,
                 "summary": summary,
@@ -959,10 +1012,34 @@ def fetch_polymarket(query="", subcategory=None, max_results=20):
                 "_highlights": {},
                 "_polymarket_outcomes": polymarket_outcomes[:6],
                 "_polymarket_volume": vol_str,
+                "_polymarket_embed_slug": primary_embed_slug,
+                "_polymarket_market_slugs": market_slugs[:5],
+            })
+
+            # Collect data for DB snapshot
+            snapshot_data.append({
+                "event_id": str(event_id),
+                "event_slug": slug,
+                "title": title,
+                "description": description,
+                "subcategory": event_subcategory,
+                "outcomes": polymarket_outcomes[:10],
+                "volume_total": float(volume or 0),
+                "volume_24hr": float(volume_24hr or 0),
+                "liquidity": float(liquidity or 0),
+                "end_date": date_str,
+                "image_url": image,
+                "market_slugs": market_slugs[:5],
+                "tag_labels": tag_labels,
             })
 
         logger.info("Polymarket returned %d events for query='%s' sub='%s'",
                      len(articles), query, subcategory)
+
+        # Cache snapshots to DB (best-effort, non-blocking)
+        if snapshot_data:
+            _save_polymarket_snapshots(snapshot_data)
+
         return articles
 
     except requests.Timeout:

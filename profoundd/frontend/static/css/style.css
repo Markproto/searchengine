@@ -1511,6 +1511,19 @@ main { flex: 1; }
     background: rgba(99, 102, 241, 0.15);
     color: #6366f1;
 }
+
+/* Polymarket embed iframe wrapper */
+.polymarket-embed-wrap {
+    margin: 8px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(99, 102, 241, 0.15);
+}
+.polymarket-embed-wrap iframe {
+    display: block;
+    max-width: 100%;
+    border-radius: 8px;
+}
 .grok-read-more-btn {
     font-size: 0.78rem;
     color: var(--accent, #4f8cff);

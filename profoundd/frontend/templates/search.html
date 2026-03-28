@@ -180,7 +180,13 @@
                 {{ article.summary[:300] }}{% if article.summary|length > 300 %}...{% endif %}
                 {% endif %}
             </p>
-            {% if article._provider == 'polymarket' and article._polymarket_outcomes %}
+            {% if article._provider == 'polymarket' and article._polymarket_embed_slug %}
+            <div class="polymarket-embed-wrap">
+                <iframe src="https://embed.polymarket.com/market.html?market={{ article._polymarket_embed_slug }}&features=volume&theme=dark"
+                        width="100%" height="200" frameborder="0" allowtransparency="true"
+                        title="Polymarket: {{ article.title }}" loading="lazy"></iframe>
+            </div>
+            {% elif article._provider == 'polymarket' and article._polymarket_outcomes %}
             <div class="polymarket-odds">
                 {% for outcome in article._polymarket_outcomes[:4] %}
                 <span class="polymarket-outcome {% if outcome.pct >= 50 %}outcome-leading{% endif %}">

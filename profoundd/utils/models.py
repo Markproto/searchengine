@@ -329,6 +329,31 @@ class NewsroomNote(db.Model):
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
+class PolymarketSnapshot(db.Model):
+    """Cached Polymarket event data for AI sentiment analysis."""
+    __tablename__ = "polymarket_snapshots"
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.String(50), nullable=False, index=True)
+    event_slug = db.Column(db.String(300), nullable=False)
+    title = db.Column(db.String(500), nullable=False)
+    description = db.Column(db.Text)
+    category = db.Column(db.String(50))           # our subcategory mapping
+    outcomes_json = db.Column(db.Text)             # JSON: [{"label":"Yes","pct":62.0,"question":"..."},...]
+    volume_total = db.Column(db.Float, default=0)  # lifetime USD volume
+    volume_24hr = db.Column(db.Float, default=0)   # 24h USD volume
+    liquidity = db.Column(db.Float, default=0)
+    end_date = db.Column(db.String(30))            # ISO date string
+    image_url = db.Column(db.String(1000))
+    market_slugs_json = db.Column(db.Text)         # JSON list of individual market slugs for embeds
+    tags_json = db.Column(db.Text)                 # JSON list of tag labels
+    snapshot_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+    __table_args__ = (
+        db.Index('ix_poly_event_time', 'event_id', 'snapshot_at'),
+    )
+
+
 class SourceNote(db.Model):
     """Editorial notes on content sources — why they are or aren't trustworthy."""
     __tablename__ = "source_notes"
