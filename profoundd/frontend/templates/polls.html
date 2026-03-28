@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Polls - Profoundd{% endblock %}
+{% block description %}National and state election polls with pollster accuracy ratings.{% endblock %}
+{% block og_title %}Polls - Profoundd{% endblock %}
+{% block og_description %}Browse election polls by state with pollster ratings and accuracy tracking.{% endblock %}
+
+{% block nav_search %}
+<form action="/search" method="GET" class="nav-search-form">
+    <input type="text" name="q" placeholder="Search Polls..." class="nav-search-input">
+    <input type="hidden" name="category" value="polls">
+</form>
+{% endblock %}
+
+{% block content %}
+<div class="container category-page polls-page">
+    <div class="category-header">
+        <h1>{{ category.label }}</h1>
+        <p>{{ category.description }}</p>
+    </div>
+
+    {# --- National Polls Section --- #}
+    <section class="polls-national">
+        <h2 class="section-title">National Polls</h2>
+        {% if national_polls %}
+        <div class="polls-table-wrap">
+            <table class="polls-table">
+                <thead>
+                    <tr>
+                        <th>Pollster</th>
+                        <th>Rating</th>
+                        <th>Race</th>
+                        <th>Date</th>
+                        <th class="poll-cand">Candidate 1</th>
+                        <th class="poll-cand">Candidate 2</th>
+                        <th>Margin</th>
+                        <th>Sample</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for poll in national_polls[:20] %}
+                    <tr>
+                        <td class="poll-pollster">
+                            {{ poll.pollster }}
+                            {% if poll.pollster_aapor %}<span class="pollster-aapor" title="AAPOR/Roper member">*</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if poll.pollster_grade %}
+                            <span class="pollster-grade grade-{{ 'a' if poll.pollster_grade >= 2.5 else ('b' if poll.pollster_grade >= 1.5 else 'c') }}">
+                                {{ "A+" if poll.pollster_grade >= 3 else ("A" if poll.pollster_grade >= 2.5 else ("B+" if poll.pollster_grade >= 2 else ("B" if poll.pollster_grade >= 1.5 else "C"))) }}
+                            </span>
+                            {% else %}<span class="pollster-grade grade-nr">NR</span>{% endif %}
+                        </td>
+                        <td class="poll-race">{{ poll.race }}</td>
+                        <td class="poll-date">{{ poll.poll_date }}</td>
+                        <td class="poll-cand">
+                            <span class="cand-name party-{{ poll.candidate_1_party | lower }}">{{ poll.candidate_1 }}</span>
+                            <span class="cand-pct">{{ poll.candidate_1_pct }}%</span>
+                        </td>
+                        <td class="poll-cand">
+                            <span class="cand-name party-{{ poll.candidate_2_party | lower }}">{{ poll.candidate_2 }}</span>
+                            <span class="cand-pct">{{ poll.candidate_2_pct }}%</span>
+                        </td>
+                        <td class="poll-margin {% if poll.margin > 0 %}margin-pos{% else %}margin-neg{% endif %}">
+                            {{ "%+.1f"|format(poll.margin) }}
+                        </td>
+                        <td class="poll-sample">{{ poll.sample_size if poll.sample_size else "—" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="no-data">No national poll data currently available.</p>
+        {% endif %}
+    </section>
+
+    {# --- Interactive State Map --- #}
+    <section class="polls-map-section">
+        <h2 class="section-title">State Polls Map</h2>
+        <div class="polls-map-legend">
+            <span class="legend-item"><span class="legend-color" style="background:#1d4ed8"></span> Solid D</span>
+            <span class="legend-item"><span class="legend-color" style="background:#60a5fa"></span> Lean D</span>
+            <span class="legend-item"><span class="legend-color" style="background:#a78bfa"></span> Toss-up</span>
+            <span class="legend-item"><span class="legend-color" style="background:#f87171"></span> Lean R</span>
+            <span class="legend-item"><span class="legend-color" style="background:#dc2626"></span> Solid R</span>
+            <span class="legend-item"><span class="legend-color" style="background:#374151"></span> No Data</span>
+        </div>
+        <div class="polls-map-container" id="polls-map">
+            <object data="/static/images/us_map.svg" type="image/svg+xml" id="us-map-svg" width="100%"></object>
+        </div>
+        {% if selected_state %}
+        <div class="state-poll-detail" id="state-detail">
+            <h3>{{ state_names.get(selected_state, selected_state) }} Polls</h3>
+            <a href="/category/polls" class="state-back-link">Back to all states</a>
+            {% if state_map.get(selected_state) %}
+            <div class="polls-table-wrap">
+                <table class="polls-table">
+                    <thead>
+                        <tr>
+                            <th>Pollster</th>
+                            <th>Rating</th>
+                            <th>Race</th>
+                            <th>Date</th>
+                            <th class="poll-cand">Candidate 1</th>
+                            <th class="poll-cand">Candidate 2</th>
+                            <th>Margin</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for poll in state_map[selected_state] %}
+                        <tr>
+                            <td class="poll-pollster">{{ poll.pollster }}</td>
+                            <td>
+                                {% if poll.pollster_grade %}
+                                <span class="pollster-grade grade-{{ 'a' if poll.pollster_grade >= 2.5 else ('b' if poll.pollster_grade >= 1.5 else 'c') }}">
+                                    {{ "A+" if poll.pollster_grade >= 3 else ("A" if poll.pollster_grade >= 2.5 else ("B+" if poll.pollster_grade >= 2 else ("B" if poll.pollster_grade >= 1.5 else "C"))) }}
+                                </span>
+                                {% else %}<span class="pollster-grade grade-nr">NR</span>{% endif %}
+                            </td>
+                            <td>{{ poll.race }}</td>
+                            <td>{{ poll.poll_date }}</td>
+                            <td class="poll-cand">
+                                <span class="cand-name party-{{ poll.candidate_1_party | lower }}">{{ poll.candidate_1 }}</span>
+                                <span class="cand-pct">{{ poll.candidate_1_pct }}%</span>
+                            </td>
+                            <td class="poll-cand">
+                                <span class="cand-name party-{{ poll.candidate_2_party | lower }}">{{ poll.candidate_2 }}</span>
+                                <span class="cand-pct">{{ poll.candidate_2_pct }}%</span>
+                            </td>
+                            <td class="poll-margin {% if poll.margin > 0 %}margin-pos{% else %}margin-neg{% endif %}">
+                                {{ "%+.1f"|format(poll.margin) }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="no-data">No polls available for {{ state_names.get(selected_state, selected_state) }}.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </section>
+
+    {# --- State List (below map) --- #}
+    {% if not selected_state %}
+    <section class="polls-state-list">
+        <h2 class="section-title">Polls by State</h2>
+        <div class="state-grid">
+            {% for st in state_map.keys() | sort %}
+            <a href="/category/polls?state={{ st }}" class="state-card" style="border-left: 4px solid {{ state_colors.get(st, '#374151') }}">
+                <span class="state-abbrev">{{ st }}</span>
+                <span class="state-name">{{ state_names.get(st, st) }}</span>
+                <span class="state-poll-count">{{ state_map[st] | length }} polls</span>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+
+<script>
+// Color the SVG map states based on polling data
+document.addEventListener('DOMContentLoaded', function() {
+    var stateColors = {{ state_colors | tojson }};
+    var mapObj = document.getElementById('us-map-svg');
+    if (!mapObj) return;
+
+    mapObj.addEventListener('load', function() {
+        var svgDoc = mapObj.contentDocument;
+        if (!svgDoc) return;
+
+        // Color each state
+        for (var st in stateColors) {
+            var paths = svgDoc.querySelectorAll('#' + st);
+            paths.forEach(function(path) {
+                path.style.fill = stateColors[st];
+                path.style.cursor = 'pointer';
+                path.style.transition = 'opacity 0.2s';
+                path.addEventListener('mouseenter', function() { this.style.opacity = '0.75'; });
+                path.addEventListener('mouseleave', function() { this.style.opacity = '1'; });
+                path.addEventListener('click', function() {
+                    window.location.href = '/category/polls?state=' + st;
+                });
+            });
+        }
+
+        // Color states without data gray
+        var allPaths = svgDoc.querySelectorAll('path[id]');
+        allPaths.forEach(function(path) {
+            var id = path.getAttribute('id');
+            if (id && id.length === 2 && !stateColors[id]) {
+                path.style.fill = '#374151';
+                path.style.cursor = 'pointer';
+                path.addEventListener('click', function() {
+                    window.location.href = '/category/polls?state=' + id;
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

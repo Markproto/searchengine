@@ -373,6 +373,12 @@ CATEGORIES = {
             "sports": {"label": "Sports", "description": "Sports betting odds and predictions"},
         },
     },
+    "polls": {
+        "label": "Polls",
+        "description": "National & State Election Polls with Pollster Ratings",
+        "icon": "chart-pie",
+        "color": "#8b5cf6",
+    },
     "news": {"label": "News", "description": "General & World News", "icon": "newspaper", "color": "#3b82f6"},
     "epstein-files": {"label": "Epstein Files", "description": "Jeffrey Epstein Case Documents & Coverage", "icon": "folder-open", "color": "#b91c1c"},
     "charlie-kirk": {"label": "Charlie Kirk", "description": "Charlie Kirk Coverage & Commentary", "icon": "megaphone", "color": "#1d4ed8"},

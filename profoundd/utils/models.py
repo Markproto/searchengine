@@ -329,6 +329,37 @@ class NewsroomNote(db.Model):
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
+class PollSnapshot(db.Model):
+    """Cached polling data for accuracy tracking and display."""
+    __tablename__ = "poll_snapshots"
+
+    id = db.Column(db.Integer, primary_key=True)
+    poll_id = db.Column(db.String(100), index=True)        # unique ID from source
+    source = db.Column(db.String(50), nullable=False)       # "538", "predictit", etc.
+    pollster = db.Column(db.String(200), nullable=False)
+    pollster_rating = db.Column(db.Float)                   # 538 numeric grade
+    race = db.Column(db.String(100))                        # "president", "senate", "governor"
+    state = db.Column(db.String(5), index=True)             # "US" for national, or state abbrev
+    question = db.Column(db.String(500))
+    candidate_1 = db.Column(db.String(200))
+    candidate_1_pct = db.Column(db.Float)
+    candidate_1_party = db.Column(db.String(10))
+    candidate_2 = db.Column(db.String(200))
+    candidate_2_pct = db.Column(db.Float)
+    candidate_2_party = db.Column(db.String(10))
+    margin = db.Column(db.Float)                            # candidate_1_pct - candidate_2_pct
+    sample_size = db.Column(db.Integer)
+    methodology = db.Column(db.String(100))                 # "Live Phone", "Online Panel", etc.
+    poll_date = db.Column(db.String(20))                    # date poll was conducted
+    cycle = db.Column(db.String(10))                        # "2026", "2028"
+    url = db.Column(db.String(1000))
+    snapshot_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+    __table_args__ = (
+        db.Index('ix_poll_state_race', 'state', 'race'),
+    )
+
+
 class PolymarketSnapshot(db.Model):
     """Cached Polymarket event data for AI sentiment analysis."""
     __tablename__ = "polymarket_snapshots"

@@ -562,6 +562,29 @@ def create_app(config_override=None):
         total = 0
         pages = 0
 
+        # Polls category — API-driven with interactive state map
+        if category_name == "polls":
+            from profoundd.search.polls_provider import get_polls_for_category, get_state_color, STATE_NAMES
+            selected_state = request.args.get("state", None)
+            national_polls, state_map, pollster_ratings = get_polls_for_category(
+                state=selected_state, max_results=30
+            )
+            # Build state colors for map
+            state_colors = {}
+            for st, st_polls in state_map.items():
+                state_colors[st] = get_state_color(st_polls)
+
+            cat_info = CATEGORIES[category_name]
+            return render_template("polls.html", category_name=category_name,
+                                   category=cat_info,
+                                   national_polls=national_polls,
+                                   state_map=state_map,
+                                   state_colors=state_colors,
+                                   state_names=STATE_NAMES,
+                                   selected_state=selected_state,
+                                   pollster_ratings=pollster_ratings,
+                                   categories=CATEGORIES)
+
         # Prediction Markets is API-only (no indexed articles) — aggregate multiple sources
         if category_name == "polymarket":
             from profoundd.search.external_providers import fetch_polymarket, fetch_manifold, fetch_predictit
