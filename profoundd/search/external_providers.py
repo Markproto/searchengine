@@ -918,9 +918,17 @@ def fetch_polymarket(query="", subcategory=None, max_results=20):
             polymarket_outcomes = []
             market_slugs = []  # for embed iframes
 
-            for market in markets:
-                if market.get("closed"):
-                    continue
+            # Sort active markets by highest "Yes" price (leading outcomes first)
+            active_markets = [m for m in markets if not m.get("closed")]
+            def _market_yes_price(m):
+                try:
+                    prices = _json.loads(m.get("outcomePrices", "[]"))
+                    return float(prices[0]) if prices else 0
+                except Exception:
+                    return 0
+            active_markets.sort(key=_market_yes_price, reverse=True)
+
+            for market in active_markets:
 
                 market_slug = market.get("slug", "")
                 if market_slug:
