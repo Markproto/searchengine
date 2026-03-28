@@ -561,7 +561,15 @@ def create_app(config_override=None):
         articles = []
         total = 0
         pages = 0
-        if search_engine.is_available():
+
+        # Polymarket is API-only (no indexed articles)
+        if category_name == "polymarket":
+            from profoundd.search.external_providers import fetch_polymarket
+            sub = subcategory if subcategory != "all" else None
+            articles = fetch_polymarket(query="", subcategory=sub, max_results=50)
+            total = len(articles)
+            pages = 1
+        elif search_engine.is_available():
             results = search_engine.search(
                 query="",
                 category=category_name,

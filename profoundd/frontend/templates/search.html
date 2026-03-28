@@ -14,6 +14,7 @@
         {% if 'courtlistener' in enhanced_providers %}{% set ns.labels = ns.labels + ['Court Opinions'] %}{% endif %}
         {% if 'pubmed' in enhanced_providers %}{% set ns.labels = ns.labels + ['Research Papers'] %}{% endif %}
         {% if 'congress' in enhanced_providers %}{% set ns.labels = ns.labels + ['Legislation'] %}{% endif %}
+        {% if 'polymarket' in enhanced_providers %}{% set ns.labels = ns.labels + ['Prediction Markets'] %}{% endif %}
         {{ ns.labels | join(' + ') }}
     </span>
     {% endif %}
@@ -59,6 +60,7 @@
             {% if 'courtlistener' in enhanced_providers %}{% set ns.parts = ns.parts + ['US Court Opinions'] %}{% endif %}
             {% if 'pubmed' in enhanced_providers %}{% set ns.parts = ns.parts + ['PubMed Research Papers'] %}{% endif %}
             {% if 'congress' in enhanced_providers %}{% set ns.parts = ns.parts + ['Congress.gov &amp; Federal Register'] %}{% endif %}
+            {% if 'polymarket' in enhanced_providers %}{% set ns.parts = ns.parts + ['Polymarket Predictions'] %}{% endif %}
             {{ ns.parts | join(' + ') }}
         </span>
     </div>
@@ -139,7 +141,7 @@
                 </span>
                 {% endif %}
                 {% if article._enhanced %}
-                <span class="enhanced-badge {% if article._provider == 'searxng' %}web-result-badge{% elif article._provider == 'grokipedia' %}grokipedia-badge{% endif %}">{% if article._provider == 'courtlistener' %}Court Opinion{% elif article._provider == 'pubmed' %}Research Paper{% elif article._provider == 'congress' %}Primary Source{% elif article._provider == 'grokipedia' %}Grokipedia{% elif article._provider == 'searxng' %}Web Result{% else %}Enhanced{% endif %}</span>
+                <span class="enhanced-badge {% if article._provider == 'searxng' %}web-result-badge{% elif article._provider == 'grokipedia' %}grokipedia-badge{% elif article._provider == 'polymarket' %}polymarket-badge{% endif %}">{% if article._provider == 'courtlistener' %}Court Opinion{% elif article._provider == 'pubmed' %}Research Paper{% elif article._provider == 'congress' %}Primary Source{% elif article._provider == 'grokipedia' %}Grokipedia{% elif article._provider == 'polymarket' %}Prediction Market{% elif article._provider == 'searxng' %}Web Result{% else %}Enhanced{% endif %}</span>
                 {% endif %}
             </div>
             <h3 class="result-title">
@@ -178,6 +180,20 @@
                 {{ article.summary[:300] }}{% if article.summary|length > 300 %}...{% endif %}
                 {% endif %}
             </p>
+            {% if article._provider == 'polymarket' and article._polymarket_outcomes %}
+            <div class="polymarket-odds">
+                {% for outcome in article._polymarket_outcomes[:4] %}
+                <span class="polymarket-outcome {% if outcome.pct >= 50 %}outcome-leading{% endif %}">
+                    <span class="outcome-label">{{ outcome.label }}</span>
+                    <span class="outcome-pct">{{ outcome.pct | round(0) | int }}%</span>
+                    <span class="outcome-bar" style="width: {{ outcome.pct }}%"></span>
+                </span>
+                {% endfor %}
+                {% if article._polymarket_volume %}
+                <span class="polymarket-volume">{{ article._polymarket_volume }} traded</span>
+                {% endif %}
+            </div>
+            {% endif %}
             {% with note_url=article.url, note_title=article.title, note_summary=article.summary or '' %}
             {% include '_newsroom_note.html' %}
             {% endwith %}

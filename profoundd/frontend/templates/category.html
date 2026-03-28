@@ -93,7 +93,20 @@
                 {% endif %}
             </div>
             <h3>{% if article.url.startswith('profoundd://bob/') %}<a href="/newsroom/{{ article.url.split('/')[-1] }}">{{ article.title }}</a>{% elif article.url.startswith('profoundd://') %}<a href="/article/{{ article.url.split('/')[-1] }}">{{ article.title }}</a>{% else %}<a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a>{% endif %}</h3>
-            {% if article.summary %}
+            {% if article._provider == 'polymarket' and article._polymarket_outcomes %}
+            <div class="polymarket-odds">
+                {% for outcome in article._polymarket_outcomes[:4] %}
+                <span class="polymarket-outcome {% if outcome.pct >= 50 %}outcome-leading{% endif %}">
+                    <span class="outcome-label">{{ outcome.label }}</span>
+                    <span class="outcome-pct">{{ outcome.pct | round(0) | int }}%</span>
+                    <span class="outcome-bar" style="width: {{ outcome.pct }}%"></span>
+                </span>
+                {% endfor %}
+                {% if article._polymarket_volume %}
+                <span class="polymarket-volume">{{ article._polymarket_volume }} traded</span>
+                {% endif %}
+            </div>
+            {% elif article.summary %}
             <p class="result-summary">{{ article.summary[:200] }}{% if article.summary|length > 200 %}...{% endif %}</p>
             {% endif %}
             {% with note_url=article.url, note_title=article.title, note_summary=article.summary or '' %}

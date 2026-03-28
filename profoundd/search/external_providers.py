@@ -19,8 +19,14 @@ API_TIMEOUT = 5
 LEGAL_CATEGORIES = {"legal"}
 SCIENCE_CATEGORIES = {"medical", "science"}
 LEGISLATIVE_CATEGORIES = {"legislative"}
+POLYMARKET_CATEGORIES = {"polymarket"}
 
 # Keywords that trigger providers when category is "all"
+POLYMARKET_KEYWORDS = [
+    "polymarket", "prediction market", "betting odds", "market odds",
+    "forecast odds", "what are the odds", "probability of", "chances of",
+    "election odds", "prediction contract",
+]
 LEGAL_KEYWORDS = [
     "court", "lawsuit", "ruling", "judge", "plaintiff", "defendant",
     "amendment", "constitutional", "supreme court", "appeal", "verdict",
@@ -60,6 +66,8 @@ def should_enhance(query, category):
         providers.add("pubmed")
     elif category in LEGISLATIVE_CATEGORIES:
         providers.add("congress")
+    elif category in POLYMARKET_CATEGORIES:
+        providers.add("polymarket")
     elif category == "all" or not category:
         # Auto-detect from query keywords
         if any(kw in q_lower for kw in LEGAL_KEYWORDS):
@@ -68,6 +76,8 @@ def should_enhance(query, category):
             providers.add("pubmed")
         if any(kw in q_lower for kw in LEGISLATIVE_KEYWORDS):
             providers.add("congress")
+        if any(kw in q_lower for kw in POLYMARKET_KEYWORDS):
+            providers.add("polymarket")
 
     return providers
 
@@ -542,6 +552,12 @@ def fetch_all_enhanced(query, category, max_per_provider=5):
             if "congress" not in active:
                 active.add("congress")
 
+    if "polymarket" in providers:
+        results = fetch_polymarket(query, max_results=max_per_provider)
+        if results:
+            all_articles.extend(results)
+            active.add("polymarket")
+
     return all_articles, active
 
 
@@ -765,6 +781,196 @@ def _normalize_pubmed_date(date_str):
         return date_str[:10]
     except Exception:
         return ""
+
+
+# Polymarket Gamma API — subcategory → tag ID mapping
+POLYMARKET_TAG_MAP = {
+    "elections": 2,          # Politics
+    "sports": 100639,
+    "global-conflicts": 100265,  # Geopolitics
+    "crypto": 21,
+    "finance": 120,
+    "tech": 1401,
+    "culture": 596,
+}
+
+# Reverse map: tag ID → subcategory slug
+_TAG_ID_TO_SUBCATEGORY = {v: k for k, v in POLYMARKET_TAG_MAP.items()}
+
+
+def fetch_polymarket(query="", subcategory=None, max_results=20):
+    """
+    Fetch prediction market events from Polymarket's Gamma API.
+    - If subcategory is given, filter by Polymarket tag ID.
+    - If query is given, fetch a large batch and filter client-side.
+    - Returns article-like dicts with live odds in the summary.
+    """
+    import json as _json
+
+    try:
+        params = {
+            "active": "true",
+            "closed": "false",
+            "limit": 100 if query else max_results,
+            "order": "volume24hr",
+            "ascending": "false",
+        }
+        if subcategory and subcategory in POLYMARKET_TAG_MAP:
+            params["tag_id"] = POLYMARKET_TAG_MAP[subcategory]
+
+        resp = requests.get(
+            "https://gamma-api.polymarket.com/events",
+            params=params,
+            headers={"User-Agent": "Profoundd/1.0 (search engine)"},
+            timeout=API_TIMEOUT + 2,
+        )
+        resp.raise_for_status()
+        events = resp.json()
+
+        if not isinstance(events, list):
+            logger.warning("Polymarket returned unexpected format: %s", type(events))
+            return []
+
+        # Client-side text search when query is provided
+        if query:
+            q_lower = query.lower()
+            q_words = q_lower.split()
+            filtered = []
+            for event in events:
+                text = (
+                    event.get("title", "") + " " +
+                    event.get("description", "") + " " +
+                    " ".join(m.get("question", "") for m in event.get("markets", []))
+                ).lower()
+                if any(w in text for w in q_words):
+                    filtered.append(event)
+            events = filtered[:max_results]
+        else:
+            events = events[:max_results]
+
+        articles = []
+        for event in events:
+            title = event.get("title", "")
+            slug = event.get("slug", "")
+            description = event.get("description", "")
+            image = event.get("image", "")
+            volume = event.get("volume", 0)
+            end_date = event.get("endDate", "")
+
+            # Detect subcategory from tags (API returns tag IDs as strings)
+            event_subcategory = ""
+            for tag in event.get("tags", []):
+                try:
+                    tag_id = int(tag.get("id", 0))
+                except (ValueError, TypeError):
+                    continue
+                if tag_id in _TAG_ID_TO_SUBCATEGORY:
+                    event_subcategory = _TAG_ID_TO_SUBCATEGORY[tag_id]
+                    break
+
+            # Build odds summary from the event's active markets
+            markets = event.get("markets", [])
+            odds_parts = []
+            polymarket_outcomes = []
+
+            for market in markets:
+                if market.get("closed"):
+                    continue
+                question = market.get("question", "")
+                outcomes_raw = market.get("outcomes", "[]")
+                prices_raw = market.get("outcomePrices")
+
+                try:
+                    outcomes = _json.loads(outcomes_raw) if isinstance(outcomes_raw, str) else outcomes_raw
+                    prices = _json.loads(prices_raw) if isinstance(prices_raw, str) else prices_raw
+                except (TypeError, _json.JSONDecodeError):
+                    continue
+
+                if not prices or not outcomes:
+                    continue
+
+                # Format outcome odds
+                outcome_strs = []
+                for i, (outcome, price) in enumerate(zip(outcomes, prices)):
+                    try:
+                        pct = float(price) * 100
+                    except (ValueError, TypeError):
+                        continue
+                    outcome_strs.append(f"{outcome}: {pct:.0f}%")
+                    polymarket_outcomes.append({
+                        "label": outcome,
+                        "pct": round(pct, 1),
+                        "question": question,
+                    })
+
+                if outcome_strs:
+                    label = question if question != title else ""
+                    odds_str = " / ".join(outcome_strs)
+                    if label:
+                        odds_parts.append(f"{label} — {odds_str}")
+                    else:
+                        odds_parts.append(odds_str)
+
+                # Show at most 3 sub-markets in the summary
+                if len(odds_parts) >= 3:
+                    break
+
+            # Format volume
+            try:
+                vol_num = float(volume)
+                if vol_num >= 1_000_000:
+                    vol_str = f"${vol_num / 1_000_000:.1f}M"
+                elif vol_num >= 1_000:
+                    vol_str = f"${vol_num / 1_000:.0f}K"
+                else:
+                    vol_str = f"${vol_num:.0f}"
+            except (ValueError, TypeError):
+                vol_str = ""
+
+            summary = " | ".join(odds_parts) if odds_parts else description[:300]
+            if vol_str:
+                summary += f" — {vol_str} volume"
+
+            # Normalize end date
+            date_str = ""
+            if end_date:
+                try:
+                    date_str = end_date[:10]
+                except Exception:
+                    pass
+
+            url = f"https://polymarket.com/event/{slug}" if slug else ""
+
+            articles.append({
+                "title": title,
+                "summary": summary,
+                "content": description[:500] if description else "",
+                "source_name": "Polymarket",
+                "source_credibility": 8,
+                "category": "polymarket",
+                "subcategory": event_subcategory,
+                "url": url,
+                "image_url": image,
+                "published_at": date_str,
+                "tags": ["prediction-market", "enhanced"],
+                "_enhanced": True,
+                "_provider": "polymarket",
+                "_score": 0,
+                "_highlights": {},
+                "_polymarket_outcomes": polymarket_outcomes[:6],
+                "_polymarket_volume": vol_str,
+            })
+
+        logger.info("Polymarket returned %d events for query='%s' sub='%s'",
+                     len(articles), query, subcategory)
+        return articles
+
+    except requests.Timeout:
+        logger.warning("Polymarket API timed out for '%s'", query)
+        return []
+    except Exception as e:
+        logger.warning("Polymarket API error: %s", e)
+        return []
 
 
 def fetch_grokipedia(query, max_results=3):

@@ -348,9 +348,31 @@ SPECIAL_SECTION_KEYWORDS = {
         "kirk podcast", "kirk show", "kirk rally",
         "kirk interview", "kirk debate", "kirk speech",
     ],
+    "polymarket": [
+        "polymarket", "prediction market", "prediction markets",
+        "betting odds", "market odds", "forecast odds",
+        "what are the odds", "probability of", "chances of",
+        "will trump", "will biden", "election odds",
+        "prediction contract", "event contract",
+    ],
 }
 
 CATEGORIES = {
+    "polymarket": {
+        "label": "Prediction Markets",
+        "description": "Live Odds & Forecasts from Polymarket",
+        "icon": "chart-bar",
+        "color": "#6366f1",
+        "subcategories": {
+            "elections": {"label": "Elections", "description": "Election odds and political forecasts"},
+            "global-conflicts": {"label": "Global Conflicts", "description": "Geopolitical events, wars & international disputes"},
+            "sports": {"label": "Sports", "description": "Sports betting odds and predictions"},
+            "crypto": {"label": "Crypto", "description": "Cryptocurrency price predictions and events"},
+            "finance": {"label": "Finance", "description": "Financial markets, IPOs & economic forecasts"},
+            "tech": {"label": "Tech", "description": "Technology predictions and AI forecasts"},
+            "culture": {"label": "Culture", "description": "Pop culture, entertainment & media predictions"},
+        },
+    },
     "news": {"label": "News", "description": "General & World News", "icon": "newspaper", "color": "#3b82f6"},
     "epstein-files": {"label": "Epstein Files", "description": "Jeffrey Epstein Case Documents & Coverage", "icon": "folder-open", "color": "#b91c1c"},
     "charlie-kirk": {"label": "Charlie Kirk", "description": "Charlie Kirk Coverage & Commentary", "icon": "megaphone", "color": "#1d4ed8"},
