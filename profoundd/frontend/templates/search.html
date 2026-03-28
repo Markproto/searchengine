@@ -180,11 +180,15 @@
                 {{ article.summary[:300] }}{% if article.summary|length > 300 %}...{% endif %}
                 {% endif %}
             </p>
-            {% if article._provider == 'polymarket' and article._polymarket_embed_slug %}
-            <div class="polymarket-embed-wrap">
-                <iframe src="https://embed.polymarket.com/market.html?market={{ article._polymarket_embed_slug }}&features=volume&theme=dark"
-                        width="100%" height="200" frameborder="0" allowtransparency="true"
-                        title="Polymarket: {{ article.title }}" loading="lazy"></iframe>
+            {% if article._provider == 'polymarket' and article._polymarket_market_slugs %}
+            <div class="polymarket-embeds">
+                {% for mslug in article._polymarket_market_slugs[:3] %}
+                <div class="polymarket-embed-wrap">
+                    <iframe src="https://embed.polymarket.com/market.html?market={{ mslug }}&theme=dark"
+                            width="100%" height="220" frameborder="0" allowtransparency="true"
+                            title="Polymarket: {{ article.title }}" loading="lazy"></iframe>
+                </div>
+                {% endfor %}
             </div>
             {% elif article._provider == 'polymarket' and article._polymarket_outcomes %}
             <div class="polymarket-odds">
