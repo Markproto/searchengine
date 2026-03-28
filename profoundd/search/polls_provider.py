@@ -18,6 +18,29 @@ API_TIMEOUT = 8
 POLLSTER_RATINGS_URL = "https://raw.githubusercontent.com/fivethirtyeight/data/master/pollster-ratings/pollster-ratings-combined.csv"
 RAW_POLLS_URL = "https://raw.githubusercontent.com/fivethirtyeight/data/master/pollster-ratings/raw_polls.csv"
 
+# RealClearPolitics race IDs — curated list of active/important races
+RCP_RACES = {
+    # National
+    "trump_approval": {"id": 6186, "label": "Trump Job Approval (2nd Term)", "type": "national", "state": "US"},
+    "trump_favorability": {"id": 6180, "label": "Trump Favorability", "type": "national", "state": "US"},
+    "direction": {"id": 6181, "label": "Direction of Country", "type": "national", "state": "US"},
+    "congressional_ballot": {"id": 6185, "label": "Generic Congressional Ballot", "type": "national", "state": "US"},
+    "congress_approval": {"id": 6182, "label": "Congressional Job Approval", "type": "national", "state": "US"},
+    # 2026 Governor Races
+    "pa_gov_2026": {"id": 8860, "label": "Pennsylvania Governor 2026", "type": "governor", "state": "PA"},
+    "va_gov_2026": {"id": 8870, "label": "Virginia Governor 2026", "type": "governor", "state": "VA"},
+    "il_gov_2026": {"id": 8905, "label": "Illinois Governor 2026", "type": "governor", "state": "IL"},
+    "nh_sen_2026": {"id": 8840, "label": "New Hampshire Senate 2026", "type": "senate", "state": "NH"},
+    "ma_sen_2026": {"id": 8900, "label": "Massachusetts Senate 2026", "type": "senate", "state": "MA"},
+    "tx_sen_2026_1": {"id": 8864, "label": "Texas Senate 2026 (Paxton)", "type": "senate", "state": "TX"},
+    "tx_sen_2026_2": {"id": 8865, "label": "Texas Senate 2026 (Cornyn)", "type": "senate", "state": "TX"},
+    "mi_gov_2026": {"id": 8700, "label": "Michigan Governor 2026 (R Primary)", "type": "governor", "state": "MI"},
+    "ky_gov_2026": {"id": 8885, "label": "Kentucky Governor 2026", "type": "governor", "state": "KY"},
+    "az_gov_2026": {"id": 8890, "label": "Arizona Governor 2026", "type": "governor", "state": "AZ"},
+    "tx_gov_2026": {"id": 8910, "label": "Texas Governor 2026", "type": "governor", "state": "TX"},
+    "me_gov_2026": {"id": 8875, "label": "Maine Governor 2026", "type": "governor", "state": "ME"},
+}
+
 # US state abbreviations for validation
 US_STATES = {
     "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
@@ -227,41 +250,168 @@ def _save_poll_snapshots(polls):
         logger.debug("Poll snapshot save skipped: %s", e)
 
 
+def fetch_rcp_race(race_id, max_polls=20):
+    """
+    Fetch polling data from RealClearPolitics JSON API for a specific race.
+    Returns list of poll dicts.
+    """
+    try:
+        resp = requests.get(
+            f"https://www.realclearpolitics.com/poll/race/{race_id}/polling_data.json",
+            headers={"User-Agent": "Mozilla/5.0 (compatible; Profoundd/1.0)"},
+            timeout=API_TIMEOUT,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        raw_polls = data.get("poll", [])
+        if not raw_polls:
+            return []
+
+        ratings = fetch_pollster_ratings()
+        polls = []
+
+        for row in raw_polls[:max_polls]:
+            pollster = row.get("pollster", "")
+            if pollster == "rcp_average":
+                pollster = "RCP Average"
+
+            candidates = row.get("candidate", [])
+            if len(candidates) < 2:
+                continue
+
+            c1 = candidates[0]
+            c2 = candidates[1]
+
+            def _sf(v, d=0):
+                try:
+                    return float(v) if v and str(v).upper() != "NA" else d
+                except (ValueError, TypeError):
+                    return d
+
+            c1_pct = _sf(c1.get("value"))
+            c2_pct = _sf(c2.get("value"))
+
+            rating_info = ratings.get(pollster.lower(), {})
+
+            poll = {
+                "poll_id": row.get("id", ""),
+                "source": "rcp",
+                "pollster": pollster,
+                "pollster_grade": rating_info.get("grade", 0),
+                "pollster_rank": rating_info.get("rank", 999),
+                "pollster_bias": rating_info.get("bias", 0),
+                "pollster_error": rating_info.get("error", 0),
+                "pollster_aapor": rating_info.get("aapor", False),
+                "race": "",
+                "state": "US",
+                "state_name": "National",
+                "cycle": "2026",
+                "candidate_1": c1.get("name", ""),
+                "candidate_1_pct": c1_pct,
+                "candidate_1_party": c1.get("affiliation", ""),
+                "candidate_2": c2.get("name", ""),
+                "candidate_2_pct": c2_pct,
+                "candidate_2_party": c2.get("affiliation", ""),
+                "margin": round(c1_pct - c2_pct, 1),
+                "sample_size_str": row.get("sampleSize", ""),
+                "sample_size": 0,
+                "methodology": "",
+                "poll_date": row.get("date", ""),
+                "election_date": "",
+                "link": row.get("link", ""),
+                "is_average": row.get("type") == "rcp_average",
+            }
+
+            # Parse sample size from string like "800 RV" or "1200 LV"
+            ss = row.get("sampleSize", "")
+            if ss:
+                import re
+                m = re.search(r'(\d+)', ss)
+                if m:
+                    poll["sample_size"] = int(m.group(1))
+                poll["methodology"] = "LV" if "LV" in ss else ("RV" if "RV" in ss else "")
+
+            polls.append(poll)
+
+        logger.info("RCP race %s: %d polls", race_id, len(polls))
+        return polls
+
+    except Exception as e:
+        logger.warning("RCP fetch error for race %s: %s", race_id, e)
+        return []
+
+
+def fetch_all_rcp_polls():
+    """
+    Fetch polls from all tracked RCP races.
+    Returns dict of {race_key: {info: {...}, polls: [...]}}.
+    """
+    results = {}
+    for key, info in RCP_RACES.items():
+        polls = fetch_rcp_race(info["id"], max_polls=15)
+        if polls:
+            # Set state and race info on each poll
+            for p in polls:
+                p["state"] = info["state"]
+                p["state_name"] = STATE_NAMES.get(info["state"], "National")
+                p["race"] = info["label"]
+            results[key] = {"info": info, "polls": polls}
+    return results
+
+
 def get_polls_for_category(state=None, max_results=50):
     """
     Get polls formatted for the Polls category page.
-    Returns (national_polls, state_polls_map, pollster_ratings).
-    Uses most recent available cycle (538 data goes up to 2023).
+    Returns (national_polls, state_polls_map, rcp_races, pollster_ratings).
+    Uses live RCP data for 2026 races.
     """
-    # Try latest cycles in order
-    all_polls = []
-    for cycle in ("2024", "2023", "2022"):
-        all_polls = fetch_538_polls(cycle=cycle, max_results=500)
-        if all_polls:
-            break
+    rcp_data = fetch_all_rcp_polls()
+
+    # Split national vs state races
+    national_races = {}
+    state_races = {}
+    for key, data in rcp_data.items():
+        info = data["info"]
+        if info["type"] == "national":
+            national_races[key] = data
+        else:
+            st = info["state"]
+            if st not in state_races:
+                state_races[st] = []
+            state_races[st].append(data)
+
+    # Build flat national polls list (all polls from national races)
+    national = []
+    for key in ("trump_approval", "direction", "congressional_ballot", "trump_favorability", "congress_approval"):
+        if key in national_races:
+            for p in national_races[key]["polls"]:
+                p["_race_label"] = national_races[key]["info"]["label"]
+                national.append(p)
+
+    # Build state map: state -> list of polls
+    state_map = {}
+    for st, races in state_races.items():
+        state_map[st] = []
+        for race_data in races:
+            for p in race_data["polls"]:
+                p["_race_label"] = race_data["info"]["label"]
+                state_map[st].append(p)
 
     # Save snapshots
+    all_polls = national[:50]
+    for st_polls in state_map.values():
+        all_polls.extend(st_polls[:10])
     if all_polls:
         _save_poll_snapshots(all_polls[:100])
 
-    # Split national vs state
-    national = [p for p in all_polls if p["state"] == "US"][:max_results]
-
-    # Build state map: state_abbrev -> list of polls
-    state_map = {}
-    for p in all_polls:
-        st = p["state"]
-        if st != "US" and st in US_STATES:
-            if st not in state_map:
-                state_map[st] = []
-            if len(state_map[st]) < 10:
-                state_map[st].append(p)
+    ratings = fetch_pollster_ratings()
 
     # If specific state requested, return just that
     if state and state != "US" and state in US_STATES:
-        return national[:10], {state: state_map.get(state, [])}, fetch_pollster_ratings()
+        return national[:10], {state: state_map.get(state, [])}, national_races, ratings
 
-    return national, state_map, fetch_pollster_ratings()
+    return national, state_map, national_races, ratings
 
 
 def get_state_color(polls):
