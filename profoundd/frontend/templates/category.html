@@ -50,62 +50,139 @@
     {% if articles %}
     <h2 class="section-title">{% if subcategory != 'all' and category.subcategories and subcategory in category.subcategories %}{{ category.subcategories[subcategory].label }}{% else %}Latest Articles{% endif %}{% if total %} <span class="article-count">({{ total }})</span>{% endif %}</h2>
 
-    {# --- Prediction Markets: collapsible topic cards --- #}
+    {# --- Prediction Markets: grouped by source --- #}
     {% if category_name == 'polymarket' %}
-    <div class="pm-topics">
-        {% for article in articles %}
-        <details class="pm-topic" {% if loop.index <= 3 %}open{% endif %}>
-            <summary class="pm-topic-header">
-                <div class="pm-topic-title-row">
-                    <span class="pm-expand-icon"></span>
-                    <h3 class="pm-topic-title">{{ article.title }}</h3>
-                    {% if article.subcategory and category.subcategories and article.subcategory in category.subcategories %}
-                    <span class="subcategory-badge">{{ category.subcategories[article.subcategory].label }}</span>
-                    {% endif %}
-                    <span class="pm-source-badge pm-source-{{ article._provider or 'polymarket' }}">{{ article.source_name }}</span>
-                </div>
-                <div class="pm-topic-preview">
-                    {% if article._polymarket_outcomes %}
-                    <div class="polymarket-odds">
-                        {% for outcome in article._polymarket_outcomes[:4] %}
-                        <span class="polymarket-outcome {% if outcome.pct >= 50 %}outcome-leading{% endif %}">
-                            <span class="outcome-label">{{ outcome.label }}</span>
-                            <span class="outcome-pct">{{ outcome.pct | round(0) | int }}%</span>
-                            <span class="outcome-bar" style="width: {{ outcome.pct }}%"></span>
-                        </span>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                    {% if article._polymarket_volume %}
-                    <span class="polymarket-volume">{{ article._polymarket_volume }} traded</span>
-                    {% endif %}
-                </div>
-            </summary>
-            <div class="pm-topic-body">
-                {% if article._polymarket_market_slugs %}
-                <div class="polymarket-embeds">
-                    {% for mslug in article._polymarket_market_slugs[:3] %}
-                    <div class="polymarket-embed-wrap">
-                        <iframe src="https://embed.polymarket.com/market.html?market={{ mslug }}&theme=dark"
-                                width="100%" height="220" frameborder="0" allowtransparency="true"
-                                title="Polymarket: {{ article.title }}" loading="lazy"></iframe>
-                    </div>
+
+    {% macro pm_card(article, idx, open_count) %}
+    <details class="pm-topic" {% if idx <= open_count %}open{% endif %}>
+        <summary class="pm-topic-header">
+            <div class="pm-topic-title-row">
+                <span class="pm-expand-icon"></span>
+                <h3 class="pm-topic-title">{{ article.title }}</h3>
+                {% if article.subcategory and category.subcategories and article.subcategory in category.subcategories %}
+                <span class="subcategory-badge">{{ category.subcategories[article.subcategory].label }}</span>
+                {% endif %}
+                {% if article._polymarket_volume %}
+                <span class="polymarket-volume">{{ article._polymarket_volume }}</span>
+                {% endif %}
+            </div>
+            <div class="pm-topic-preview">
+                {% if article._polymarket_outcomes %}
+                <div class="polymarket-odds">
+                    {% for outcome in article._polymarket_outcomes[:3] %}
+                    <span class="polymarket-outcome {% if outcome.pct >= 50 %}outcome-leading{% endif %}">
+                        <span class="outcome-label">{{ outcome.label }}</span>
+                        <span class="outcome-pct">{{ outcome.pct | round(0) | int }}%</span>
+                        <span class="outcome-bar" style="width: {{ outcome.pct }}%"></span>
+                    </span>
                     {% endfor %}
                 </div>
                 {% endif %}
-                {% if article.content %}
-                <p class="pm-topic-desc">{{ article.content[:300] }}{% if article.content|length > 300 %}...{% endif %}</p>
-                {% endif %}
-                <div class="pm-topic-footer">
-                    <a href="{{ article.url }}" target="_blank" rel="noopener" class="pm-view-link">View on Polymarket</a>
-                    {% if article.published_at %}
-                    <span class="date" data-time="{{ article.published_at }}">Ends {{ article.published_at[:10] }}</span>
-                    {% endif %}
-                </div>
             </div>
-        </details>
-        {% endfor %}
+        </summary>
+        <div class="pm-topic-body">
+            {% if article._polymarket_market_slugs %}
+            <div class="polymarket-embeds">
+                {% for mslug in article._polymarket_market_slugs[:2] %}
+                <div class="polymarket-embed-wrap" data-embed-src="https://embed.polymarket.com/market.html?market={{ mslug }}&theme=dark">
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% if article.content %}
+            <p class="pm-topic-desc">{{ article.content[:200] }}{% if article.content|length > 200 %}...{% endif %}</p>
+            {% endif %}
+            <div class="pm-topic-footer">
+                <a href="{{ article.url }}" target="_blank" rel="noopener" class="pm-view-link">View on {{ article.source_name }}</a>
+                {% if article.published_at %}
+                <span class="date">Ends {{ article.published_at[:10] }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </details>
+    {% endmacro %}
+
+    {# Polymarket section #}
+    {% if polymarket_articles %}
+    <div class="pm-source-section">
+        <div class="pm-source-header">
+            <span class="pm-source-badge pm-source-polymarket">Polymarket</span>
+            <span class="pm-source-label">Real-Money Prediction Markets</span>
+            <span class="pm-source-count">{{ polymarket_articles | length }} markets</span>
+        </div>
+        <div class="pm-topics">
+            {% for article in polymarket_articles %}
+            {{ pm_card(article, loop.index, 3) }}
+            {% endfor %}
+        </div>
     </div>
+    {% endif %}
+
+    {# Manifold section #}
+    {% if manifold_articles %}
+    <div class="pm-source-section">
+        <div class="pm-source-header">
+            <span class="pm-source-badge pm-source-manifold">Manifold</span>
+            <span class="pm-source-label">Community Prediction Markets</span>
+            <span class="pm-source-count">{{ manifold_articles | length }} markets</span>
+        </div>
+        <div class="pm-topics">
+            {% for article in manifold_articles %}
+            {{ pm_card(article, loop.index, 2) }}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# PredictIt section #}
+    {% if predictit_articles %}
+    <div class="pm-source-section">
+        <div class="pm-source-header">
+            <span class="pm-source-badge pm-source-predictit">PredictIt</span>
+            <span class="pm-source-label">US Political Markets</span>
+            <span class="pm-source-count">{{ predictit_articles | length }} markets</span>
+        </div>
+        <div class="pm-topics">
+            {% for article in predictit_articles %}
+            {{ pm_card(article, loop.index, 2) }}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <script>
+    // Lazy-load embeds when a topic card is opened
+    document.querySelectorAll('.pm-topic').forEach(function(details) {
+        details.addEventListener('toggle', function() {
+            if (!this.open) return;
+            this.querySelectorAll('[data-embed-src]').forEach(function(wrap) {
+                if (wrap.querySelector('iframe')) return;
+                var iframe = document.createElement('iframe');
+                iframe.src = wrap.getAttribute('data-embed-src');
+                iframe.width = '100%';
+                iframe.height = '220';
+                iframe.frameBorder = '0';
+                iframe.allowTransparency = true;
+                iframe.loading = 'lazy';
+                wrap.appendChild(iframe);
+            });
+        });
+        // Load embeds for already-open cards
+        if (details.open) {
+            details.querySelectorAll('[data-embed-src]').forEach(function(wrap) {
+                if (wrap.querySelector('iframe')) return;
+                var iframe = document.createElement('iframe');
+                iframe.src = wrap.getAttribute('data-embed-src');
+                iframe.width = '100%';
+                iframe.height = '220';
+                iframe.frameBorder = '0';
+                iframe.allowTransparency = true;
+                iframe.loading = 'lazy';
+                wrap.appendChild(iframe);
+            });
+        }
+    });
+    </script>
 
     {# --- Standard category: article cards --- #}
     {% else %}

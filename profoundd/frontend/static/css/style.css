@@ -1838,6 +1838,28 @@ main { flex: 1; }
     color: var(--text-muted);
 }
 
+/* Source section headers */
+.pm-source-section {
+    margin-bottom: 28px;
+}
+.pm-source-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+.pm-source-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+.pm-source-count {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+
 /* Hover effect on collapsed topic */
 .pm-topic:not([open]):hover {
     border-color: rgba(99, 102, 241, 0.2);

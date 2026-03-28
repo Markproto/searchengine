@@ -595,18 +595,26 @@ def create_app(config_override=None):
         if category_name == "polymarket":
             from profoundd.search.external_providers import fetch_polymarket, fetch_manifold, fetch_predictit
             sub = subcategory if subcategory != "all" else None
-            articles = fetch_polymarket(query="", subcategory=sub, max_results=30)
-            # Add Manifold Markets results
-            manifold_results = fetch_manifold(query="", max_results=15)
-            if manifold_results:
-                articles.extend(manifold_results)
-            # Add PredictIt results (US politics)
+            polymarket_articles = fetch_polymarket(query="", subcategory=sub, max_results=15)
+            manifold_articles = fetch_manifold(query="", max_results=10)
+            predictit_articles = []
             if not sub or sub == "elections":
-                predictit_results = fetch_predictit(query="", max_results=10)
-                if predictit_results:
-                    articles.extend(predictit_results)
-            total = len(articles)
+                predictit_articles = fetch_predictit(query="", max_results=8)
+            # Pass grouped sources to template
+            articles = polymarket_articles
+            total = len(polymarket_articles) + len(manifold_articles) + len(predictit_articles)
             pages = 1
+
+            cat_info = CATEGORIES[category_name]
+            return render_template("category.html", category_name=category_name,
+                                   category=cat_info, articles=articles,
+                                   polymarket_articles=polymarket_articles,
+                                   manifold_articles=manifold_articles,
+                                   predictit_articles=predictit_articles,
+                                   page=page, pages=pages, total=total,
+                                   subcategory=subcategory,
+                                   categories=CATEGORIES)
+
         elif search_engine.is_available():
             results = search_engine.search(
                 query="",
