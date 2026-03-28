@@ -366,11 +366,11 @@ CATEGORIES = {
         "subcategories": {
             "elections": {"label": "Elections", "description": "Election odds and political forecasts"},
             "global-conflicts": {"label": "Global Conflicts", "description": "Geopolitical events, wars & international disputes"},
-            "sports": {"label": "Sports", "description": "Sports betting odds and predictions"},
             "crypto": {"label": "Crypto", "description": "Cryptocurrency price predictions and events"},
             "finance": {"label": "Finance", "description": "Financial markets, IPOs & economic forecasts"},
             "tech": {"label": "Tech", "description": "Technology predictions and AI forecasts"},
             "culture": {"label": "Culture", "description": "Pop culture, entertainment & media predictions"},
+            "sports": {"label": "Sports", "description": "Sports betting odds and predictions"},
         },
     },
     "news": {"label": "News", "description": "General & World News", "icon": "newspaper", "color": "#3b82f6"},
