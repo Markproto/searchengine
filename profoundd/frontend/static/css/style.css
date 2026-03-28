@@ -245,11 +245,7 @@ main { flex: 1; }
 }
 .search-btn:hover { background: var(--accent-hover); }
 
-/* --- Featured Polymarket Link (below search bar) --- */
-.hero-featured {
-    margin-top: 18px;
-    text-align: center;
-}
+/* --- Featured Links (below search bar) --- */
 .featured-polymarket-link {
     display: inline-flex;
     align-items: center;
@@ -272,6 +268,28 @@ main { flex: 1; }
 .featured-polymarket-link svg {
     stroke: #818cf8;
 }
+.featured-polls-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    border-radius: 50px;
+    color: #a78bfa;
+    text-decoration: none;
+    font-size: 0.92rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+.featured-polls-link:hover {
+    background: rgba(139, 92, 246, 0.18);
+    border-color: rgba(139, 92, 246, 0.4);
+    transform: translateY(-1px);
+}
+.featured-polls-link svg {
+    stroke: #a78bfa;
+}
 .featured-badge {
     font-size: 0.7rem;
     font-weight: 700;
@@ -281,6 +299,17 @@ main { flex: 1; }
     border-radius: 10px;
     background: rgba(99, 102, 241, 0.15);
     color: #a5b4fc;
+}
+.featured-badge-polls {
+    background: rgba(139, 92, 246, 0.15);
+    color: #c4b5fd;
+}
+.hero-featured {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 18px;
 }
 
 /* --- Category Cards --- */
