@@ -18,7 +18,8 @@
         <p>{{ category.description }}</p>
     </div>
 
-    {# --- National Polls Section (grouped by race) --- #}
+    {# --- National Polls Section (grouped by race) — hide when viewing a state --- #}
+    {% if not selected_state %}
     <section class="polls-national">
         <h2 class="section-title">National Polls (Live via RealClearPolitics)</h2>
         {% if national_races %}
@@ -88,9 +89,69 @@
         <p class="no-data">No national poll data currently available.</p>
         {% endif %}
     </section>
+    {% endif %}
+
+    {# --- State Detail (shown when a state is selected) --- #}
+    {% if selected_state %}
+    <section class="state-poll-detail" id="state-detail">
+        <div class="state-detail-header">
+            <a href="/category/polls" class="state-back-link">&larr; Back to all states</a>
+            <h2 class="section-title">{{ state_names.get(selected_state, selected_state) }} Polls</h2>
+        </div>
+        {% if state_map.get(selected_state) %}
+        <div class="polls-table-wrap">
+            <table class="polls-table">
+                <thead>
+                    <tr>
+                        <th>Pollster</th>
+                        <th>Rating</th>
+                        <th>Race</th>
+                        <th>Date</th>
+                        <th class="poll-cand">Candidate 1</th>
+                        <th class="poll-cand">Candidate 2</th>
+                        <th>Margin</th>
+                        <th>Sample</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for poll in state_map[selected_state] %}
+                    <tr class="{% if poll.is_average %}poll-avg-row{% endif %}">
+                        <td class="poll-pollster">{{ poll.pollster }}</td>
+                        <td>
+                            {% if poll.pollster_grade and not poll.is_average %}
+                            <span class="pollster-grade grade-{{ 'a' if poll.pollster_grade >= 2.5 else ('b' if poll.pollster_grade >= 1.5 else 'c') }}">
+                                {{ "A+" if poll.pollster_grade >= 3 else ("A" if poll.pollster_grade >= 2.5 else ("B+" if poll.pollster_grade >= 2 else ("B" if poll.pollster_grade >= 1.5 else "C"))) }}
+                            </span>
+                            {% elif poll.is_average %}<span class="pollster-grade grade-a">AVG</span>
+                            {% else %}<span class="pollster-grade grade-nr">NR</span>{% endif %}
+                        </td>
+                        <td>{{ poll._race_label or poll.race }}</td>
+                        <td class="poll-date">{{ poll.poll_date }}</td>
+                        <td class="poll-cand">
+                            <span class="cand-name party-{{ poll.candidate_1_party | lower }}">{{ poll.candidate_1 }}</span>
+                            <span class="cand-pct">{{ poll.candidate_1_pct }}%</span>
+                        </td>
+                        <td class="poll-cand">
+                            <span class="cand-name party-{{ poll.candidate_2_party | lower }}">{{ poll.candidate_2 }}</span>
+                            <span class="cand-pct">{{ poll.candidate_2_pct }}%</span>
+                        </td>
+                        <td class="poll-margin {% if poll.margin > 0 %}margin-pos{% else %}margin-neg{% endif %}">
+                            {{ "%+.1f"|format(poll.margin) }}
+                        </td>
+                        <td class="poll-sample">{{ poll.sample_size_str or "—" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="no-data">No polls currently available for {{ state_names.get(selected_state, selected_state) }}. RCP data covers states with active 2026 races.</p>
+        {% endif %}
+    </section>
+    {% endif %}
 
     {# --- Polls vs Prediction Markets Comparison --- #}
-    {% if market_odds %}
+    {% if market_odds and not selected_state %}
     <section class="polls-vs-markets">
         <h2 class="section-title">Polls vs. Prediction Markets</h2>
         <p class="section-desc">How do traditional polls compare to what bettors think? Prediction market prices reflect real-money wagers on outcomes.</p>
@@ -135,58 +196,6 @@
         <div class="polls-map-container" id="polls-map">
             <object data="/static/images/us_map.svg" type="image/svg+xml" id="us-map-svg" width="100%"></object>
         </div>
-        {% if selected_state %}
-        <div class="state-poll-detail" id="state-detail">
-            <h3>{{ state_names.get(selected_state, selected_state) }} Polls</h3>
-            <a href="/category/polls" class="state-back-link">Back to all states</a>
-            {% if state_map.get(selected_state) %}
-            <div class="polls-table-wrap">
-                <table class="polls-table">
-                    <thead>
-                        <tr>
-                            <th>Pollster</th>
-                            <th>Rating</th>
-                            <th>Race</th>
-                            <th>Date</th>
-                            <th class="poll-cand">Candidate 1</th>
-                            <th class="poll-cand">Candidate 2</th>
-                            <th>Margin</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for poll in state_map[selected_state] %}
-                        <tr>
-                            <td class="poll-pollster">{{ poll.pollster }}</td>
-                            <td>
-                                {% if poll.pollster_grade %}
-                                <span class="pollster-grade grade-{{ 'a' if poll.pollster_grade >= 2.5 else ('b' if poll.pollster_grade >= 1.5 else 'c') }}">
-                                    {{ "A+" if poll.pollster_grade >= 3 else ("A" if poll.pollster_grade >= 2.5 else ("B+" if poll.pollster_grade >= 2 else ("B" if poll.pollster_grade >= 1.5 else "C"))) }}
-                                </span>
-                                {% else %}<span class="pollster-grade grade-nr">NR</span>{% endif %}
-                            </td>
-                            <td>{{ poll.race }}</td>
-                            <td>{{ poll.poll_date }}</td>
-                            <td class="poll-cand">
-                                <span class="cand-name party-{{ poll.candidate_1_party | lower }}">{{ poll.candidate_1 }}</span>
-                                <span class="cand-pct">{{ poll.candidate_1_pct }}%</span>
-                            </td>
-                            <td class="poll-cand">
-                                <span class="cand-name party-{{ poll.candidate_2_party | lower }}">{{ poll.candidate_2 }}</span>
-                                <span class="cand-pct">{{ poll.candidate_2_pct }}%</span>
-                            </td>
-                            <td class="poll-margin {% if poll.margin > 0 %}margin-pos{% else %}margin-neg{% endif %}">
-                                {{ "%+.1f"|format(poll.margin) }}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p class="no-data">No polls available for {{ state_names.get(selected_state, selected_state) }}.</p>
-            {% endif %}
-        </div>
-        {% endif %}
     </section>
 
     {# --- State List (below map) --- #}

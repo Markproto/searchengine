@@ -1626,6 +1626,8 @@ main { flex: 1; }
     border-radius: 12px;
     border: 1px solid var(--border);
 }
+.state-detail-header { margin-bottom: 16px; }
+.state-poll-detail h2 { margin: 8px 0 0; }
 .state-poll-detail h3 { margin: 0 0 8px; }
 .state-back-link {
     font-size: 0.85rem;
