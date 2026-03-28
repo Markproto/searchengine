@@ -562,11 +562,20 @@ def create_app(config_override=None):
         total = 0
         pages = 0
 
-        # Polymarket is API-only (no indexed articles)
+        # Prediction Markets is API-only (no indexed articles) — aggregate multiple sources
         if category_name == "polymarket":
-            from profoundd.search.external_providers import fetch_polymarket
+            from profoundd.search.external_providers import fetch_polymarket, fetch_manifold, fetch_predictit
             sub = subcategory if subcategory != "all" else None
-            articles = fetch_polymarket(query="", subcategory=sub, max_results=50)
+            articles = fetch_polymarket(query="", subcategory=sub, max_results=30)
+            # Add Manifold Markets results
+            manifold_results = fetch_manifold(query="", max_results=15)
+            if manifold_results:
+                articles.extend(manifold_results)
+            # Add PredictIt results (US politics)
+            if not sub or sub == "elections":
+                predictit_results = fetch_predictit(query="", max_results=10)
+                if predictit_results:
+                    articles.extend(predictit_results)
             total = len(articles)
             pages = 1
         elif search_engine.is_available():

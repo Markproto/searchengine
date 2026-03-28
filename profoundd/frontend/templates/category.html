@@ -62,7 +62,7 @@
                     {% if article.subcategory and category.subcategories and article.subcategory in category.subcategories %}
                     <span class="subcategory-badge">{{ category.subcategories[article.subcategory].label }}</span>
                     {% endif %}
-                    <span class="pm-source-badge">{{ article.source_name }}</span>
+                    <span class="pm-source-badge pm-source-{{ article._provider or 'polymarket' }}">{{ article.source_name }}</span>
                 </div>
                 <div class="pm-topic-preview">
                     {% if article._polymarket_outcomes %}

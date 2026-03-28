@@ -1058,6 +1058,277 @@ def fetch_polymarket(query="", subcategory=None, max_results=20):
         return []
 
 
+# --- Manifold Markets provider ---
+
+# Manifold topic slugs for subcategory filtering
+MANIFOLD_TOPIC_MAP = {
+    "elections": "us-politics",
+    "global-conflicts": "geopolitics",
+    "sports": "sports",
+    "crypto": "crypto-speculation",
+    "finance": "economics",
+    "tech": "technology",
+    "culture": "entertainment",
+}
+
+
+def fetch_manifold(query="", subcategory=None, max_results=20):
+    """
+    Fetch prediction markets from Manifold Markets API.
+    Public, no auth, 1000 req/min. Returns article-like dicts.
+    """
+    try:
+        params = {
+            "term": query or "",
+            "limit": max_results,
+            "sort": "liquidity",
+            "filter": "open",
+        }
+
+        resp = requests.get(
+            "https://api.manifold.markets/v0/search-markets",
+            params=params,
+            headers={"User-Agent": "Profoundd/1.0 (search engine)"},
+            timeout=API_TIMEOUT + 2,
+        )
+        resp.raise_for_status()
+        markets = resp.json()
+
+        if not isinstance(markets, list):
+            return []
+
+        articles = []
+        snapshot_data = []
+        for market in markets:
+            outcome_type = market.get("outcomeType", "")
+            question = market.get("question", "")
+            prob = market.get("probability")
+            url = market.get("url", "")
+            slug = market.get("slug", "")
+            volume = market.get("volume", 0)
+            liquidity = market.get("totalLiquidity", 0)
+            bettors = market.get("uniqueBettorCount", 0)
+
+            # Parse timestamps (epoch ms)
+            close_time = market.get("closeTime")
+            date_str = ""
+            if close_time:
+                try:
+                    from datetime import datetime as _dt
+                    date_str = _dt.fromtimestamp(close_time / 1000).strftime("%Y-%m-%d")
+                except Exception:
+                    pass
+
+            # Build outcomes for display
+            polymarket_outcomes = []
+            if outcome_type == "BINARY" and prob is not None:
+                yes_pct = round(prob * 100, 1)
+                no_pct = round((1 - prob) * 100, 1)
+                polymarket_outcomes = [
+                    {"label": "Yes", "pct": yes_pct, "question": question},
+                    {"label": "No", "pct": no_pct, "question": question},
+                ]
+
+            # Format volume
+            try:
+                vol_num = float(volume)
+                if vol_num >= 1_000_000:
+                    vol_str = f"{vol_num / 1_000_000:.1f}M mana"
+                elif vol_num >= 1_000:
+                    vol_str = f"{vol_num / 1_000:.0f}K mana"
+                else:
+                    vol_str = f"{vol_num:.0f} mana"
+            except (ValueError, TypeError):
+                vol_str = ""
+
+            # Build summary
+            if polymarket_outcomes:
+                summary = f"Yes: {polymarket_outcomes[0]['pct']:.0f}% / No: {polymarket_outcomes[1]['pct']:.0f}%"
+            else:
+                summary = market.get("textDescription", "")[:300] if market.get("textDescription") else ""
+            if vol_str:
+                summary += f" — {vol_str}"
+            if bettors:
+                summary += f" ({bettors} traders)"
+
+            articles.append({
+                "title": question,
+                "summary": summary,
+                "content": market.get("textDescription", "")[:500] if market.get("textDescription") else "",
+                "source_name": "Manifold",
+                "source_credibility": 6,
+                "category": "polymarket",
+                "subcategory": "",
+                "url": url,
+                "image_url": "",
+                "published_at": date_str,
+                "tags": ["prediction-market", "enhanced"],
+                "_enhanced": True,
+                "_provider": "manifold",
+                "_score": 0,
+                "_highlights": {},
+                "_polymarket_outcomes": polymarket_outcomes,
+                "_polymarket_volume": vol_str,
+                "_polymarket_embed_slug": "",
+                "_polymarket_market_slugs": [],
+            })
+
+            snapshot_data.append({
+                "event_id": market.get("id", ""),
+                "event_slug": slug,
+                "title": question,
+                "description": market.get("textDescription", "")[:2000] if market.get("textDescription") else "",
+                "subcategory": "",
+                "outcomes": polymarket_outcomes,
+                "volume_total": float(volume or 0),
+                "volume_24hr": float(market.get("volume24Hours", 0) or 0),
+                "liquidity": float(liquidity or 0),
+                "end_date": date_str,
+                "image_url": "",
+                "market_slugs": [],
+                "tag_labels": ["manifold"],
+            })
+
+        logger.info("Manifold returned %d markets for query='%s'", len(articles), query)
+
+        if snapshot_data:
+            _save_polymarket_snapshots(snapshot_data)
+
+        return articles
+
+    except requests.Timeout:
+        logger.warning("Manifold API timed out for '%s'", query)
+        return []
+    except Exception as e:
+        logger.warning("Manifold API error: %s", e)
+        return []
+
+
+# --- PredictIt provider ---
+
+def fetch_predictit(query="", max_results=20):
+    """
+    Fetch prediction markets from PredictIt.
+    Single endpoint returns all markets, filter client-side.
+    US politics focus. No auth required.
+    """
+    try:
+        resp = requests.get(
+            "https://www.predictit.org/api/marketdata/all/",
+            headers={"User-Agent": "Profoundd/1.0 (search engine)"},
+            timeout=API_TIMEOUT + 3,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        all_markets = data.get("markets", [])
+
+        # Client-side text filter
+        if query:
+            q_lower = query.lower()
+            q_words = q_lower.split()
+            filtered = []
+            for m in all_markets:
+                text = (m.get("name", "") + " " +
+                        " ".join(c.get("name", "") for c in m.get("contracts", []))).lower()
+                if any(w in text for w in q_words):
+                    filtered.append(m)
+            all_markets = filtered
+
+        # Sort by total volume (sum of contract trades) — approximate by number of contracts
+        # PredictIt doesn't give volume, so sort by number of contracts (more = more active)
+        all_markets.sort(key=lambda m: len(m.get("contracts", [])), reverse=True)
+        all_markets = all_markets[:max_results]
+
+        articles = []
+        snapshot_data = []
+        for market in all_markets:
+            name = market.get("name", "")
+            market_url = market.get("url", "")
+            image = market.get("image", "")
+            contracts = market.get("contracts", [])
+
+            # Sort contracts by lastTradePrice descending (leading outcomes first)
+            contracts.sort(key=lambda c: float(c.get("lastTradePrice") or 0), reverse=True)
+
+            # Build outcomes from top contracts
+            polymarket_outcomes = []
+            for contract in contracts[:6]:
+                c_name = contract.get("name", "")
+                price = contract.get("lastTradePrice")
+                if price is not None:
+                    pct = round(float(price) * 100, 1)
+                    polymarket_outcomes.append({
+                        "label": c_name,
+                        "pct": pct,
+                        "question": name,
+                    })
+
+            # Summary
+            top_parts = []
+            for o in polymarket_outcomes[:3]:
+                top_parts.append(f"{o['label']}: {o['pct']:.0f}%")
+            summary = " / ".join(top_parts) if top_parts else ""
+            summary += f" ({len(contracts)} contracts)"
+
+            # End date from first contract
+            end_date = ""
+            if contracts:
+                end_date = (contracts[0].get("dateEnd") or "")[:10]
+
+            articles.append({
+                "title": name,
+                "summary": summary,
+                "content": "",
+                "source_name": "PredictIt",
+                "source_credibility": 7,
+                "category": "polymarket",
+                "subcategory": "elections",
+                "url": market_url,
+                "image_url": image,
+                "published_at": end_date,
+                "tags": ["prediction-market", "enhanced"],
+                "_enhanced": True,
+                "_provider": "predictit",
+                "_score": 0,
+                "_highlights": {},
+                "_polymarket_outcomes": polymarket_outcomes[:6],
+                "_polymarket_volume": "",
+                "_polymarket_embed_slug": "",
+                "_polymarket_market_slugs": [],
+            })
+
+            snapshot_data.append({
+                "event_id": str(market.get("id", "")),
+                "event_slug": "",
+                "title": name,
+                "description": "",
+                "subcategory": "elections",
+                "outcomes": polymarket_outcomes[:10],
+                "volume_total": 0,
+                "volume_24hr": 0,
+                "liquidity": 0,
+                "end_date": end_date,
+                "image_url": image,
+                "market_slugs": [],
+                "tag_labels": ["predictit", "us-politics"],
+            })
+
+        logger.info("PredictIt returned %d markets for query='%s'", len(articles), query)
+
+        if snapshot_data:
+            _save_polymarket_snapshots(snapshot_data)
+
+        return articles
+
+    except requests.Timeout:
+        logger.warning("PredictIt API timed out")
+        return []
+    except Exception as e:
+        logger.warning("PredictIt API error: %s", e)
+        return []
+
+
 def fetch_grokipedia(query, max_results=3):
     """
     Fetch search results from Grokipedia (grokipedia.com).
