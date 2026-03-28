@@ -49,6 +49,66 @@
 
     {% if articles %}
     <h2 class="section-title">{% if subcategory != 'all' and category.subcategories and subcategory in category.subcategories %}{{ category.subcategories[subcategory].label }}{% else %}Latest Articles{% endif %}{% if total %} <span class="article-count">({{ total }})</span>{% endif %}</h2>
+
+    {# --- Prediction Markets: collapsible topic cards --- #}
+    {% if category_name == 'polymarket' %}
+    <div class="pm-topics">
+        {% for article in articles %}
+        <details class="pm-topic" {% if loop.index <= 3 %}open{% endif %}>
+            <summary class="pm-topic-header">
+                <div class="pm-topic-title-row">
+                    <span class="pm-expand-icon"></span>
+                    <h3 class="pm-topic-title">{{ article.title }}</h3>
+                    {% if article.subcategory and category.subcategories and article.subcategory in category.subcategories %}
+                    <span class="subcategory-badge">{{ category.subcategories[article.subcategory].label }}</span>
+                    {% endif %}
+                    <span class="pm-source-badge">{{ article.source_name }}</span>
+                </div>
+                <div class="pm-topic-preview">
+                    {% if article._polymarket_outcomes %}
+                    <div class="polymarket-odds">
+                        {% for outcome in article._polymarket_outcomes[:4] %}
+                        <span class="polymarket-outcome {% if outcome.pct >= 50 %}outcome-leading{% endif %}">
+                            <span class="outcome-label">{{ outcome.label }}</span>
+                            <span class="outcome-pct">{{ outcome.pct | round(0) | int }}%</span>
+                            <span class="outcome-bar" style="width: {{ outcome.pct }}%"></span>
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if article._polymarket_volume %}
+                    <span class="polymarket-volume">{{ article._polymarket_volume }} traded</span>
+                    {% endif %}
+                </div>
+            </summary>
+            <div class="pm-topic-body">
+                {% if article._polymarket_market_slugs %}
+                <div class="polymarket-embeds">
+                    {% for mslug in article._polymarket_market_slugs[:3] %}
+                    <div class="polymarket-embed-wrap">
+                        <iframe src="https://embed.polymarket.com/market.html?market={{ mslug }}&theme=dark"
+                                width="100%" height="220" frameborder="0" allowtransparency="true"
+                                title="Polymarket: {{ article.title }}" loading="lazy"></iframe>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% if article.content %}
+                <p class="pm-topic-desc">{{ article.content[:300] }}{% if article.content|length > 300 %}...{% endif %}</p>
+                {% endif %}
+                <div class="pm-topic-footer">
+                    <a href="{{ article.url }}" target="_blank" rel="noopener" class="pm-view-link">View on Polymarket</a>
+                    {% if article.published_at %}
+                    <span class="date" data-time="{{ article.published_at }}">Ends {{ article.published_at[:10] }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </details>
+        {% endfor %}
+    </div>
+
+    {# --- Standard category: article cards --- #}
+    {% else %}
     <div class="articles-grid">
         {% for article in articles %}
         <article class="trending-card {% if article.image_url %}has-thumb{% endif %}">
@@ -93,30 +153,7 @@
                 {% endif %}
             </div>
             <h3>{% if article.url.startswith('profoundd://bob/') %}<a href="/newsroom/{{ article.url.split('/')[-1] }}">{{ article.title }}</a>{% elif article.url.startswith('profoundd://') %}<a href="/article/{{ article.url.split('/')[-1] }}">{{ article.title }}</a>{% else %}<a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a>{% endif %}</h3>
-            {% if article._provider == 'polymarket' and article._polymarket_market_slugs %}
-            <div class="polymarket-embeds">
-                {% for mslug in article._polymarket_market_slugs[:3] %}
-                <div class="polymarket-embed-wrap">
-                    <iframe src="https://embed.polymarket.com/market.html?market={{ mslug }}&theme=dark"
-                            width="100%" height="220" frameborder="0" allowtransparency="true"
-                            title="Polymarket: {{ article.title }}" loading="lazy"></iframe>
-                </div>
-                {% endfor %}
-            </div>
-            {% elif article._provider == 'polymarket' and article._polymarket_outcomes %}
-            <div class="polymarket-odds">
-                {% for outcome in article._polymarket_outcomes[:4] %}
-                <span class="polymarket-outcome {% if outcome.pct >= 50 %}outcome-leading{% endif %}">
-                    <span class="outcome-label">{{ outcome.label }}</span>
-                    <span class="outcome-pct">{{ outcome.pct | round(0) | int }}%</span>
-                    <span class="outcome-bar" style="width: {{ outcome.pct }}%"></span>
-                </span>
-                {% endfor %}
-                {% if article._polymarket_volume %}
-                <span class="polymarket-volume">{{ article._polymarket_volume }} traded</span>
-                {% endif %}
-            </div>
-            {% elif article.summary %}
+            {% if article.summary %}
             <p class="result-summary">{{ article.summary[:200] }}{% if article.summary|length > 200 %}...{% endif %}</p>
             {% endif %}
             {% with note_url=article.url, note_title=article.title, note_summary=article.summary or '' %}
@@ -142,6 +179,7 @@
         </article>
         {% endfor %}
     </div>
+    {% endif %}
 
     {% if pages > 1 %}
     <nav class="pagination">
