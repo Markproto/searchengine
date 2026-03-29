@@ -21,11 +21,12 @@ RAW_POLLS_URL = "https://raw.githubusercontent.com/fivethirtyeight/data/master/p
 # RealClearPolitics race IDs — curated list of active/important races
 RCP_RACES = {
     # National
-    "trump_approval": {"id": 6186, "label": "Trump Job Approval (2nd Term)", "type": "national", "state": "US"},
-    "trump_favorability": {"id": 6180, "label": "Trump Favorability", "type": "national", "state": "US"},
-    "direction": {"id": 6181, "label": "Direction of Country", "type": "national", "state": "US"},
-    "congressional_ballot": {"id": 6185, "label": "Generic Congressional Ballot", "type": "national", "state": "US"},
-    "congress_approval": {"id": 6182, "label": "Congressional Job Approval", "type": "national", "state": "US"},
+    "trump_approval": {"id": 8656, "label": "Trump Job Approval (2nd Term)", "type": "national", "state": "US"},
+    "trump_economy": {"id": 8666, "label": "Trump Approval - Economy", "type": "national", "state": "US"},
+    "trump_foreign_policy": {"id": 8667, "label": "Trump Approval - Foreign Policy", "type": "national", "state": "US"},
+    "trump_immigration": {"id": 8659, "label": "Trump Approval - Immigration", "type": "national", "state": "US"},
+    "direction": {"id": 902, "label": "Direction of Country", "type": "national", "state": "US"},
+    "congressional_ballot": {"id": 8670, "label": "2026 Generic Congressional Vote", "type": "national", "state": "US"},
     # 2026 Governor Races
     "pa_gov_2026": {"id": 8860, "label": "Pennsylvania Governor 2026", "type": "governor", "state": "PA"},
     "va_gov_2026": {"id": 8870, "label": "Virginia Governor 2026", "type": "governor", "state": "VA"},
