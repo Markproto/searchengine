@@ -364,7 +364,7 @@ CATEGORIES = {
         "icon": "chart-bar",
         "color": "#6366f1",
         "subcategories": {
-            "elections": {"label": "Elections", "description": "Election odds and political forecasts"},
+            "elections": {"label": "Politics", "description": "Elections, policy, and political forecasts"},
             "global-conflicts": {"label": "Global Conflicts", "description": "Geopolitical events, wars & international disputes"},
             "crypto": {"label": "Crypto", "description": "Cryptocurrency price predictions and events"},
             "finance": {"label": "Finance", "description": "Financial markets, IPOs & economic forecasts"},
