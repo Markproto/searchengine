@@ -2010,6 +2010,56 @@ main { flex: 1; }
     .pm-topic-body { padding: 0 14px 14px; }
     .pm-topic-title { font-size: 0.95rem; }
     .pm-topic-preview { padding-left: 0; }
+
+    /* Subcategory tabs: horizontal scroll on mobile */
+    .subcategory-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
+        gap: 6px;
+    }
+    .subcategory-tab { flex-shrink: 0; font-size: 0.8rem; padding: 5px 12px; }
+
+    /* Polls table: scroll horizontally */
+    .polls-table { font-size: 0.78rem; }
+    .polls-table th, .polls-table td { padding: 6px 8px; }
+    .poll-race-header { flex-wrap: wrap; gap: 6px; padding: 10px 14px; }
+    .poll-race-avg { font-size: 0.8rem; }
+
+    /* State grid: 2 columns on mobile */
+    .state-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .state-card { padding: 8px 10px; }
+
+    /* Polls map */
+    .polls-map-container { padding: 8px; }
+    .polls-map-legend { gap: 8px; font-size: 0.72rem; }
+
+    /* PVM grid: single column */
+    .pvm-grid { grid-template-columns: 1fr; }
+    .pvm-card { padding: 10px 14px; }
+
+    /* Auth pages */
+    .auth-page { padding: 30px 16px; }
+    .auth-card { padding: 24px 20px; }
+    .auth-card h1 { font-size: 1.3rem; }
+
+    /* AI analysis panel */
+    .ai-analysis-panel { padding: 10px; font-size: 0.82rem; }
+
+    /* Polymarket embeds: single column on mobile */
+    .polymarket-embeds { grid-template-columns: 1fr; }
+
+    /* Source section headers */
+    .pm-source-header { flex-wrap: wrap; gap: 6px; }
+
+    /* Featured links below search */
+    .hero-featured { gap: 8px; }
+    .featured-polymarket-link, .featured-polls-link { padding: 6px 14px; font-size: 0.82rem; }
+
+    /* Polymarket odds: wrap tighter */
+    .polymarket-odds { gap: 4px; }
+    .polymarket-outcome { padding: 3px 8px; font-size: 0.78rem; }
 }
 
 /* Polymarket embed iframes */

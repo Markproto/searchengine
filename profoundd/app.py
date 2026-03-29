@@ -674,7 +674,9 @@ def create_app(config_override=None):
             return render_template("404.html", categories=CATEGORIES), 404
 
         page = request.args.get("page", 1, type=int)
-        subcategory = request.args.get("sub", "all")
+        # Default to "elections" for prediction markets, "all" for everything else
+        default_sub = "elections" if category_name == "polymarket" and "sub" not in request.args else "all"
+        subcategory = request.args.get("sub", default_sub)
         per_page = 20
 
         articles = []
