@@ -3541,3 +3541,139 @@ body,
     }
 }
 
+/* =========================================
+   Analytics Dashboard - Day Drilldown
+   ========================================= */
+.chart-row-clickable {
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: var(--radius-sm);
+    padding: 2px 4px;
+}
+.chart-row-clickable:hover {
+    background: var(--accent-glow);
+}
+.chart-row-clickable.active {
+    background: var(--accent-glow);
+    border-left: 3px solid var(--accent);
+}
+
+.day-detail-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-top: 1rem;
+    box-shadow: var(--shadow);
+}
+.day-detail-panel h3 {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.metrics-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+.mini-card {
+    background: var(--bg-input);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem;
+    text-align: center;
+}
+.mini-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+.mini-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.detail-section {
+    margin-bottom: 1.25rem;
+}
+.detail-section h4 {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.stacked-bar {
+    display: flex;
+    height: 24px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.3rem;
+}
+.stacked-seg {
+    min-width: 2px;
+    transition: width 0.3s;
+}
+.stacked-labels {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+}
+
+.hourly-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 80px;
+    padding-bottom: 18px;
+    position: relative;
+}
+.hourly-bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+    position: relative;
+}
+.hourly-bar {
+    width: 100%;
+    background: var(--accent);
+    border-radius: 2px 2px 0 0;
+    min-height: 1px;
+    transition: height 0.3s;
+}
+.hourly-label {
+    position: absolute;
+    bottom: -16px;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+.detail-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.mini-table {
+    font-size: 0.85rem;
+}
+.mini-table td:last-child {
+    text-align: right;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .metrics-mini-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .detail-columns {
+        grid-template-columns: 1fr;
+    }
+}
+

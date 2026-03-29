@@ -22,7 +22,11 @@
     <!-- Summary cards -->
     <div class="stats-grid">
         <div class="stat-card">
-            <h3>Page Views ({{ days }}d)</h3>
+            <h3>Views Today</h3>
+            <p class="stat-value">{{ "{:,}".format(views_today) }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Views ({{ days }}d)</h3>
             <p class="stat-value">{{ "{:,}".format(total_views) }}</p>
         </div>
         <div class="stat-card">
@@ -37,16 +41,20 @@
             <h3>All-Time Visitors</h3>
             <p class="stat-value">{{ "{:,}".format(unique_all_time) }}</p>
         </div>
+        <div class="stat-card">
+            <h3>Bot Hits ({{ days }}d)</h3>
+            <p class="stat-value" style="color: var(--text-muted)">{{ "{:,}".format(bot_hits) }}</p>
+        </div>
     </div>
 
-    <!-- Daily chart (simple bar chart) -->
+    <!-- Daily traffic bars (clickable for drilldown) -->
     {% if daily_views %}
     <div class="admin-section">
-        <h2>Daily Traffic</h2>
+        <h2>Daily Traffic <span style="font-size: .8rem; color: var(--text-muted); font-weight: normal;">(click a day for details)</span></h2>
         <div class="analytics-chart">
             {% set max_views = daily_views | map(attribute='views') | max %}
             {% for row in daily_views %}
-            <div class="chart-row">
+            <div class="chart-row chart-row-clickable" data-date="{{ row.day }}" onclick="loadDayDetail('{{ row.day }}', this)">
                 <span class="chart-label">{{ row.day }}</span>
                 <div class="chart-bar-wrap">
                     <div class="chart-bar" style="width: {{ (row.views / max_views * 100) if max_views else 0 }}%"></div>
@@ -55,6 +63,8 @@
             </div>
             {% endfor %}
         </div>
+        <!-- Day detail panel inserted here by JS -->
+        <div id="dayDetailPanel"></div>
     </div>
     {% endif %}
 
@@ -105,15 +115,16 @@
         <h2>Recent Visitors</h2>
         <table class="admin-table">
             <thead>
-                <tr><th>Time</th><th>Page</th><th>Visitor</th><th>IP</th><th>Referrer</th></tr>
+                <tr><th>Time</th><th>Page</th><th>Visitor</th><th>IP</th><th>Bot</th><th>Referrer</th></tr>
             </thead>
             <tbody>
                 {% for pv in recent_views %}
-                <tr>
+                <tr{% if pv.is_bot %} style="opacity: 0.5"{% endif %}>
                     <td>{{ pv.viewed_at.strftime('%m/%d %H:%M') if pv.viewed_at else '' }}</td>
                     <td><code>{{ pv.path[:60] }}</code></td>
-                    <td title="{{ pv.visitor_id }}">{{ pv.visitor_id[:8] }}...</td>
+                    <td title="{{ pv.visitor_id }}">{{ (pv.visitor_id or '')[:8] }}{% if pv.visitor_id %}...{% endif %}</td>
                     <td>{{ pv.ip_address }}</td>
+                    <td>{% if pv.is_bot %}<span style="color: var(--warning)">Bot</span>{% else %}Human{% endif %}</td>
                     <td>{{ (pv.referrer or '')[:50] }}</td>
                 </tr>
                 {% endfor %}
@@ -122,4 +133,174 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+var _activeDate = null;
+
+function loadDayDetail(dateStr, rowEl) {
+    var panel = document.getElementById('dayDetailPanel');
+
+    // Toggle off if same day clicked
+    if (_activeDate === dateStr) {
+        panel.innerHTML = '';
+        _activeDate = null;
+        document.querySelectorAll('.chart-row-clickable').forEach(function(r) { r.classList.remove('active'); });
+        return;
+    }
+    _activeDate = dateStr;
+
+    // Highlight active row
+    document.querySelectorAll('.chart-row-clickable').forEach(function(r) { r.classList.remove('active'); });
+    if (rowEl) rowEl.classList.add('active');
+
+    panel.innerHTML = '<div class="day-detail-panel"><p style="padding:1rem;color:var(--text-muted)">Loading...</p></div>';
+
+    fetch('/admin/api/analytics/day/' + dateStr)
+        .then(function(r) { return r.json(); })
+        .then(function(d) { renderDayDetail(panel, d); })
+        .catch(function(e) {
+            panel.innerHTML = '<div class="day-detail-panel"><p style="padding:1rem;color:var(--danger)">Failed to load: ' + e.message + '</p></div>';
+        });
+}
+
+function renderDayDetail(panel, d) {
+    var h = '<div class="day-detail-panel">';
+    h += '<h3>Details for ' + d.date + '</h3>';
+
+    // Metrics grid
+    h += '<div class="metrics-mini-grid">';
+    h += miniCard('Page Views', d.total);
+    h += miniCard('Visitors', d.unique_visitors);
+    h += miniCard('Pages/Visit', d.avg_pages);
+    h += miniCard('Bounce Rate', d.bounce_rate + '%');
+    h += miniCard('Avg Duration', formatDuration(d.avg_duration));
+    h += miniCard('Search Traffic', d.search_pct + '%');
+    h += '</div>';
+
+    // New vs returning
+    if (d.new_visitors + d.returning_visitors > 0) {
+        var total = d.new_visitors + d.returning_visitors;
+        var newPct = Math.round(d.new_visitors / total * 100);
+        var retPct = 100 - newPct;
+        h += '<div class="detail-section"><h4>New vs Returning</h4>';
+        h += '<div class="stacked-bar">';
+        h += '<div class="stacked-seg" style="width:' + newPct + '%;background:var(--accent)" title="New: ' + d.new_visitors + '"></div>';
+        h += '<div class="stacked-seg" style="width:' + retPct + '%;background:var(--success)" title="Returning: ' + d.returning_visitors + '"></div>';
+        h += '</div>';
+        h += '<div class="stacked-labels"><span>New ' + newPct + '%</span><span>Returning ' + retPct + '%</span></div>';
+        h += '</div>';
+    }
+
+    // Hourly chart
+    h += '<div class="detail-section"><h4>Hourly Visitors</h4>';
+    h += '<div class="hourly-chart">';
+    var maxH = Math.max.apply(null, d.hourly) || 1;
+    for (var i = 0; i < 24; i++) {
+        var pct = Math.round(d.hourly[i] / maxH * 100);
+        h += '<div class="hourly-bar-wrap" title="' + i + ':00 - ' + d.hourly[i] + ' views">';
+        h += '<div class="hourly-bar" style="height:' + pct + '%"></div>';
+        if (i % 3 === 0) h += '<span class="hourly-label">' + i + '</span>';
+        h += '</div>';
+    }
+    h += '</div></div>';
+
+    // Traffic sources
+    h += '<div class="detail-section"><h4>Traffic Sources</h4>';
+    h += renderSourceBar(d.sources, d.total);
+    h += '</div>';
+
+    // Search engines
+    if (d.engines && d.engines.length) {
+        h += renderTable('Search Engines', d.engines);
+    }
+
+    // Search keywords
+    if (d.keywords && d.keywords.length) {
+        h += renderTable('Search Keywords', d.keywords);
+    }
+
+    // Internal searches
+    if (d.internal_searches && d.internal_searches.length) {
+        h += renderTable('Profoundd Searches', d.internal_searches);
+    }
+
+    // Device / Browser / OS in columns
+    h += '<div class="detail-columns">';
+    if (d.devices && d.devices.length) h += renderTable('Devices', d.devices);
+    if (d.browsers && d.browsers.length) h += renderTable('Browsers', d.browsers);
+    if (d.os && d.os.length) h += renderTable('Operating Systems', d.os);
+    h += '</div>';
+
+    // Screen sizes
+    if (d.screens && d.screens.length) {
+        h += renderTable('Screen Sizes', d.screens);
+    }
+
+    // Languages
+    if (d.languages && d.languages.length) {
+        h += renderTable('Languages', d.languages);
+    }
+
+    // Landing / Exit pages
+    h += '<div class="detail-columns">';
+    if (d.landing_pages && d.landing_pages.length) h += renderTable('Landing Pages', d.landing_pages);
+    if (d.exit_pages && d.exit_pages.length) h += renderTable('Exit Pages', d.exit_pages);
+    h += '</div>';
+
+    // Top pages
+    if (d.top_pages && d.top_pages.length) {
+        h += renderTable('Top Pages', d.top_pages);
+    }
+
+    // Referrer domains
+    if (d.referrer_domains && d.referrer_domains.length) {
+        h += renderTable('Referrer Domains', d.referrer_domains);
+    }
+
+    h += '</div>';
+    panel.innerHTML = h;
+}
+
+function miniCard(label, value) {
+    return '<div class="mini-card"><div class="mini-label">' + label + '</div><div class="mini-value">' + value + '</div></div>';
+}
+
+function formatDuration(sec) {
+    if (!sec || sec < 1) return '0s';
+    if (sec < 60) return sec + 's';
+    return Math.floor(sec / 60) + 'm ' + (sec % 60) + 's';
+}
+
+var SOURCE_COLORS = {
+    Direct: '#6b7280',
+    Search: '#3b82f6',
+    Social: '#8b5cf6',
+    Referral: '#f59e0b',
+    Email: '#ec4899'
+};
+
+function renderSourceBar(sources, total) {
+    if (!total) return '<p style="color:var(--text-muted)">No data</p>';
+    var h = '<div class="stacked-bar">';
+    var labels = '';
+    for (var key in SOURCE_COLORS) {
+        var count = sources[key] || 0;
+        if (!count) continue;
+        var pct = Math.round(count / total * 100);
+        h += '<div class="stacked-seg" style="width:' + pct + '%;background:' + SOURCE_COLORS[key] + '" title="' + key + ': ' + count + ' (' + pct + '%)"></div>';
+        labels += '<span style="color:' + SOURCE_COLORS[key] + '">' + key + ' ' + pct + '%</span> ';
+    }
+    h += '</div><div class="stacked-labels">' + labels + '</div>';
+    return h;
+}
+
+function renderTable(title, data) {
+    var h = '<div class="detail-section"><h4>' + title + '</h4><table class="admin-table mini-table"><tbody>';
+    for (var i = 0; i < data.length; i++) {
+        h += '<tr><td>' + data[i][0] + '</td><td>' + data[i][1] + '</td></tr>';
+    }
+    h += '</tbody></table></div>';
+    return h;
+}
+</script>
 {% endblock %}

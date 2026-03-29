@@ -151,28 +151,51 @@ def dashboard():
 def analytics():
     """Visitor analytics dashboard."""
     from sqlalchemy import func, distinct
+    import json as json_mod
 
     days = request.args.get("days", 7, type=int)
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
-    # Total page views in period
+    # Total page views in period (humans only)
     total_views = db.session.query(func.count(PageView.id)).filter(
-        PageView.viewed_at >= cutoff
+        PageView.viewed_at >= cutoff,
+        db.or_(PageView.is_bot == False, PageView.is_bot.is_(None)),
     ).scalar() or 0
 
     # Unique visitors in period
     unique_visitors = db.session.query(func.count(distinct(PageView.visitor_id))).filter(
-        PageView.viewed_at >= cutoff
+        PageView.viewed_at >= cutoff,
+        db.or_(PageView.is_bot == False, PageView.is_bot.is_(None)),
     ).scalar() or 0
 
-    # Views per day
+    # Views today
+    views_today = db.session.query(func.count(PageView.id)).filter(
+        PageView.viewed_at >= today_start,
+        db.or_(PageView.is_bot == False, PageView.is_bot.is_(None)),
+    ).scalar() or 0
+
+    # Bot hits in period
+    bot_hits = db.session.query(func.count(PageView.id)).filter(
+        PageView.viewed_at >= cutoff,
+        PageView.is_bot == True,
+    ).scalar() or 0
+
+    # Views per day (humans)
     daily_views = db.session.query(
         func.date(PageView.viewed_at).label("day"),
         func.count(PageView.id).label("views"),
         func.count(distinct(PageView.visitor_id)).label("visitors"),
     ).filter(
-        PageView.viewed_at >= cutoff
+        PageView.viewed_at >= cutoff,
+        db.or_(PageView.is_bot == False, PageView.is_bot.is_(None)),
     ).group_by(func.date(PageView.viewed_at)).order_by(func.date(PageView.viewed_at)).all()
+
+    # Serialize daily data for JS drilldown
+    daily_json = json_mod.dumps([
+        {"day": str(row.day), "views": row.views, "visitors": row.visitors}
+        for row in daily_views
+    ])
 
     # Top pages
     top_pages = db.session.query(
@@ -180,7 +203,8 @@ def analytics():
         func.count(PageView.id).label("views"),
         func.count(distinct(PageView.visitor_id)).label("visitors"),
     ).filter(
-        PageView.viewed_at >= cutoff
+        PageView.viewed_at >= cutoff,
+        db.or_(PageView.is_bot == False, PageView.is_bot.is_(None)),
     ).group_by(PageView.path).order_by(func.count(PageView.id).desc()).limit(20).all()
 
     # Top referrers (excluding empty)
@@ -191,6 +215,7 @@ def analytics():
         PageView.viewed_at >= cutoff,
         PageView.referrer != "",
         PageView.referrer.isnot(None),
+        db.or_(PageView.is_bot == False, PageView.is_bot.is_(None)),
     ).group_by(PageView.referrer).order_by(func.count(PageView.id).desc()).limit(15).all()
 
     # Recent visitors (last 50)
@@ -198,21 +223,193 @@ def analytics():
         PageView.viewed_at.desc()
     ).limit(50).all()
 
-    # All-time totals
-    total_all_time = db.session.query(func.count(PageView.id)).scalar() or 0
-    unique_all_time = db.session.query(func.count(distinct(PageView.visitor_id))).scalar() or 0
+    # All-time totals (humans)
+    total_all_time = db.session.query(func.count(PageView.id)).filter(
+        db.or_(PageView.is_bot == False, PageView.is_bot.is_(None)),
+    ).scalar() or 0
+    unique_all_time = db.session.query(func.count(distinct(PageView.visitor_id))).filter(
+        db.or_(PageView.is_bot == False, PageView.is_bot.is_(None)),
+    ).scalar() or 0
 
     return render_template("admin/analytics.html",
                            categories=CATEGORIES,
                            days=days,
                            total_views=total_views,
                            unique_visitors=unique_visitors,
+                           views_today=views_today,
+                           bot_hits=bot_hits,
                            daily_views=daily_views,
+                           daily_json=daily_json,
                            top_pages=top_pages,
                            top_referrers=top_referrers,
                            recent_views=recent_views,
                            total_all_time=total_all_time,
                            unique_all_time=unique_all_time)
+
+
+@admin_bp.route("/api/analytics/day/<date_str>")
+@login_required
+def analytics_day_detail(date_str):
+    """Return detailed analytics for a single day as JSON."""
+    from sqlalchemy import func, distinct
+    from urllib.parse import urlparse
+    from profoundd.utils.bot_detection import parse_user_agent, classify_referrer, classify_screen, extract_search_keyword
+
+    try:
+        target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return jsonify(error="Invalid date"), 400
+
+    day_start = datetime(target_date.year, target_date.month, target_date.day, tzinfo=timezone.utc)
+    day_end = day_start + timedelta(days=1)
+
+    # All human page views for this day
+    views = db.session.query(PageView).filter(
+        PageView.viewed_at >= day_start,
+        PageView.viewed_at < day_end,
+        db.or_(PageView.is_bot == False, PageView.is_bot.is_(None)),
+    ).all()
+
+    total = len(views)
+    visitor_ids = set()
+    session_map = defaultdict(list)  # session_id -> [views]
+    hourly = [0] * 24
+    browsers = defaultdict(int)
+    os_counts = defaultdict(int)
+    devices = defaultdict(int)
+    screens = defaultdict(int)
+    page_counts = defaultdict(int)
+    source_counts = defaultdict(int)
+    engine_counts = defaultdict(int)
+    keywords = defaultdict(int)
+    referrer_domains = defaultdict(int)
+    durations = []
+    languages = defaultdict(int)
+
+    for pv in views:
+        # Hourly
+        if pv.viewed_at:
+            hourly[pv.viewed_at.hour] += 1
+
+        # Visitors
+        if pv.visitor_id:
+            visitor_ids.add(pv.visitor_id)
+
+        # Sessions
+        if pv.session_id:
+            session_map[pv.session_id].append(pv)
+
+        # UA parsing
+        ua_info = parse_user_agent(pv.user_agent)
+        browsers[ua_info["browser"]] += 1
+        os_counts[ua_info["os"]] += 1
+        devices[ua_info["device"]] += 1
+
+        # Screen size
+        screens[classify_screen(pv.screen_width)] += 1
+
+        # Pages
+        page_counts[pv.path] += 1
+
+        # Traffic source
+        ref_info = classify_referrer(pv.referrer)
+        source_counts[ref_info["source"]] += 1
+        if ref_info["search_engine"]:
+            engine_counts[ref_info["search_engine"]] += 1
+        if ref_info["keyword"]:
+            keywords[ref_info["keyword"]] += 1
+
+        # Referrer domains
+        if pv.referrer:
+            try:
+                host = urlparse(pv.referrer).hostname
+                if host and "profoundd" not in host:
+                    referrer_domains[host] += 1
+            except Exception:
+                pass
+
+        # Duration
+        if pv.duration and pv.duration > 0:
+            durations.append(pv.duration)
+
+        # Language
+        if pv.language:
+            languages[pv.language] += 1
+
+    # Session analysis
+    total_sessions = len(session_map)
+    bounce_count = 0
+    pages_per_session_list = []
+    landing_pages = defaultdict(int)
+    exit_pages = defaultdict(int)
+
+    for sid, pvs in session_map.items():
+        pvs_sorted = sorted(pvs, key=lambda p: p.viewed_at or datetime.min.replace(tzinfo=timezone.utc))
+        pages_per_session_list.append(len(pvs_sorted))
+        if len(pvs_sorted) == 1:
+            bounce_count += 1
+        landing_pages[pvs_sorted[0].path] += 1
+        exit_pages[pvs_sorted[-1].path] += 1
+
+    bounce_rate = round(bounce_count / total_sessions * 100, 1) if total_sessions else 0
+    avg_pages = round(sum(pages_per_session_list) / len(pages_per_session_list), 1) if pages_per_session_list else 0
+    avg_duration = round(sum(durations) / len(durations)) if durations else 0
+
+    # New vs returning visitors
+    new_count = 0
+    returning_count = 0
+    if visitor_ids:
+        for vid in visitor_ids:
+            has_prior = db.session.query(PageView.id).filter(
+                PageView.visitor_id == vid,
+                PageView.viewed_at < day_start,
+            ).limit(1).first()
+            if has_prior:
+                returning_count += 1
+            else:
+                new_count += 1
+
+    # Search traffic percentage
+    search_count = source_counts.get("Search", 0)
+    search_pct = round(search_count / total * 100, 1) if total else 0
+
+    # Profoundd internal searches for this day
+    internal_searches = db.session.query(
+        SearchLog.query.label("q"),
+        func.count(SearchLog.id).label("count"),
+    ).filter(
+        SearchLog.searched_at >= day_start,
+        SearchLog.searched_at < day_end,
+    ).group_by(SearchLog.query).order_by(func.count(SearchLog.id).desc()).limit(20).all()
+
+    def top_n(d, n=15):
+        return sorted(d.items(), key=lambda x: -x[1])[:n]
+
+    return jsonify(
+        date=date_str,
+        total=total,
+        unique_visitors=len(visitor_ids),
+        hourly=hourly,
+        avg_pages=avg_pages,
+        bounce_rate=bounce_rate,
+        avg_duration=avg_duration,
+        search_pct=search_pct,
+        new_visitors=new_count,
+        returning_visitors=returning_count,
+        sources={k: v for k, v in source_counts.items()},
+        engines=top_n(engine_counts, 10),
+        keywords=top_n(keywords, 15),
+        browsers=top_n(browsers, 10),
+        os=top_n(os_counts, 10),
+        devices=top_n(devices, 5),
+        screens=top_n(screens, 6),
+        languages=top_n(languages, 10),
+        top_pages=top_n(page_counts, 15),
+        landing_pages=top_n(landing_pages, 10),
+        exit_pages=top_n(exit_pages, 10),
+        referrer_domains=top_n(referrer_domains, 10),
+        internal_searches=[[r.q, r.count] for r in internal_searches],
+    )
 
 
 @admin_bp.route("/sources")

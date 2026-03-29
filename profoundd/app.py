@@ -2,6 +2,7 @@
 Main Flask application for Profoundd search engine.
 """
 import os
+import json
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -111,10 +112,12 @@ def create_app(config_override=None):
             "user_email": session.get("user_email", ""),
         }
 
-    # --- Analytics: record page views when cookies are accepted ---
+    # --- Analytics: record page views ---
+    from profoundd.utils.bot_detection import detect_bot
+
     @app.after_request
     def track_page_view(response):
-        # Only track HTML pages, skip static/API/admin/health
+        """Record bot page views server-side. Human views come from JS tracking."""
         path = request.path
         if (
             request.method != "GET"
@@ -123,76 +126,92 @@ def create_app(config_override=None):
         ):
             return response
 
-        # Check if the visitor has accepted analytics cookies
-        consent = request.cookies.get("cookie_consent")
-        if consent != "accepted":
+        ua = (request.user_agent.string or "")[:500]
+        is_bot = detect_bot(ua)
+
+        # Only record bots here; humans are tracked via JS /api/analytics/track
+        if not is_bot:
             return response
 
-        # Get or assign a visitor ID cookie
-        visitor_id = request.cookies.get("profoundd_vid")
-        if not visitor_id:
-            visitor_id = uuid.uuid4().hex
-            response.set_cookie(
-                "profoundd_vid", visitor_id,
-                max_age=365 * 24 * 3600,  # 1 year
-                httponly=True,
-                samesite="Lax",
-                secure=request.is_secure,
-            )
-
+        visitor_id = request.cookies.get("profoundd_vid") or uuid.uuid4().hex
         try:
             pv = PageView(
                 path=path[:1000],
                 visitor_id=visitor_id,
                 ip_address=request.remote_addr,
-                user_agent=(request.user_agent.string or "")[:500],
+                user_agent=ua,
                 referrer=(request.referrer or "")[:1000],
+                is_bot=True,
             )
             db.session.add(pv)
             db.session.commit()
         except Exception:
-            logger.exception("Failed to record page view for %s", path)
+            logger.exception("Failed to record bot page view for %s", path)
             db.session.rollback()
 
         return response
 
-    # --- Beacon endpoint: record the page view when cookies are accepted ---
-    @app.route("/api/analytics/beacon", methods=["POST"])
-    def analytics_beacon():
-        """Record a page view via JS beacon (fires on cookie accept)."""
-        data = request.get_json(silent=True) or {}
-        page_path = (data.get("path") or "/")[:1000]
-        referrer = (data.get("referrer") or "")[:1000]
+    # --- JS tracking endpoint: record human page views with full metadata ---
+    @app.route("/api/analytics/track", methods=["POST"])
+    def analytics_track():
+        """Record a page view from client-side JS with session/visitor/screen data."""
+        # Skip admin sessions
+        if session.get("admin_logged_in"):
+            return jsonify(ok=True, id=None)
 
-        visitor_id = request.cookies.get("profoundd_vid")
-        if not visitor_id:
-            visitor_id = uuid.uuid4().hex
+        data = request.get_json(silent=True) or {}
+        ua = (request.user_agent.string or "")[:500]
+
+        visitor_id = (data.get("visitorId") or request.cookies.get("profoundd_vid") or uuid.uuid4().hex)[:64]
 
         try:
             pv = PageView(
-                path=page_path,
+                path=(data.get("path") or "/")[:1000],
                 visitor_id=visitor_id,
                 ip_address=request.remote_addr,
-                user_agent=(request.user_agent.string or "")[:500],
-                referrer=referrer,
+                user_agent=ua,
+                referrer=(data.get("referrer") or "")[:1000],
+                session_id=(data.get("sessionId") or "")[:64] or None,
+                is_bot=detect_bot(ua),
+                screen_width=data.get("screenWidth"),
+                screen_height=data.get("screenHeight"),
+                language=(data.get("language") or "")[:20] or None,
             )
             db.session.add(pv)
             db.session.commit()
+            return jsonify(ok=True, id=pv.id)
         except Exception:
-            logger.exception("Failed to record beacon page view")
+            logger.exception("Failed to record tracked page view")
             db.session.rollback()
             return jsonify(ok=False), 500
 
-        resp = jsonify(ok=True)
-        if not request.cookies.get("profoundd_vid"):
-            resp.set_cookie(
-                "profoundd_vid", visitor_id,
-                max_age=365 * 24 * 3600,
-                httponly=True,
-                samesite="Lax",
-                secure=request.is_secure,
-            )
-        return resp
+    # --- Duration update endpoint: called via sendBeacon on page unload ---
+    @app.route("/api/analytics/duration", methods=["POST"])
+    def analytics_duration():
+        """Update page view duration via sendBeacon."""
+        # sendBeacon sends text/plain, so handle both content types
+        data = request.get_json(silent=True)
+        if not data:
+            try:
+                data = json.loads(request.data)
+            except Exception:
+                return jsonify(ok=False), 400
+
+        pv_id = data.get("id")
+        duration = data.get("duration")
+        if not pv_id or not isinstance(duration, (int, float)):
+            return jsonify(ok=False), 400
+
+        duration = max(1, min(3600, int(duration)))
+        try:
+            pv = db.session.get(PageView, pv_id)
+            if pv:
+                pv.duration = duration
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+        return jsonify(ok=True)
 
     # Initialize search engine
     search_engine = SearchEngine(app.config.get("ELASTICSEARCH_URL", "http://localhost:9200"))
@@ -210,12 +229,24 @@ def create_app(config_override=None):
             "ALTER TABLE sources ADD COLUMN sponsor_tags VARCHAR(500) DEFAULT ''",
             "ALTER TABLE sources ADD COLUMN subcategory VARCHAR(100) DEFAULT ''",
             "ALTER TABLE bob_stories ADD COLUMN extra_categories VARCHAR(500) DEFAULT ''",
+            "ALTER TABLE page_views ADD COLUMN session_id VARCHAR(64)",
+            "ALTER TABLE page_views ADD COLUMN is_bot BOOLEAN DEFAULT 0",
+            "ALTER TABLE page_views ADD COLUMN duration INTEGER",
+            "ALTER TABLE page_views ADD COLUMN screen_width INTEGER",
+            "ALTER TABLE page_views ADD COLUMN screen_height INTEGER",
+            "ALTER TABLE page_views ADD COLUMN language VARCHAR(20)",
         ]:
             try:
                 db.session.execute(db.text(col_sql))
                 db.session.commit()
             except Exception:
                 db.session.rollback()
+        # Ensure analytics indexes
+        try:
+            db.session.execute(db.text("CREATE INDEX IF NOT EXISTS ix_page_views_session_id ON page_views (session_id)"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
         _ensure_admin(app.config)
 
     # Start background scheduler (only in production, not in testing)

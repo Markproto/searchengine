@@ -314,6 +314,12 @@ class PageView(db.Model):
     user_agent = db.Column(db.String(500))
     referrer = db.Column(db.String(1000))
     country = db.Column(db.String(10))  # optional, from IP
+    session_id = db.Column(db.String(64), index=True)  # tab-scoped session
+    is_bot = db.Column(db.Boolean, default=False)
+    duration = db.Column(db.Integer)  # seconds on page
+    screen_width = db.Column(db.Integer)
+    screen_height = db.Column(db.Integer)
+    language = db.Column(db.String(20))
     viewed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
 

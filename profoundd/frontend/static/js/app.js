@@ -914,14 +914,8 @@ function showSourceNoteEditor(wrapper, existingText, stance) {
         acceptBtn.addEventListener('click', function() {
             setCookie('cookie_consent', 'accepted', 365);
             banner.style.display = 'none';
-            // Record this page view immediately via beacon
-            try {
-                fetch('/api/analytics/beacon', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({path: location.pathname, referrer: document.referrer})
-                });
-            } catch(e) {}
+            // Start tracking now that consent is given
+            window.__pfStartTracking && window.__pfStartTracking();
         });
     }
 
@@ -945,4 +939,68 @@ function showSourceNoteEditor(wrapper, existingText, stance) {
         var secure = location.protocol === 'https:' ? ';Secure' : '';
         document.cookie = name + '=' + value + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax' + secure;
     }
+})();
+
+/* =========================================
+   Enhanced Analytics Tracking
+   ========================================= */
+(function() {
+    function startTracking() {
+        // Don't track admin pages
+        if (location.pathname.startsWith('/admin')) return;
+
+        // Check cookie consent
+        var match = document.cookie.match(/(^| )cookie_consent=([^;]+)/);
+        if (!match || match[2] !== 'accepted') return;
+
+        // Session ID (tab-scoped, dies on tab close)
+        var sid = sessionStorage.getItem('pf_sid');
+        if (!sid) {
+            sid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+            sessionStorage.setItem('pf_sid', sid);
+        }
+
+        // Visitor ID (persistent across sessions)
+        var vid = localStorage.getItem('pf_vid');
+        if (!vid) {
+            vid = Math.random().toString(36).slice(2) + Date.now().toString(36);
+            localStorage.setItem('pf_vid', vid);
+        }
+
+        var pvId = null;
+        var loadTime = Date.now();
+
+        // Send page view
+        fetch('/api/analytics/track', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                path: location.pathname,
+                referrer: document.referrer || null,
+                sessionId: sid,
+                visitorId: vid,
+                screenWidth: screen.width || null,
+                screenHeight: screen.height || null,
+                language: navigator.language || null
+            })
+        }).then(function(r) { return r.json(); })
+          .then(function(data) { if (data.id) pvId = data.id; })
+          .catch(function() {});
+
+        // Send duration on page unload via sendBeacon
+        function sendDuration() {
+            if (!pvId) return;
+            var dur = Math.round((Date.now() - loadTime) / 1000);
+            if (dur < 1 || dur > 3600) return;
+            var blob = new Blob([JSON.stringify({id: pvId, duration: dur})], {type: 'application/json'});
+            navigator.sendBeacon('/api/analytics/duration', blob);
+        }
+        window.addEventListener('pagehide', sendDuration);
+    }
+
+    // Expose for cookie consent handler to call after accept
+    window.__pfStartTracking = startTracking;
+
+    // Start immediately if consent already given
+    startTracking();
 })();
