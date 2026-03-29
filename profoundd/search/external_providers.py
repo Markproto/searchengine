@@ -1014,6 +1014,7 @@ def fetch_polymarket(query="", subcategory=None, max_results=20):
                 "image_url": image,
                 "published_at": date_str,
                 "tags": ["prediction-market", "enhanced"],
+                "_state": _detect_state(title),
                 "_enhanced": True,
                 "_provider": "polymarket",
                 "_score": 0,
@@ -1056,6 +1057,35 @@ def fetch_polymarket(query="", subcategory=None, max_results=20):
     except Exception as e:
         logger.warning("Polymarket API error: %s", e)
         return []
+
+
+# --- State name detection for prediction markets ---
+STATE_NAME_TO_ABBREV = {
+    "alabama": "AL", "alaska": "AK", "arizona": "AZ", "arkansas": "AR",
+    "california": "CA", "colorado": "CO", "connecticut": "CT", "delaware": "DE",
+    "florida": "FL", "georgia": "GA", "hawaii": "HI", "idaho": "ID",
+    "illinois": "IL", "indiana": "IN", "iowa": "IA", "kansas": "KS",
+    "kentucky": "KY", "louisiana": "LA", "maine": "ME", "maryland": "MD",
+    "massachusetts": "MA", "michigan": "MI", "minnesota": "MN", "mississippi": "MS",
+    "missouri": "MO", "montana": "MT", "nebraska": "NE", "nevada": "NV",
+    "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
+    "north carolina": "NC", "north dakota": "ND", "ohio": "OH", "oklahoma": "OK",
+    "oregon": "OR", "pennsylvania": "PA", "rhode island": "RI", "south carolina": "SC",
+    "south dakota": "SD", "tennessee": "TN", "texas": "TX", "utah": "UT",
+    "vermont": "VT", "virginia": "VA", "washington": "WA", "west virginia": "WV",
+    "wisconsin": "WI", "wyoming": "WY",
+}
+ABBREV_TO_STATE_NAME = {v: k.title() for k, v in STATE_NAME_TO_ABBREV.items()}
+
+
+def _detect_state(text):
+    """Detect US state from text, return abbreviation or empty string."""
+    text_lower = text.lower()
+    # Check longer names first (e.g., "new hampshire" before "new")
+    for name in sorted(STATE_NAME_TO_ABBREV.keys(), key=len, reverse=True):
+        if name in text_lower:
+            return STATE_NAME_TO_ABBREV[name]
+    return ""
 
 
 # --- Manifold Markets provider ---
@@ -1163,6 +1193,7 @@ def fetch_manifold(query="", subcategory=None, max_results=20):
                 "image_url": "",
                 "published_at": date_str,
                 "tags": ["prediction-market", "enhanced"],
+                "_state": _detect_state(question),
                 "_enhanced": True,
                 "_provider": "manifold",
                 "_score": 0,
@@ -1205,6 +1236,20 @@ def fetch_manifold(query="", subcategory=None, max_results=20):
 
 
 # --- PredictIt provider ---
+
+def fetch_manifold_by_state(state_abbrev, max_results=10):
+    """Fetch Manifold markets related to a specific US state."""
+    state_name = ABBREV_TO_STATE_NAME.get(state_abbrev, "")
+    if not state_name:
+        return []
+    return fetch_manifold(query=f"{state_name} 2026", max_results=max_results)
+
+
+def fetch_predictit_by_state(state_abbrev, max_results=20):
+    """Fetch PredictIt markets for a specific state (filters from full list)."""
+    all_markets = fetch_predictit(query="", max_results=251)
+    return [m for m in all_markets if m.get("_state") == state_abbrev][:max_results]
+
 
 def fetch_predictit(query="", max_results=20):
     """
@@ -1276,6 +1321,8 @@ def fetch_predictit(query="", max_results=20):
             if contracts:
                 end_date = (contracts[0].get("dateEnd") or "")[:10]
 
+            detected_state = _detect_state(name)
+
             articles.append({
                 "title": name,
                 "summary": summary,
@@ -1284,6 +1331,7 @@ def fetch_predictit(query="", max_results=20):
                 "source_credibility": 7,
                 "category": "polymarket",
                 "subcategory": "elections",
+                "_state": detected_state,
                 "url": market_url,
                 "image_url": image,
                 "published_at": end_date,

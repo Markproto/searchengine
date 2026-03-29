@@ -106,6 +106,16 @@
     </details>
     {% endmacro %}
 
+    {# State header when viewing a specific state #}
+    {% if selected_state %}
+    <div class="state-poll-detail" style="margin-bottom:20px">
+        <div class="state-detail-header">
+            <a href="/category/polymarket" class="state-back-link">&larr; Back to all markets</a>
+            <h2 class="section-title">{{ state_names.get(selected_state, selected_state) }} Prediction Markets</h2>
+        </div>
+    </div>
+    {% endif %}
+
     {# Polymarket section #}
     {% if polymarket_articles %}
     <div class="pm-source-section">
@@ -152,6 +162,59 @@
             {% endfor %}
         </div>
     </div>
+    {% endif %}
+
+    {# State map for prediction markets (only on main view, not state drill-down) #}
+    {% if not selected_state and state_market_counts %}
+    <section class="polls-map-section" style="margin-top:30px">
+        <h2 class="section-title">Markets by State</h2>
+        <p class="section-desc">Click a state to see prediction markets for races in that state.</p>
+        <div class="polls-map-container" id="pm-state-map">
+            <object data="/static/images/us_map.svg" type="image/svg+xml" id="pm-map-svg" width="100%"></object>
+        </div>
+        <div class="state-grid" style="margin-top:16px">
+            {% for st in state_market_counts.keys() | sort %}
+            <a href="/category/polymarket?state={{ st }}" class="state-card" style="border-left: 4px solid #6366f1">
+                <span class="state-abbrev">{{ st }}</span>
+                <span class="state-name">{{ state_names.get(st, st) }}</span>
+                <span class="state-poll-count">{{ state_market_counts[st] }} markets</span>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    <script>
+    // Color prediction markets state map
+    (function() {
+        var counts = {{ state_market_counts | tojson }};
+        var mapObj = document.getElementById('pm-map-svg');
+        if (!mapObj) return;
+        mapObj.addEventListener('load', function() {
+            var svgDoc = mapObj.contentDocument;
+            if (!svgDoc) return;
+            var allPaths = svgDoc.querySelectorAll('path[id]');
+            allPaths.forEach(function(path) {
+                var id = path.getAttribute('id');
+                if (id && id.length === 2) {
+                    path.style.cursor = 'pointer';
+                    path.style.transition = 'opacity 0.2s';
+                    if (counts[id]) {
+                        path.style.fill = '#6366f1';
+                        path.style.opacity = Math.min(0.4 + (counts[id] / 20), 1).toFixed(2);
+                    } else {
+                        path.style.fill = '#374151';
+                    }
+                    path.addEventListener('mouseenter', function() { this.style.opacity = '0.6'; });
+                    path.addEventListener('mouseleave', function() {
+                        this.style.opacity = counts[id] ? Math.min(0.4 + (counts[id] / 20), 1).toFixed(2) : '1';
+                    });
+                    path.addEventListener('click', function() {
+                        window.location.href = '/category/polymarket?state=' + id;
+                    });
+                }
+            });
+        });
+    })();
+    </script>
     {% endif %}
 
     <script>

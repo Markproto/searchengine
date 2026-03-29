@@ -714,14 +714,35 @@ def create_app(config_override=None):
 
         # Prediction Markets is API-only (no indexed articles) — aggregate multiple sources
         if category_name == "polymarket":
-            from profoundd.search.external_providers import fetch_polymarket, fetch_manifold, fetch_predictit
+            from profoundd.search.external_providers import (
+                fetch_polymarket, fetch_manifold, fetch_predictit,
+                fetch_manifold_by_state, fetch_predictit_by_state,
+                ABBREV_TO_STATE_NAME,
+            )
+            selected_state = request.args.get("state", None)
             sub = subcategory if subcategory != "all" else None
-            polymarket_articles = fetch_polymarket(query="", subcategory=sub, max_results=15)
-            manifold_articles = fetch_manifold(query="", max_results=10)
-            predictit_articles = []
-            if not sub or sub == "elections":
-                predictit_articles = fetch_predictit(query="", max_results=8)
-            # Pass grouped sources to template
+
+            if selected_state:
+                # State-specific view: fetch markets for this state from all providers
+                polymarket_articles = fetch_polymarket(query=ABBREV_TO_STATE_NAME.get(selected_state, ""), max_results=10)
+                polymarket_articles = [a for a in polymarket_articles if a.get("_state") == selected_state or selected_state.lower() in a.get("title", "").lower()]
+                manifold_articles = fetch_manifold_by_state(selected_state, max_results=10)
+                predictit_articles = fetch_predictit_by_state(selected_state, max_results=15)
+            else:
+                polymarket_articles = fetch_polymarket(query="", subcategory=sub, max_results=15)
+                manifold_articles = fetch_manifold(query="", max_results=10)
+                predictit_articles = []
+                if not sub or sub == "elections":
+                    predictit_articles = fetch_predictit(query="", max_results=8)
+
+            # Build state map for the SVG (which states have markets)
+            all_for_states = fetch_predictit(query="", max_results=251)
+            state_market_counts = {}
+            for a in all_for_states:
+                st = a.get("_state", "")
+                if st:
+                    state_market_counts[st] = state_market_counts.get(st, 0) + 1
+
             articles = polymarket_articles
             total = len(polymarket_articles) + len(manifold_articles) + len(predictit_articles)
             pages = 1
@@ -732,6 +753,9 @@ def create_app(config_override=None):
                                    polymarket_articles=polymarket_articles,
                                    manifold_articles=manifold_articles,
                                    predictit_articles=predictit_articles,
+                                   selected_state=selected_state,
+                                   state_market_counts=state_market_counts,
+                                   state_names=ABBREV_TO_STATE_NAME,
                                    page=page, pages=pages, total=total,
                                    subcategory=subcategory,
                                    categories=CATEGORIES)
