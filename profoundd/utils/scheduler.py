@@ -60,8 +60,31 @@ def init_scheduler(app):
         kwargs={"app": app},
     )
 
+    # Prediction markets refresh (keeps Polymarket/Manifold/PredictIt data fresh)
+    polymarket_minutes = app.config.get("POLYMARKET_REFRESH_MINUTES", 30)
+    _scheduler.add_job(
+        func=_run_polymarket_refresh,
+        trigger=IntervalTrigger(minutes=polymarket_minutes),
+        id="polymarket_refresh",
+        name=f"Refresh prediction markets every {polymarket_minutes} min",
+        replace_existing=True,
+        kwargs={"app": app},
+    )
+
+    # Polls refresh (keeps RCP/538 polling data fresh)
+    polls_hours = app.config.get("POLLS_REFRESH_HOURS", 3)
+    _scheduler.add_job(
+        func=_run_polls_refresh,
+        trigger=IntervalTrigger(hours=polls_hours),
+        id="polls_refresh",
+        name=f"Refresh polls every {polls_hours} hours",
+        replace_existing=True,
+        kwargs={"app": app},
+    )
+
     _scheduler.start()
-    logger.info("Scheduler started: crawl every %d min, OSM refresh every %dh", interval_minutes, osm_refresh_hours)
+    logger.info("Scheduler started: crawl every %d min, OSM every %dh, markets every %dm, polls every %dh",
+                interval_minutes, osm_refresh_hours, polymarket_minutes, polls_hours)
     return _scheduler
 
 
@@ -141,6 +164,37 @@ def _run_osm_refresh(app):
         )
         db.session.commit()
         logger.info("OSM refresh complete: %d businesses across %d states", total, len(results))
+
+
+def _run_polymarket_refresh(app):
+    """Refresh prediction market data from Polymarket, Manifold, and PredictIt APIs."""
+    with app.app_context():
+        try:
+            from profoundd.search.external_providers import (
+                fetch_polymarket, fetch_manifold, fetch_predictit,
+            )
+            poly = fetch_polymarket(query="", subcategory="elections", max_results=20)
+            manifold = fetch_manifold(query="", max_results=15)
+            predictit = fetch_predictit(max_results=15)
+            total = len(poly) + len(manifold) + len(predictit)
+            logger.info("Prediction markets refresh: %d Polymarket, %d Manifold, %d PredictIt",
+                        len(poly), len(manifold), len(predictit))
+        except Exception:
+            logger.exception("Prediction markets refresh failed")
+
+
+def _run_polls_refresh(app):
+    """Refresh polling data from RealClearPolitics and 538."""
+    with app.app_context():
+        try:
+            from profoundd.search.polls_provider import get_polls_for_category
+            national, state_map, races, ratings = get_polls_for_category(max_results=30)
+            total_polls = len(national)
+            total_states = len(state_map)
+            logger.info("Polls refresh: %d national polls, %d states with data",
+                        total_polls, total_states)
+        except Exception:
+            logger.exception("Polls refresh failed")
 
 
 def _run_cleanup(app):
