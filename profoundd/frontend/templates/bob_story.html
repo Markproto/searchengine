@@ -24,13 +24,34 @@
     "@type": "NewsArticle",
     "headline": {{ story.title | tojson }},
     "description": {{ (story.seo_description or story.summary or story.title) | tojson }},
-    "author": {"@type": "Organization", "name": "Profoundd NewsRoom Bob"},
+    "author": {
+        "@type": "Organization",
+        "name": "Profoundd NewsRoom",
+        "url": "https://profoundd.com/newsroom"
+    },
     {% if story.image_url %}"image": {{ story.image_url | tojson }},{% endif %}
-    {% if story.published_at %}"datePublished": "{{ story.published_at.strftime('%Y-%m-%d') }}",{% endif %}
-    "publisher": {"@type": "Organization", "name": "Profoundd"},
+    {% if story.published_at %}"datePublished": "{{ story.published_at.strftime('%Y-%m-%dT%H:%M:%S+00:00') }}",{% endif %}
+    {% if story.published_at %}"dateModified": "{{ story.published_at.strftime('%Y-%m-%dT%H:%M:%S+00:00') }}",{% endif %}
+    "publisher": {"@type": "Organization", "name": "Profoundd", "url": "https://profoundd.com"},
     "mainEntityOfPage": "https://{{ site_domain }}/newsroom/{{ story.slug }}",
     {% if story.seo_keywords %}"keywords": {{ story.seo_keywords | tojson }},{% endif %}
-    "isBasedOn": {{ story.source_article_url | tojson }}
+    "isBasedOn": {{ story.source_article_url | tojson }},
+    "speakable": {
+        "@type": "SpeakableSpecification",
+        "cssSelector": [".article-summary", ".article-header h1"]
+    }
+}
+</script>
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://{{ site_domain }}/"},
+        {"@type": "ListItem", "position": 2, "name": "NewsRoom", "item": "https://{{ site_domain }}/newsroom"},
+        {% if story.category %}{"@type": "ListItem", "position": 3, "name": "{{ story.category | title }}", "item": "https://{{ site_domain }}/category/{{ story.category }}"},{% endif %}
+        {"@type": "ListItem", "position": {% if story.category %}4{% else %}3{% endif %}, "name": {{ story.title | tojson }}}
+    ]
 }
 </script>
 {% endblock %}
@@ -78,7 +99,7 @@
 
         {% if story.image_url %}
         <div class="article-hero-image">
-            <img src="{{ story.image_url }}" alt="{{ story.title }}" loading="lazy" decoding="async">
+            <img src="{{ story.image_url }}" alt="{{ story.title }}" loading="lazy" decoding="async" width="1200" height="630">
         </div>
         {% endif %}
 
@@ -118,5 +139,22 @@
             </button>
         </footer>
     </article>
+
+    {% if related %}
+    <section class="related-stories">
+        <h2>Related Stories</h2>
+        <div class="related-grid">
+            {% for r in related %}
+            <a href="{{ r.url }}" target="_blank" rel="noopener" class="related-card">
+                {% if r.image_url %}<img src="{{ r.image_url }}" alt="" loading="lazy" width="300" height="158">{% endif %}
+                <div class="related-info">
+                    <span class="related-source">{{ r.source_name }}</span>
+                    <h3>{{ r.title }}</h3>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
 </div>
 {% endblock %}

@@ -112,6 +112,13 @@ def create_app(config_override=None):
             "user_email": session.get("user_email", ""),
         }
 
+    # --- Long-lived cache headers for static assets ---
+    @app.after_request
+    def set_static_cache(response):
+        if request.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
     # --- Analytics: record page views ---
     from profoundd.utils.bot_detection import detect_bot
 
@@ -852,8 +859,16 @@ def create_app(config_override=None):
         article = search_engine.get_article(article_url)
         if not article:
             return render_template("404.html", categories=CATEGORIES), 404
+        # Related articles (same category, recent)
+        related = []
+        if search_engine.is_available() and article.get("category"):
+            try:
+                related = search_engine.get_trending(category=article["category"], size=5, hours=720)
+                related = [r for r in related if r.get("url") != article.get("url")][:4]
+            except Exception:
+                pass
         return render_template("article.html", article=article, doc_id=doc_id,
-                               categories=CATEGORIES)
+                               related=related, categories=CATEGORIES)
 
     # --- API Routes ---
 
@@ -1175,7 +1190,15 @@ def create_app(config_override=None):
         story = db.session.query(BobStory).filter_by(slug=slug, status="published").first()
         if not story:
             return render_template("404.html", categories=CATEGORIES), 404
-        return render_template("bob_story.html", story=story, categories=CATEGORIES)
+        # Related stories (same category, recent)
+        related = []
+        if search_engine.is_available() and story.category:
+            try:
+                related = search_engine.get_trending(category=story.category, size=5, hours=720)
+                related = [r for r in related if r.get("title") != story.title][:4]
+            except Exception:
+                pass
+        return render_template("bob_story.html", story=story, related=related, categories=CATEGORIES)
 
     @app.route("/robots.txt")
     def robots_txt():
@@ -1194,8 +1217,70 @@ Disallow: /api/
 Disallow: /health
 
 Sitemap: https://{domain}/sitemap.xml
+Sitemap: https://{domain}/news-sitemap.xml
 """
         return Response(content, mimetype="text/plain")
+
+    @app.route("/news-sitemap.xml")
+    def news_sitemap_xml():
+        """Google News sitemap — articles from last 48 hours."""
+        from html import escape
+        domain = app.config.get("DOMAIN", "profoundd.com")
+        base = f"https://{domain}"
+
+        xml_parts = ['<?xml version="1.0" encoding="UTF-8"?>']
+        xml_parts.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'
+                         ' xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">')
+
+        # Bob stories from last 48h
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=48)
+        stories = db.session.query(BobStory).filter(
+            BobStory.status == "published",
+            BobStory.published_at >= cutoff,
+        ).order_by(BobStory.published_at.desc()).limit(100).all()
+
+        for story in stories:
+            pub_date = story.published_at.strftime("%Y-%m-%dT%H:%M:%S+00:00") if story.published_at else ""
+            keywords = escape(story.seo_keywords or story.category or "")
+            xml_parts.append("  <url>")
+            xml_parts.append(f"    <loc>{base}/newsroom/{story.slug}</loc>")
+            xml_parts.append("    <news:news>")
+            xml_parts.append("      <news:publication>")
+            xml_parts.append("        <news:name>Profoundd</news:name>")
+            xml_parts.append("        <news:language>en</news:language>")
+            xml_parts.append("      </news:publication>")
+            xml_parts.append(f"      <news:publication_date>{pub_date}</news:publication_date>")
+            xml_parts.append(f"      <news:title>{escape(story.title)}</news:title>")
+            if keywords:
+                xml_parts.append(f"      <news:keywords>{keywords}</news:keywords>")
+            xml_parts.append("    </news:news>")
+            xml_parts.append("  </url>")
+
+        # Recent ES articles from last 48h
+        if search_engine.is_available():
+            recent = search_engine.get_latest(size=100, hours=48)
+            for article in recent:
+                pub = (article.get("published_at") or "")[:19]
+                if pub:
+                    pub += "+00:00"
+                xml_parts.append("  <url>")
+                xml_parts.append(f"    <loc>{escape(article.get('url', ''))}</loc>")
+                xml_parts.append("    <news:news>")
+                xml_parts.append("      <news:publication>")
+                xml_parts.append(f"        <news:name>{escape(article.get('source_name', 'Profoundd'))}</news:name>")
+                xml_parts.append("        <news:language>en</news:language>")
+                xml_parts.append("      </news:publication>")
+                if pub:
+                    xml_parts.append(f"      <news:publication_date>{pub}</news:publication_date>")
+                xml_parts.append(f"      <news:title>{escape(article.get('title', ''))}</news:title>")
+                cat = article.get("category", "")
+                if cat:
+                    xml_parts.append(f"      <news:keywords>{escape(cat)}</news:keywords>")
+                xml_parts.append("    </news:news>")
+                xml_parts.append("  </url>")
+
+        xml_parts.append("</urlset>")
+        return Response("\n".join(xml_parts), mimetype="application/xml")
 
     @app.route("/sitemap.xml")
     def sitemap_xml():

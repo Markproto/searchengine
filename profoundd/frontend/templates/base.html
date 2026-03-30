@@ -17,6 +17,8 @@
     <meta property="og:description" content="{% block og_description %}{{ seo_description or 'Search across News, Medical, Legal, Technology, Finance & Science from verified sources.' }}{% endblock %}">
     <meta property="og:url" content="{{ canonical_url }}">
     <meta property="og:image" content="{% block og_image_url %}{{ og_image }}{% endblock %}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta property="og:locale" content="en_US">
 
     <!-- Twitter Card -->
@@ -62,7 +64,7 @@
             if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
         })();
     </script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=4">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=5">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     {% block head %}{% endblock %}

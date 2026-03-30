@@ -3677,3 +3677,62 @@ body,
     }
 }
 
+/* =========================================
+   Related Stories
+   ========================================= */
+.related-stories {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+.related-stories h2 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+}
+.related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+}
+.related-card {
+    display: block;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--text);
+    transition: box-shadow 0.15s;
+}
+.related-card:hover {
+    box-shadow: var(--shadow);
+}
+.related-card img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    display: block;
+}
+.related-info {
+    padding: 0.75rem;
+}
+.related-source {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.related-info h3 {
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.article-hero-image img {
+    width: 100%;
+    height: auto;
+    max-height: 500px;
+    object-fit: cover;
+}
+

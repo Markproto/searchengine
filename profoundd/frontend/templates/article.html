@@ -19,11 +19,31 @@
     "@type": "Article",
     "headline": {{ article.title | tojson }},
     "description": {{ (article.summary or article.title) | tojson }},
-    "author": {"@type": "Organization", "name": {{ (article.source_name or "Profoundd Research") | tojson }}},
+    "author": {
+        "@type": "Organization",
+        "name": {{ (article.source_name or "Profoundd Research") | tojson }},
+        "url": {{ (article.source_url or "https://profoundd.com") | tojson }}
+    },
     {% if article.image_url %}"image": {{ article.image_url | tojson }},{% endif %}
     {% if article.published_at %}"datePublished": "{{ article.published_at[:10] }}",{% endif %}
-    "publisher": {"@type": "Organization", "name": "Profoundd"},
-    "mainEntityOfPage": "https://{{ site_domain }}/article/{{ doc_id }}"
+    {% if article.published_at %}"dateModified": "{{ article.published_at[:10] }}",{% endif %}
+    "publisher": {"@type": "Organization", "name": "Profoundd", "url": "https://profoundd.com"},
+    "mainEntityOfPage": "https://{{ site_domain }}/article/{{ doc_id }}",
+    "speakable": {
+        "@type": "SpeakableSpecification",
+        "cssSelector": [".article-summary", ".article-header h1"]
+    }
+}
+</script>
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://{{ site_domain }}/"},
+        {% if article.category %}{"@type": "ListItem", "position": 2, "name": "{{ article.category | title }}", "item": "https://{{ site_domain }}/category/{{ article.category }}"},{% endif %}
+        {"@type": "ListItem", "position": {% if article.category %}3{% else %}2{% endif %}, "name": {{ article.title | tojson }}}
+    ]
 }
 </script>
 {% endblock %}
@@ -82,7 +102,7 @@
 
         {% if article.image_url %}
         <div class="article-hero-image">
-            <img src="{{ article.image_url }}" alt="{{ article.title }}" loading="lazy" decoding="async">
+            <img src="{{ article.image_url }}" alt="{{ article.title }}" loading="lazy" decoding="async" width="1200" height="630">
         </div>
         {% endif %}
 
@@ -131,5 +151,22 @@
             {% endif %}
         </footer>
     </article>
+
+    {% if related %}
+    <section class="related-stories">
+        <h2>Related Stories</h2>
+        <div class="related-grid">
+            {% for r in related %}
+            <a href="{{ r.url }}" target="_blank" rel="noopener" class="related-card">
+                {% if r.image_url %}<img src="{{ r.image_url }}" alt="" loading="lazy" width="300" height="158">{% endif %}
+                <div class="related-info">
+                    <span class="related-source">{{ r.source_name }}</span>
+                    <h3>{{ r.title }}</h3>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
 </div>
 {% endblock %}

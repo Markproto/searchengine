@@ -4,6 +4,49 @@
 {% block og_title %}About - Profoundd{% endblock %}
 {% block og_description %}Learn about Profoundd, a multi-domain search engine covering News, Medical, Legal, Technology, Finance & Science from verified sources.{% endblock %}
 
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+        {
+            "@type": "Question",
+            "name": "What is Profoundd?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Profoundd is an open-source, multi-domain search engine that aggregates content from verified, credible sources across News, Medical, Legal, Technology, Finance, Science, and more. It ranks results by text relevance, source credibility, and recency."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "How does Profoundd rank search results?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Profoundd uses a combination of BM25 text relevance, source credibility scores (1-10 scale), and recency boosting. Higher-credibility sources rank higher, and articles from the last 24 hours to 7 days receive a recency boost."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "Does Profoundd have an API?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. Profoundd provides a free JSON API at GET /api/search?q=your+query&category=news&page=1 that returns articles with total count and pagination info."
+            }
+        },
+        {
+            "@type": "Question",
+            "name": "What sources does Profoundd use?",
+            "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Profoundd crawls RSS and Atom feeds from 80+ vetted sources including AP News, Reuters, NPR, The Hill, PubMed, CourtListener, Congress.gov, and many more. Each source is assigned a credibility score that influences search rankings."
+            }
+        }
+    ]
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container about-page">
     <h1>About Profoundd</h1>
