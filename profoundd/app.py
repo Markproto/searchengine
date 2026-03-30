@@ -13,7 +13,7 @@ from flask_login import LoginManager
 
 from profoundd.config.settings import get_config
 from profoundd.config.sources import CATEGORIES
-from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting, BobStory, NewsroomNote, SourceNote, PageView
+from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick
 from profoundd.search.engine import SearchEngine
 from profoundd.search.ai_summary import generate_summary as ai_generate_summary, is_available as ai_is_available
 from profoundd.admin.routes import admin_bp
@@ -209,6 +209,40 @@ def create_app(config_override=None):
                 pv.duration = duration
                 db.session.commit()
         except Exception:
+            db.session.rollback()
+
+        return jsonify(ok=True)
+
+    # --- Click tracking: log outbound article clicks with source bias ---
+    @app.route("/api/analytics/click", methods=["POST"])
+    def analytics_click():
+        """Record an outbound click on a search result for audience leaning."""
+        if session.get("admin_logged_in"):
+            return jsonify(ok=True)
+
+        data = request.get_json(silent=True) or {}
+        source_name = (data.get("source") or "")[:200]
+        if not source_name:
+            return jsonify(ok=False), 400
+
+        # Look up bias_score from Source table
+        src = db.session.query(Source).filter(Source.name == source_name).first()
+        bias = src.bias_score if src else 5
+
+        try:
+            click = ArticleClick(
+                visitor_id=(data.get("visitorId") or "")[:64] or None,
+                session_id=(data.get("sessionId") or "")[:64] or None,
+                source_name=source_name,
+                bias_score=bias,
+                article_url=(data.get("url") or "")[:1000],
+                search_query=(data.get("query") or "")[:500] or None,
+                category=(data.get("category") or "")[:50] or None,
+            )
+            db.session.add(click)
+            db.session.commit()
+        except Exception:
+            logger.exception("Failed to record article click")
             db.session.rollback()
 
         return jsonify(ok=True)

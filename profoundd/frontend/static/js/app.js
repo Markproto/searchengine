@@ -35,6 +35,26 @@ function showCopied(btn) {
 
 document.addEventListener('DOMContentLoaded', function() {
 
+    // --- Outbound Click Tracking (for audience leaning analytics) ---
+    document.querySelectorAll('.pf-track-click').forEach(function(link) {
+        link.addEventListener('click', function() {
+            var sid = sessionStorage.getItem('pf_sid') || '';
+            var vid = localStorage.getItem('pf_vid') || '';
+            var params = new URLSearchParams(window.location.search);
+            try {
+                navigator.sendBeacon('/api/analytics/click',
+                    new Blob([JSON.stringify({
+                        source: this.getAttribute('data-pf-source') || '',
+                        url: this.href || '',
+                        category: this.getAttribute('data-pf-category') || '',
+                        query: params.get('q') || '',
+                        sessionId: sid,
+                        visitorId: vid
+                    })], {type: 'application/json'}));
+            } catch(e) {}
+        });
+    });
+
     // --- Search Suggestions (Autocomplete) ---
     var searchInputs = document.querySelectorAll('.search-input, .nav-search-input');
     searchInputs.forEach(function(input) {

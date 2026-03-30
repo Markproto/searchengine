@@ -323,6 +323,21 @@ class PageView(db.Model):
     viewed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
 
+class ArticleClick(db.Model):
+    """Tracks outbound clicks on search results for audience leaning analysis."""
+    __tablename__ = "article_clicks"
+
+    id = db.Column(db.Integer, primary_key=True)
+    visitor_id = db.Column(db.String(64), index=True)
+    session_id = db.Column(db.String(64))
+    source_name = db.Column(db.String(200), index=True)
+    bias_score = db.Column(db.Integer)  # 1=far-left, 5=center, 10=far-right
+    article_url = db.Column(db.String(1000))
+    search_query = db.Column(db.String(500))
+    category = db.Column(db.String(50))
+    clicked_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+
 class NewsroomNote(db.Model):
     """Editorial notes added by admin to any article, visible to readers."""
     __tablename__ = "newsroom_notes"

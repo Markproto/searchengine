@@ -162,7 +162,7 @@
                     {% endif %}
                 </a>
                 {% else %}
-                <a href="{{ article.url }}" target="_blank" rel="noopener">
+                <a href="{{ article.url }}" target="_blank" rel="noopener" data-pf-source="{{ article.source_name }}" data-pf-category="{{ article.category }}" class="pf-track-click">
                     {% if article._highlights and article._highlights.title %}
                     {{ article._highlights.title[0] | safe }}
                     {% else %}

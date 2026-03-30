@@ -68,6 +68,51 @@
     </div>
     {% endif %}
 
+    <!-- Audience Political Leaning (30-day, from article clicks) -->
+    {% set total_clicks = leaning.left + leaning.center + leaning.right %}
+    {% if total_clicks > 0 %}
+    <div class="admin-section">
+        <h2>Audience Political Leaning <span style="font-size: .8rem; color: var(--text-muted); font-weight: normal;">(30-day, based on {{ total_clicks }} article clicks)</span></h2>
+
+        <div style="margin-bottom: 0.75rem;">
+            <strong style="font-size: 0.85rem; color: var(--text-secondary);">By Clicks</strong>
+            <div class="stacked-bar" style="margin-top: 0.25rem;">
+                {% set left_pct = (leaning.left / total_clicks * 100) | round(1) %}
+                {% set center_pct = (leaning.center / total_clicks * 100) | round(1) %}
+                {% set right_pct = (leaning.right / total_clicks * 100) | round(1) %}
+                {% if left_pct > 0 %}<div class="stacked-seg" style="width:{{ left_pct }}%;background:#3b82f6" title="Left: {{ leaning.left }} clicks ({{ left_pct }}%)"></div>{% endif %}
+                {% if center_pct > 0 %}<div class="stacked-seg" style="width:{{ center_pct }}%;background:#6b7280" title="Center: {{ leaning.center }} clicks ({{ center_pct }}%)"></div>{% endif %}
+                {% if right_pct > 0 %}<div class="stacked-seg" style="width:{{ right_pct }}%;background:#ef4444" title="Right: {{ leaning.right }} clicks ({{ right_pct }}%)"></div>{% endif %}
+            </div>
+            <div class="stacked-labels">
+                <span style="color:#3b82f6">Left {{ left_pct }}%</span>
+                <span style="color:#6b7280">Center {{ center_pct }}%</span>
+                <span style="color:#ef4444">Right {{ right_pct }}%</span>
+            </div>
+        </div>
+
+        {% set total_v = leaning_visitors.left + leaning_visitors.center + leaning_visitors.right %}
+        {% if total_v > 0 %}
+        <div>
+            <strong style="font-size: 0.85rem; color: var(--text-secondary);">By Unique Visitors</strong>
+            <div class="stacked-bar" style="margin-top: 0.25rem;">
+                {% set lv_pct = (leaning_visitors.left / total_v * 100) | round(1) %}
+                {% set cv_pct = (leaning_visitors.center / total_v * 100) | round(1) %}
+                {% set rv_pct = (leaning_visitors.right / total_v * 100) | round(1) %}
+                {% if lv_pct > 0 %}<div class="stacked-seg" style="width:{{ lv_pct }}%;background:#3b82f6" title="Left: {{ leaning_visitors.left }} visitors"></div>{% endif %}
+                {% if cv_pct > 0 %}<div class="stacked-seg" style="width:{{ cv_pct }}%;background:#6b7280" title="Center: {{ leaning_visitors.center }} visitors"></div>{% endif %}
+                {% if rv_pct > 0 %}<div class="stacked-seg" style="width:{{ rv_pct }}%;background:#ef4444" title="Right: {{ leaning_visitors.right }} visitors"></div>{% endif %}
+            </div>
+            <div class="stacked-labels">
+                <span style="color:#3b82f6">Left {{ lv_pct }}%</span>
+                <span style="color:#6b7280">Center {{ cv_pct }}%</span>
+                <span style="color:#ef4444">Right {{ rv_pct }}%</span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <!-- Top pages -->
     {% if top_pages %}
     <div class="admin-section">
@@ -203,6 +248,27 @@ function renderDayDetail(panel, d) {
         h += '</div>';
     }
     h += '</div></div>';
+
+    // Audience political leaning (from article clicks)
+    if (d.leaning) {
+        var lt = d.leaning.left || {clicks:0,visitors:0};
+        var ct = d.leaning.center || {clicks:0,visitors:0};
+        var rt = d.leaning.right || {clicks:0,visitors:0};
+        var totalC = lt.clicks + ct.clicks + rt.clicks;
+        if (totalC > 0) {
+            h += '<div class="detail-section"><h4>Audience Leaning (' + totalC + ' clicks)</h4>';
+            h += '<div class="stacked-bar">';
+            var lp = Math.round(lt.clicks/totalC*100), cp = Math.round(ct.clicks/totalC*100), rp = 100-lp-cp;
+            if (lp > 0) h += '<div class="stacked-seg" style="width:'+lp+'%;background:#3b82f6" title="Left: '+lt.clicks+'"></div>';
+            if (cp > 0) h += '<div class="stacked-seg" style="width:'+cp+'%;background:#6b7280" title="Center: '+ct.clicks+'"></div>';
+            if (rp > 0) h += '<div class="stacked-seg" style="width:'+rp+'%;background:#ef4444" title="Right: '+rt.clicks+'"></div>';
+            h += '</div><div class="stacked-labels">';
+            h += '<span style="color:#3b82f6">Left '+lp+'%</span> ';
+            h += '<span style="color:#6b7280">Center '+cp+'%</span> ';
+            h += '<span style="color:#ef4444">Right '+rp+'%</span>';
+            h += '</div></div>';
+        }
+    }
 
     // Traffic sources
     h += '<div class="detail-section"><h4>Traffic Sources</h4>';

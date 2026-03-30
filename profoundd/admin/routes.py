@@ -10,7 +10,7 @@ from functools import wraps
 import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote, PageView
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick
 from profoundd.config.settings import get_config
 from profoundd.config.sources import ALL_SOURCES, CATEGORIES, SPECIAL_SECTION_KEYWORDS
 from profoundd.search.engine import SearchEngine
@@ -146,6 +146,24 @@ def dashboard():
                            categories=CATEGORIES)
 
 
+def _get_day_leaning(day_start, day_end):
+    """Compute audience political leaning from article clicks for a date range."""
+    clicks = db.session.query(ArticleClick).filter(
+        ArticleClick.clicked_at >= day_start,
+        ArticleClick.clicked_at < day_end,
+        ArticleClick.bias_score.isnot(None),
+    ).all()
+    result = {"left": {"clicks": 0, "visitors": set()},
+              "center": {"clicks": 0, "visitors": set()},
+              "right": {"clicks": 0, "visitors": set()}}
+    for c in clicks:
+        bucket = "left" if c.bias_score <= 3 else ("right" if c.bias_score >= 7 else "center")
+        result[bucket]["clicks"] += 1
+        if c.visitor_id:
+            result[bucket]["visitors"].add(c.visitor_id)
+    return {k: {"clicks": v["clicks"], "visitors": len(v["visitors"])} for k, v in result.items()}
+
+
 @admin_bp.route("/analytics")
 @login_required
 def analytics():
@@ -231,6 +249,26 @@ def analytics():
         db.or_(PageView.is_bot == False, PageView.is_bot.is_(None)),
     ).scalar() or 0
 
+    # Audience political leaning (from article clicks, 30-day window)
+    leaning_cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+    leaning_clicks = db.session.query(ArticleClick).filter(
+        ArticleClick.clicked_at >= leaning_cutoff,
+        ArticleClick.bias_score.isnot(None),
+    ).all()
+    leaning = {"left": 0, "center": 0, "right": 0}
+    leaning_visitors = {"left": set(), "center": set(), "right": set()}
+    for click in leaning_clicks:
+        if click.bias_score <= 3:
+            bucket = "left"
+        elif click.bias_score <= 6:
+            bucket = "center"
+        else:
+            bucket = "right"
+        leaning[bucket] += 1
+        if click.visitor_id:
+            leaning_visitors[bucket].add(click.visitor_id)
+    leaning_visitor_counts = {k: len(v) for k, v in leaning_visitors.items()}
+
     return render_template("admin/analytics.html",
                            categories=CATEGORIES,
                            days=days,
@@ -244,7 +282,9 @@ def analytics():
                            top_referrers=top_referrers,
                            recent_views=recent_views,
                            total_all_time=total_all_time,
-                           unique_all_time=unique_all_time)
+                           unique_all_time=unique_all_time,
+                           leaning=leaning,
+                           leaning_visitors=leaning_visitor_counts)
 
 
 @admin_bp.route("/api/analytics/day/<date_str>")
@@ -409,6 +449,7 @@ def analytics_day_detail(date_str):
         exit_pages=top_n(exit_pages, 10),
         referrer_domains=top_n(referrer_domains, 10),
         internal_searches=[[r.q, r.count] for r in internal_searches],
+        leaning=_get_day_leaning(day_start, day_end),
     )
 
 
