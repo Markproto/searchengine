@@ -249,6 +249,52 @@ def analytics():
         db.or_(PageView.is_bot == False, PageView.is_bot.is_(None)),
     ).scalar() or 0
 
+    # Period-level session metrics
+    from profoundd.utils.bot_detection import classify_referrer
+    period_views = db.session.query(PageView).filter(
+        PageView.viewed_at >= cutoff,
+        db.or_(PageView.is_bot == False, PageView.is_bot.is_(None)),
+    ).all()
+
+    session_map = defaultdict(list)
+    durations = []
+    search_count = 0
+    new_visitor_ids = set()
+    returning_visitor_ids = set()
+
+    for pv in period_views:
+        if pv.session_id:
+            session_map[pv.session_id].append(pv)
+        if pv.duration and pv.duration > 0:
+            durations.append(pv.duration)
+        ref_info = classify_referrer(pv.referrer)
+        if ref_info["source"] == "Search":
+            search_count += 1
+
+    total_sessions = len(session_map)
+    bounce_count = sum(1 for pvs in session_map.values() if len(pvs) == 1)
+    pages_per = [len(pvs) for pvs in session_map.values()]
+
+    period_bounce_rate = round(bounce_count / total_sessions * 100, 1) if total_sessions else 0
+    period_avg_pages = round(sum(pages_per) / len(pages_per), 1) if pages_per else 0
+    period_avg_duration = round(sum(durations) / len(durations)) if durations else 0
+    period_search_pct = round(search_count / len(period_views) * 100, 1) if period_views else 0
+
+    # New vs returning for period
+    visitor_ids_in_period = set(pv.visitor_id for pv in period_views if pv.visitor_id)
+    for vid in visitor_ids_in_period:
+        has_prior = db.session.query(PageView.id).filter(
+            PageView.visitor_id == vid,
+            PageView.viewed_at < cutoff,
+        ).limit(1).first()
+        if has_prior:
+            returning_visitor_ids.add(vid)
+        else:
+            new_visitor_ids.add(vid)
+
+    period_new = len(new_visitor_ids)
+    period_returning = len(returning_visitor_ids)
+
     # Audience political leaning (from article clicks, 30-day window)
     leaning_cutoff = datetime.now(timezone.utc) - timedelta(days=30)
     leaning_clicks = db.session.query(ArticleClick).filter(
@@ -284,7 +330,14 @@ def analytics():
                            total_all_time=total_all_time,
                            unique_all_time=unique_all_time,
                            leaning=leaning,
-                           leaning_visitors=leaning_visitor_counts)
+                           leaning_visitors=leaning_visitor_counts,
+                           period_bounce_rate=period_bounce_rate,
+                           period_avg_pages=period_avg_pages,
+                           period_avg_duration=period_avg_duration,
+                           period_search_pct=period_search_pct,
+                           period_new=period_new,
+                           period_returning=period_returning,
+                           total_sessions=total_sessions)
 
 
 @admin_bp.route("/api/analytics/day/<date_str>")

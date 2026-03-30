@@ -47,6 +47,34 @@
         </div>
     </div>
 
+    <!-- Session metrics for period -->
+    <div class="stats-grid" style="margin-top: 1rem;">
+        <div class="stat-card">
+            <h3>Sessions ({{ days }}d)</h3>
+            <p class="stat-value">{{ "{:,}".format(total_sessions) }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Pages/Visit</h3>
+            <p class="stat-value">{{ period_avg_pages }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Bounce Rate</h3>
+            <p class="stat-value">{{ period_bounce_rate }}%</p>
+        </div>
+        <div class="stat-card">
+            <h3>Avg Duration</h3>
+            <p class="stat-value">{% if period_avg_duration >= 60 %}{{ (period_avg_duration // 60) }}m {{ period_avg_duration % 60 }}s{% else %}{{ period_avg_duration }}s{% endif %}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Search Traffic</h3>
+            <p class="stat-value">{{ period_search_pct }}%</p>
+        </div>
+        <div class="stat-card">
+            <h3>New / Returning</h3>
+            <p class="stat-value" style="font-size: 1.1rem;">{{ period_new }} / {{ period_returning }}</p>
+        </div>
+    </div>
+
     <!-- Daily traffic bars (clickable for drilldown) -->
     {% if daily_views %}
     <div class="admin-section">
@@ -158,23 +186,29 @@
     {% if recent_views %}
     <div class="admin-section">
         <h2>Recent Visitors</h2>
-        <table class="admin-table">
+        <div style="overflow-x: auto;">
+        <table class="admin-table" style="font-size: 0.85rem;">
             <thead>
-                <tr><th>Time</th><th>Page</th><th>Visitor</th><th>IP</th><th>Bot</th><th>Referrer</th></tr>
+                <tr><th>Time</th><th>Page</th><th>Visitor</th><th>Session</th><th>IP</th><th>Bot</th><th>Duration</th><th>Screen</th><th>Lang</th><th>Referrer</th></tr>
             </thead>
             <tbody>
                 {% for pv in recent_views %}
                 <tr{% if pv.is_bot %} style="opacity: 0.5"{% endif %}>
-                    <td>{{ pv.viewed_at.strftime('%m/%d %H:%M') if pv.viewed_at else '' }}</td>
-                    <td><code>{{ pv.path[:60] }}</code></td>
+                    <td style="white-space:nowrap">{{ pv.viewed_at.strftime('%m/%d %H:%M') if pv.viewed_at else '' }}</td>
+                    <td><code>{{ pv.path[:50] }}</code></td>
                     <td title="{{ pv.visitor_id }}">{{ (pv.visitor_id or '')[:8] }}{% if pv.visitor_id %}...{% endif %}</td>
+                    <td title="{{ pv.session_id }}">{{ (pv.session_id or '')[:6] }}{% if pv.session_id %}..{% endif %}</td>
                     <td>{{ pv.ip_address }}</td>
                     <td>{% if pv.is_bot %}<span style="color: var(--warning)">Bot</span>{% else %}Human{% endif %}</td>
-                    <td>{{ (pv.referrer or '')[:50] }}</td>
+                    <td>{% if pv.duration %}{{ pv.duration }}s{% endif %}</td>
+                    <td>{% if pv.screen_width %}{{ pv.screen_width }}x{{ pv.screen_height }}{% endif %}</td>
+                    <td>{{ pv.language or '' }}</td>
+                    <td>{{ (pv.referrer or '')[:40] }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div>
     {% endif %}
 </div>
