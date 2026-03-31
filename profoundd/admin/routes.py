@@ -1989,6 +1989,119 @@ def bob_story_restore_original(story_id):
     return redirect(url_for("admin.bob_stories_list"))
 
 
+# --- Write / Edit Original Stories ---
+
+@admin_bp.route("/write-story", methods=["GET", "POST"])
+@login_required
+def write_story():
+    """Admin page to write an original story that lives entirely on Profoundd."""
+    from profoundd.search.newsroom_bob import make_slug
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        content = request.form.get("content", "").strip()
+        summary = request.form.get("summary", "").strip()
+        category = request.form.get("category", "news").strip()
+        image_url = request.form.get("image_url", "").strip()
+        seo_keywords = request.form.get("seo_keywords", "").strip()
+        seo_description = request.form.get("seo_description", "").strip()
+        author_name = request.form.get("author_name", "").strip() or "Profoundd"
+
+        if not title or not content:
+            flash("Title and content are required.", "error")
+            return render_template("admin/write_story.html", categories=CATEGORIES,
+                                   form=request.form)
+
+        # Build slug and ensure uniqueness
+        slug = make_slug(title)
+        base_slug = slug
+        counter = 1
+        while db.session.query(BobStory).filter_by(slug=slug).first():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+
+        story = BobStory(
+            title=title,
+            slug=slug,
+            content=content,
+            summary=summary or title,
+            seo_keywords=seo_keywords,
+            seo_description=seo_description or summary[:300] if summary else title[:300],
+            category=category,
+            image_url=image_url or None,
+            source_article_url=f"profoundd://original/{slug}",
+            source_article_title="",
+            source_name=author_name,
+        )
+        db.session.add(story)
+        db.session.commit()
+
+        # Index to Elasticsearch
+        try:
+            engine = SearchEngine(config.ELASTICSEARCH_URL)
+            es_doc = story.to_es_doc()
+            es_doc["source_name"] = author_name
+            engine.index_article(es_doc)
+        except Exception as e:
+            logger.warning("Could not index original story to ES: %s", e)
+
+        flash(f"Published: {title}", "success")
+        return redirect(url_for("admin.bob_stories_list"))
+
+    return render_template("admin/write_story.html", categories=CATEGORIES, form={})
+
+
+@admin_bp.route("/edit-story/<int:story_id>", methods=["GET", "POST"])
+@login_required
+def edit_story(story_id):
+    """Edit an existing story (original or Bob-generated)."""
+    story = db.session.query(BobStory).get(story_id)
+    if not story:
+        flash("Story not found.", "error")
+        return redirect(url_for("admin.bob_stories_list"))
+
+    if request.method == "POST":
+        story.title = request.form.get("title", "").strip() or story.title
+        story.content = request.form.get("content", "").strip() or story.content
+        story.summary = request.form.get("summary", "").strip()
+        story.category = request.form.get("category", story.category).strip()
+        story.image_url = request.form.get("image_url", "").strip() or None
+        story.seo_keywords = request.form.get("seo_keywords", "").strip()
+        story.seo_description = request.form.get("seo_description", "").strip()
+
+        author_name = request.form.get("author_name", "").strip()
+        if author_name:
+            story.source_name = author_name
+
+        db.session.commit()
+
+        # Re-index to Elasticsearch
+        try:
+            engine = SearchEngine(config.ELASTICSEARCH_URL)
+            es_doc = story.to_es_doc()
+            if author_name:
+                es_doc["source_name"] = author_name
+            engine.index_article(es_doc)
+        except Exception as e:
+            logger.warning("Could not re-index story to ES: %s", e)
+
+        flash(f"Updated: {story.title}", "success")
+        return redirect(url_for("admin.bob_stories_list"))
+
+    return render_template("admin/write_story.html", categories=CATEGORIES,
+                           form={
+                               "title": story.title,
+                               "content": story.content,
+                               "summary": story.summary,
+                               "category": story.category,
+                               "image_url": story.image_url or "",
+                               "seo_keywords": story.seo_keywords or "",
+                               "seo_description": story.seo_description or "",
+                               "author_name": story.source_name or "",
+                           },
+                           story=story)
+
+
 # --- Special Section Re-categorization ---
 
 @admin_bp.route("/recategorize-sections", methods=["POST"])

@@ -26,7 +26,7 @@
     "description": {{ (story.seo_description or story.summary or story.title) | tojson }},
     "author": {
         "@type": "Organization",
-        "name": "Profoundd NewsRoom",
+        "name": {{ (story.source_name or "Profoundd NewsRoom") | tojson }},
         "url": "https://profoundd.com/newsroom"
     },
     {% if story.image_url %}"image": {{ story.image_url | tojson }},{% endif %}
@@ -35,7 +35,7 @@
     "publisher": {"@type": "Organization", "name": "Profoundd", "url": "https://profoundd.com"},
     "mainEntityOfPage": "https://{{ site_domain }}/newsroom/{{ story.slug }}",
     {% if story.seo_keywords %}"keywords": {{ story.seo_keywords | tojson }},{% endif %}
-    "isBasedOn": {{ story.source_article_url | tojson }},
+    {% if story.source_article_url and not story.source_article_url.startswith('profoundd://') %}"isBasedOn": {{ story.source_article_url | tojson }},{% endif %}
     "speakable": {
         "@type": "SpeakableSpecification",
         "cssSelector": [".article-summary", ".article-header h1"]
@@ -73,7 +73,11 @@
     <article class="article-detail">
         <header class="article-header">
             <div class="article-meta-bar">
+                {% if story.source_article_url and story.source_article_url.startswith('profoundd://original/') %}
+                <span class="result-source bob-byline">{{ story.source_name or 'Profoundd' }}</span>
+                {% else %}
                 <span class="result-source bob-byline">NewsRoom Bob</span>
+                {% endif %}
                 {% if story.category %}
                 <span class="result-category category-tag-{{ story.category }}">{{ story.category | title }}</span>
                 {% endif %}
@@ -91,7 +95,7 @@
                 {% if story.published_at %}
                 <span class="article-date">{{ story.published_at.strftime('%B %d, %Y') }}</span>
                 {% endif %}
-                {% if story.source_name %}
+                {% if story.source_name and not story.source_article_url.startswith('profoundd://original/') %}
                 <span class="bob-source-credit">Based on reporting by <strong>{{ story.source_name }}</strong></span>
                 {% endif %}
             </div>
@@ -125,6 +129,7 @@
         {% endif %}
 
         <footer class="article-footer">
+            {% if story.source_article_url and not story.source_article_url.startswith('profoundd://original/') %}
             <div class="bob-original-source">
                 <span class="credibility-badge credibility-high">AI Generated</span>
                 <span class="bob-source-label">Original Source:</span>
@@ -133,6 +138,7 @@
                     {{ story.source_article_title or story.source_name or 'View Original' }}
                 </a>
             </div>
+            {% endif %}
             <button type="button" class="share-link-btn" onclick="copyShareLink(this)" title="Copy shareable link">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                 Share Story
