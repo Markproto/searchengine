@@ -5,6 +5,9 @@ Expand this list as needed via the admin panel.
 """
 
 NEWS_SOURCES = [
+    # --- Oregon Corner (staff-written) ---
+    {"name": "Oregon Corner", "url": "https://oregoncorner.com/api/feed", "category": "news", "credibility": 9, "feed_type": "rss"},
+
     # --- US News ---
     {"name": "Washington Post", "url": "https://feeds.washingtonpost.com/rss/national", "category": "news", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
     {"name": "ABC News", "url": "https://abcnews.go.com/abcnews/topstories", "category": "news", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
