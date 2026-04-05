@@ -276,6 +276,8 @@ def create_app(config_override=None):
             "ALTER TABLE page_views ADD COLUMN screen_width INTEGER",
             "ALTER TABLE page_views ADD COLUMN screen_height INTEGER",
             "ALTER TABLE page_views ADD COLUMN language VARCHAR(20)",
+            "ALTER TABLE admin_users ADD COLUMN magic_token VARCHAR(128)",
+            "ALTER TABLE admin_users ADD COLUMN magic_token_expires DATETIME",
         ]:
             try:
                 db.session.execute(db.text(col_sql))

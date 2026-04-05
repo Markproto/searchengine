@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Forgot Password{% endblock %}
+
+{% block content %}
+<div class="container admin-login">
+    <div class="login-card">
+        <h1>Forgot Password?</h1>
+        <p style="color: #94a3b8; margin-bottom: 16px;">Enter your admin email and we'll send a login link.</p>
+        <form method="POST">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required autofocus>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Send Login Link</button>
+        </form>
+        <p style="text-align: center; margin-top: 12px;">
+            <a href="{{ url_for('admin.login') }}" style="color: #6366f1; font-size: 14px;">Back to login</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

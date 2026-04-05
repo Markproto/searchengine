@@ -3,6 +3,7 @@ Admin panel routes for managing sources, rankings, and monitoring.
 """
 import logging
 import re
+import secrets
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from functools import wraps
@@ -58,6 +59,7 @@ admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 _login_attempts = defaultdict(list)
 LOGIN_MAX_ATTEMPTS = 10
 LOGIN_LOCKOUT_SECONDS = 180  # 3 minutes
+ADMIN_MAGIC_EMAIL = "mark.hutto@protonmail.com"
 
 
 def login_required(f):
@@ -113,6 +115,59 @@ def logout():
     session.pop("admin_user", None)
     flash("Logged out.", "info")
     return redirect(url_for("admin.login"))
+
+
+@admin_bp.route("/forgot", methods=["GET", "POST"])
+def forgot():
+    if request.method == "POST":
+        ip = request.remote_addr
+        if _is_locked_out(ip):
+            flash("Too many attempts. Try again in 3 minutes.", "error")
+            return render_template("admin/forgot.html")
+
+        _login_attempts[ip].append(datetime.now(timezone.utc))
+
+        email = request.form.get("email", "").strip().lower()
+        if email == ADMIN_MAGIC_EMAIL:
+            user = db.session.query(AdminUser).first()
+            if user:
+                token = secrets.token_urlsafe(48)
+                user.magic_token = token
+                user.magic_token_expires = datetime.now(timezone.utc) + timedelta(minutes=15)
+                db.session.commit()
+
+                from profoundd.auth.email import send_magic_link
+                magic_url = url_for("admin.admin_magic_verify", token=token, _external=True)
+                send_magic_link(email, magic_url)
+
+        flash("If that email is associated with an admin account, a login link has been sent.", "success")
+        return redirect(url_for("admin.login"))
+
+    return render_template("admin/forgot.html")
+
+
+@admin_bp.route("/magic/<token>")
+def admin_magic_verify(token):
+    user = db.session.query(AdminUser).filter_by(magic_token=token).first()
+
+    if not user:
+        flash("Invalid or expired login link.", "error")
+        return redirect(url_for("admin.login"))
+
+    if user.magic_token_expires and user.magic_token_expires < datetime.now(timezone.utc):
+        flash("Login link has expired. Please request a new one.", "error")
+        user.magic_token = None
+        db.session.commit()
+        return redirect(url_for("admin.login"))
+
+    session["admin_logged_in"] = True
+    session["admin_user"] = user.username
+    user.magic_token = None
+    user.magic_token_expires = None
+    db.session.commit()
+
+    flash("Logged in successfully.", "success")
+    return redirect(url_for("admin.dashboard"))
 
 
 @admin_bp.route("/")
