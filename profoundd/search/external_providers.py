@@ -788,42 +788,59 @@ def fetch_brave_web(query, max_results=10):
 def boost_known_domains(articles):
     """
     Re-rank web results to prioritize domains from Profoundd's source list.
-    Known domains get boosted to the top, maintaining their relative order.
+    Known domains get boosted to the top and inherit credibility + sponsor
+    metadata from our source config.
     """
     from profoundd.config.sources import ALL_SOURCES
     from urllib.parse import urlparse
 
-    # Build set of known domains from source URLs
+    # Build domain → source metadata map
+    domain_meta = {}  # domain -> {credibility, sponsors, name}
     known_domains = set()
     for src in ALL_SOURCES:
         try:
             parsed = urlparse(src["url"])
             domain = parsed.netloc.replace("www.", "").replace("feeds.", "").replace("rss.", "")
-            # Also extract the base domain (e.g. "zerohedge.com" from "feeds.feedburner.com")
+            meta = {
+                "credibility": src.get("credibility", 5),
+                "sponsors": src.get("sponsors"),
+                "name": src.get("name", ""),
+            }
             if "feedburner" not in domain and "megaphone" not in domain and "libsyn" not in domain:
                 known_domains.add(domain)
-            # Use source name to match domains loosely
+                domain_meta[domain] = meta
             name_slug = src["name"].lower().replace(" ", "").replace("-", "")
             known_domains.add(name_slug)
+            domain_meta[name_slug] = meta
         except Exception:
             continue
 
-    # Also add common domain forms from source names
     for src in ALL_SOURCES:
         name = src["name"].lower()
+        meta = {
+            "credibility": src.get("credibility", 5),
+            "sponsors": src.get("sponsors"),
+            "name": src.get("name", ""),
+        }
         for variant in [
             name.replace(" ", "").replace("(", "").replace(")", ""),
             name.split("(")[0].strip().replace(" ", ""),
         ]:
             known_domains.add(variant)
+            domain_meta[variant] = meta
 
-    # Split articles into known and unknown
+    # Split articles into known and unknown, apply metadata
     known = []
     unknown = []
     for article in articles:
         domain = article.get("source_name", "").lower()
         domain_base = domain.split(".")[0] if "." in domain else domain
+        matched_meta = domain_meta.get(domain) or domain_meta.get(domain_base)
         if domain in known_domains or domain_base in known_domains:
+            if matched_meta:
+                article["source_credibility"] = matched_meta["credibility"]
+                if matched_meta["sponsors"]:
+                    article["source_sponsors"] = [matched_meta["sponsors"]] if isinstance(matched_meta["sponsors"], str) else matched_meta["sponsors"]
             known.append(article)
         else:
             unknown.append(article)
