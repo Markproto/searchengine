@@ -563,54 +563,61 @@ main { flex: 1; }
 
 .result-card {
     background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    margin-bottom: 12px;
-    transition: all 0.2s;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    padding: 16px 0 20px 0;
+    margin-bottom: 0;
+    transition: none;
 }
-.result-card:hover { border-color: transparent; box-shadow: var(--shadow); }
+.result-card:hover { border-color: var(--border); box-shadow: none; }
 .result-header {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     flex-wrap: wrap;
 }
 .result-source {
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+.result-source::after {
+    content: " \00b7";
     color: var(--text-secondary);
 }
 .result-category {
     font-size: 0.7rem;
     text-transform: uppercase;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
 }
 .credibility-badge {
     font-size: 0.7rem;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-weight: 600;
+    padding: 0;
+    border-radius: 0;
+    font-weight: 500;
+    background: none;
 }
-.credibility-high { background: rgba(22,163,74,0.1); color: var(--success); }
-.credibility-medium { background: rgba(202,138,4,0.1); color: var(--warning); }
-.credibility-low { background: rgba(220,38,38,0.1); color: var(--danger); }
+.credibility-high { color: var(--text-secondary, #9ca3af); }
+.credibility-medium { color: var(--text-secondary, #9ca3af); }
+.credibility-low { color: var(--danger); }
 /* Sponsor disclosure badge */
 .sponsor-badge {
     font-size: 0.65rem;
-    padding: 2px 7px;
-    border-radius: 10px;
-    font-weight: 600;
-    background: rgba(59, 130, 246, 0.1);
-    color: #2563eb;
+    padding: 0;
+    border-radius: 0;
+    font-weight: 400;
+    font-style: italic;
+    background: none;
+    color: var(--text-secondary, #9ca3af);
     letter-spacing: 0.02em;
     white-space: nowrap;
 }
 [data-theme="dark"] .sponsor-badge {
-    background: rgba(96, 165, 250, 0.15);
-    color: #93c5fd;
+    background: none;
+    color: var(--text-secondary, #6b7280);
 }
 
 /* --- Subcategory Tabs & Badge --- */
@@ -1432,17 +1439,18 @@ main { flex: 1; }
     font-size: 0.8rem;
 }
 .enhanced-result {
-    border-left: 3px solid var(--success) !important;
+    border-left: none !important;
 }
 .enhanced-badge {
     font-size: 0.65rem;
-    font-weight: 600;
-    color: var(--success);
-    background: rgba(22, 163, 74, 0.08);
-    padding: 2px 8px;
-    border-radius: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--text-secondary, #9ca3af);
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    text-transform: none;
+    letter-spacing: 0;
 }
 
 /* --- Web Fallback Banner --- */

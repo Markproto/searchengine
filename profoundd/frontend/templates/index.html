@@ -20,165 +20,67 @@
 {% block nav_search %}{% endblock %}
 
 {% block content %}
-<section class="hero">
-    <div class="container">
-        <h1 class="hero-title">Search What Matters</h1>
-        <p class="hero-subtitle">Verified sources across News, Medical, Legal, Technology, Finance & Science</p>
+<section class="hero" style="padding: 12vh 0 4vh; text-align: center;">
+    <div class="container" style="max-width: 680px;">
+        <h1 style="font-size: 2.4rem; font-weight: 300; letter-spacing: 0.15em; margin-bottom: 2rem; color: var(--text-primary);">P R O F O U N D D</h1>
 
         <form action="/search" method="GET" class="search-form hero-search">
-            <div class="search-input-group">
-                <input type="text" name="q" placeholder="Search across all domains..." autofocus
-                       class="search-input" autocomplete="off">
-                <select name="category" class="category-select">
-                    <option value="all">All Categories</option>
+            <div class="search-input-group" style="max-width: 600px; margin: 0 auto;">
+                <input type="text" name="q" placeholder="Search..." autofocus
+                       class="search-input" autocomplete="off"
+                       style="font-size: 1.1rem; padding: 14px 20px; border-radius: 24px;">
+                <select name="category" class="category-select" style="border-radius: 24px;">
+                    <option value="all">All</option>
                     {% for key, cat in categories.items() %}
                     <option value="{{ key }}">{{ cat.label }}</option>
                     {% endfor %}
                 </select>
-                <button type="submit" class="search-btn">Search</button>
+                <button type="submit" class="search-btn" style="border-radius: 24px;">Search</button>
             </div>
         </form>
-        <div class="hero-featured">
-            <a href="/category/polymarket" class="featured-polymarket-link">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/></svg>
-                <span>Prediction Markets</span>
-                <span class="featured-badge">Live Odds</span>
-            </a>
-            <a href="/category/polls" class="featured-polls-link">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-                <span>Polls</span>
-                <span class="featured-badge featured-badge-polls">50 States</span>
-            </a>
-        </div>
-    </div>
-</section>
 
-<section class="categories-section">
-    <div class="container">
-        <h2 class="section-title">Explore Categories</h2>
-        <div class="category-grid">
-            {% for key, cat in categories.items() %}
-            <a href="/category/{{ key }}" class="category-card category-{{ key }}">
-                <div class="category-icon">
-                    {% if key == 'news' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 8h16M8 4v16"/></svg>
-                    {% elif key == 'epstein-files' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/><path d="M9 14h6M9 18h3"/></svg>
-                    {% elif key == 'charlie-kirk' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
-                    {% elif key == 'medical' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16M4 12h16"/><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-                    {% elif key == 'legal' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7h20L12 2zM4 7v10h16V7M2 22h20M8 17v5M16 17v5"/></svg>
-                    {% elif key == 'tech' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-                    {% elif key == 'finance' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20L7 12l4 4 4-8 6 12"/></svg>
-                    {% elif key == 'science' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3v7.4l-4 6.6h14l-4-6.6V3"/><path d="M8 3h8"/></svg>
-                    {% elif key == 'education' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10l-10-6L2 10l10 6 10-6z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-                    {% elif key == 'environment' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8C8 10 5.9 16.17 3.82 21.34M17 8A5 5 0 1 0 17 8z"/><path d="M2 2s7 3 7 10"/></svg>
-                    {% elif key == 'politics' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg>
-                    {% elif key == 'markets' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><circle cx="15" cy="17" r="4"/><path d="M17 5l-10 14"/></svg>
-                    {% elif key == 'youtube' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.546 12 3.546 12 3.546s-7.505 0-9.377.504A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.504 9.376.504 9.376.504s7.505 0 9.377-.504a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-                    {% elif key == 'rumble' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M19.6 4.4C17.6 2.4 14.9 1.2 12 1.2S6.4 2.4 4.4 4.4 1.2 9.1 1.2 12s1.2 5.6 3.2 7.6c2 2 4.7 3.2 7.6 3.2s5.6-1.2 7.6-3.2c2-2 3.2-4.7 3.2-7.6s-1.2-5.6-3.2-7.6zm-3.1 10.4l-5.4 3.1c-.5.3-1.1-.1-1.1-.7V7.8c0-.6.6-1 1.1-.7l5.4 3.1c.5.3.5 1 0 1.3l-5.4 3.1z"/><path d="M10 8.5v7l5.5-3.5L10 8.5z"/></svg>
-                    {% elif key == 'legislative' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                    {% elif key == 'state-legislative' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M4 21V10l8-6 8 6v11"/><path d="M9 21v-6h6v6"/><path d="M10 10h4v3h-4z"/></svg>
-                    {% elif key == 'polls' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-                    {% elif key == 'polymarket' %}
-                    <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-9"/></svg>
-                    {% endif %}
-                </div>
-                <h3>{{ cat.label }}</h3>
-                <p>{{ cat.description }}</p>
-            </a>
+        {# Slim category links #}
+        <nav style="margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+            {% set quick_cats = ['news', 'medical', 'legal', 'tech', 'finance', 'markets', 'politics', 'epstein-files', 'legislative'] %}
+            {% for key in quick_cats %}
+            {% if key in categories %}
+            <a href="/category/{{ key }}" style="color: var(--text-secondary); text-decoration: none; padding: 4px 8px; transition: color 0.2s;"
+               onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-secondary)'">{{ categories[key].label }}</a>
+            {% if not loop.last %}<span style="color: var(--border);">&middot;</span>{% endif %}
+            {% endif %}
             {% endfor %}
-        </div>
+        </nav>
     </div>
 </section>
 
+{# Trending on Brave #}
+{% if brave_trending %}
+<section style="max-width: 680px; margin: 0 auto 3rem; padding: 0 1rem;">
+    <h2 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary); margin-bottom: 0.75rem; font-weight: 500;">Trending Now</h2>
+    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        {% for topic in brave_trending %}
+        <a href="/search?q={{ topic | urlencode }}"
+           style="display: inline-block; padding: 6px 14px; font-size: 0.85rem; color: var(--text-primary); background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 20px; text-decoration: none; transition: all 0.2s;"
+           onmouseover="this.style.borderColor='var(--accent)'; this.style.color='var(--accent)'"
+           onmouseout="this.style.borderColor='var(--border)'; this.style.color='var(--text-primary)'">{{ topic }}</a>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{# Latest articles (compact) #}
 {% if trending %}
-<section class="trending-section">
-    <div class="container">
-        <h2 class="section-title">Trending Now</h2>
-        <div class="trending-grid">
-            {% for article in trending %}
-            <article class="trending-card {% if article.image_url %}has-thumb{% endif %}">
-                {% if article.image_url %}
-                <div class="result-thumb">
-                    <img src="{{ article.image_url }}" alt="" loading="lazy" decoding="async" onerror="this.parentElement.remove()">
-                </div>
-                {% endif %}
-                <div class="result-body">
-                <div class="result-header">
-                    <span class="result-source">{{ article.source_name }}{% with src_name=article.source_name %}{% include '_source_note.html' %}{% endwith %}</span>
-                    <span class="trending-category category-tag-{{ article.category }}">{{ categories[article.category].label if article.category in categories else article.category | title }}</span>
-                    {% if article.source_sponsors %}
-                    {% for sponsor in article.source_sponsors %}
-                    <span class="sponsor-badge" title="{{ sponsor }} sponsored this source">{{ sponsor }} Sponsored</span>
-                    {% endfor %}
-                    {% endif %}
-                    {% if article.source_credibility %}
-                    {% if session.get('admin_logged_in') %}
-                    <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }} admin-editable-cred" data-url="{{ article.url }}">
-                        <input type="number" class="cred-input" value="{{ article.source_credibility }}" min="1" max="10" title="Edit credibility (admin)">
-                        <span class="cred-label">/10</span>
-                        <button class="cred-save-btn" title="Save">&#10003;</button>
-                    </span>
-                    {% else %}
-                    <span class="credibility-badge credibility-{{ 'high' if article.source_credibility >= 8 else ('medium' if article.source_credibility >= 5 else 'low') }}">
-                        {{ article.source_credibility }}/10 <span class="credibility-help" title="This credibility rating is an opinion">?</span>
-                    </span>
-                    {% endif %}
-                    {% endif %}
-                    {% if session.get('admin_logged_in') %}
-                    <span class="admin-boost-controls" data-url="{{ article.url }}" data-boost="{{ article.admin_boost or 5 }}">
-                        <button type="button" class="boost-btn boost-up" title="Promote">&#9650;</button>
-                        <span class="boost-value">{{ article.admin_boost or 5 }}</span>
-                        <button type="button" class="boost-btn boost-down" title="Demote">&#9660;</button>
-                    </span>
-                    <span style="position:relative;display:inline-block;">
-                        <button type="button" class="admin-add-cat-btn" data-url="{{ article.url }}" title="Add to category" style="background:var(--accent);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:14px;cursor:pointer;line-height:1;">+</button>
-                    </span>
-                    {% endif %}
-                </div>
-                <h3>{% if article.url.startswith('profoundd://bob/') %}<a href="/newsroom/{{ article.url.split('/')[-1] }}">{{ article.title }}</a>{% elif article.url.startswith('profoundd://') %}<a href="/article/{{ article.url.split('/')[-1] }}">{{ article.title }}</a>{% else %}<a href="{{ article.url }}" target="_blank" rel="noopener">{{ article.title }}</a>{% endif %}</h3>
-                {% if article.summary %}
-                <p class="result-summary">{{ article.summary[:200] }}{% if article.summary|length > 200 %}...{% endif %}</p>
-                {% endif %}
-                {% with note_url=article.url, note_title=article.title, note_summary=article.summary or '' %}
-                {% include '_newsroom_note.html' %}
-                {% endwith %}
-                <p class="trending-meta">
-                    {% if article.published_at %}
-                    <span class="date" data-time="{{ article.published_at }}">{{ article.published_at[:10] }}</span>
-                    {% endif %}
-                    {% if session.get('admin_logged_in') %}
-                    <button type="button" class="bob-write-btn"
-                            data-url="{{ article.url }}"
-                            data-title="{{ article.title }}"
-                            data-source="{{ article.source_name }}"
-                            data-category="{{ article.category }}"
-                            data-summary="{{ (article.summary or '')[:500] }}"
-                            title="Have NewsRoom Bob write a story about this">
-                        Bob, Write This
-                    </button>
-                    {% endif %}
-                </p>
-                </div>{# /result-body #}
-            </article>
-            {% endfor %}
+<section style="max-width: 680px; margin: 0 auto 3rem; padding: 0 1rem;">
+    <h2 style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary); margin-bottom: 0.75rem; font-weight: 500;">Latest</h2>
+    {% for article in trending[:6] %}
+    <div style="padding: 10px 0; border-bottom: 1px solid var(--border);">
+        <a href="{{ article.url }}" target="_blank" rel="noopener" style="color: var(--text-primary); text-decoration: none; font-size: 0.95rem; font-weight: 500;">{{ article.title }}</a>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">
+            {{ article.source_name }}
+            {% if article.published_at %} &middot; {{ article.published_at[:10] }}{% endif %}
         </div>
     </div>
+    {% endfor %}
 </section>
 {% endif %}
 {% endblock %}

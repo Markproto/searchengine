@@ -9,6 +9,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
+import requests as http_requests
 from flask import Flask, render_template, request, jsonify, flash, redirect, Response, url_for, make_response, session
 from flask_cors import CORS
 from flask_login import LoginManager
@@ -310,15 +311,52 @@ def create_app(config_override=None):
 
     @app.route("/")
     def index():
-        """Homepage with search bar and category cards."""
+        """Homepage with search bar, trending topics, and latest articles."""
         trending = []
         if search_engine.is_available():
-            trending = search_engine.get_trending(size=9)
+            trending = search_engine.get_trending(size=6)
             if not trending:
-                trending = search_engine.get_trending(size=9, hours=720)
+                trending = search_engine.get_trending(size=6, hours=720)
             if not trending:
-                trending = search_engine.get_latest(size=9)
-        return render_template("index.html", categories=CATEGORIES, trending=trending)
+                trending = search_engine.get_latest(size=6)
+
+        # Fetch trending topics (Google Trends RSS, cached 1 hour)
+        from profoundd.utils.cache import cache_get, cache_set
+        brave_trending = cache_get("homepage:brave_trending")
+        if brave_trending is None:
+            try:
+                import xml.etree.ElementTree as ET
+                import re
+                resp = http_requests.get(
+                    "https://trends.google.com/trending/rss?geo=US",
+                    headers={"User-Agent": "Profoundd/1.0"},
+                    timeout=5,
+                )
+                skip = re.compile(
+                    r"\b(nfl|nba|mlb|nhl|soccer|football|basketball|baseball|hockey|"
+                    r"serie a|premier league|la liga|bundesliga|champions league|"
+                    r"kardashian|taylor swift|beyonce|grammys|oscars|emmys|"
+                    r"bachelor|bachelorette|american idol|wordle|fortnite|minecraft)\b",
+                    re.IGNORECASE,
+                )
+                root = ET.fromstring(resp.content)
+                topics = []
+                for item in root.iter("item"):
+                    title = item.findtext("title", "").strip()
+                    if title and not skip.search(title) and len(title) < 50:
+                        topics.append(title)
+                    if len(topics) >= 15:
+                        break
+                brave_trending = topics
+                cache_set("homepage:brave_trending", topics, ttl=3600)
+            except Exception:
+                brave_trending = []
+
+        if isinstance(brave_trending, (bytes, memoryview)):
+            brave_trending = []
+
+        return render_template("index.html", categories=CATEGORIES,
+                               trending=trending, brave_trending=brave_trending)
 
     # --- Location API for local business search ---
     @app.route("/api/set-location", methods=["POST"])
