@@ -5,6 +5,7 @@ import os
 import json
 import uuid
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 from flask import Flask, render_template, request, jsonify, flash, redirect, Response, url_for, make_response, session
@@ -84,17 +85,21 @@ def create_app(config_override=None):
         # Google Search Console verification
         gsc_verification = SiteSetting.get("google_site_verification", "")
 
+        # Batch-load all notes in one query each (avoids N+1 per-article DB hits)
+        _newsroom_notes = {n.article_url: n for n in db.session.query(NewsroomNote).all()}
+        _source_notes = {n.source_name: n for n in db.session.query(SourceNote).all()}
+
         def get_newsroom_note(url):
             """Look up an editorial note for an article URL."""
             if not url:
                 return None
-            return db.session.query(NewsroomNote).filter_by(article_url=url).first()
+            return _newsroom_notes.get(url)
 
         def get_source_note(source_name):
             """Look up a credibility note for a content source."""
             if not source_name:
                 return None
-            return db.session.query(SourceNote).filter_by(source_name=source_name).first()
+            return _source_notes.get(source_name)
 
         return {
             "categories": CATEGORIES,
@@ -418,6 +423,7 @@ def create_app(config_override=None):
             fetch_all_enhanced, fetch_searxng, fetch_brave_web, boost_known_domains,
             fetch_grokipedia,
         )
+        from profoundd.utils.cache import cache_get, cache_set, make_search_key, make_ai_key, AI_SUMMARY_TTL
 
         query = request.args.get("q", "").strip()
         category = request.args.get("category", "all")
@@ -430,6 +436,19 @@ def create_app(config_override=None):
             return render_template("search.html", results=None, categories=CATEGORIES,
                                    query="", category=category, enhanced_providers=set(),
                                    web_fallback=False)
+
+        # Check cache first (non-admin only — admins always get fresh results)
+        is_admin = session.get("admin_logged_in", False)
+        cache_key = make_search_key(query, category, page, sort_by, date_from, date_to)
+        if not is_admin:
+            cached_html = cache_get(cache_key)
+            if cached_html:
+                if isinstance(cached_html, (bytes, memoryview)):
+                    cached_html = bytes(cached_html).decode("utf-8")
+                resp = make_response(cached_html)
+                resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+                resp.headers["X-Cache"] = "HIT"
+                return resp
 
         results = search_engine.search(
             query=query,
@@ -445,9 +464,67 @@ def create_app(config_override=None):
         web_fallback = False
         web_promoted = False
         if page == 1:
-            enhanced_articles, enhanced_providers = fetch_all_enhanced(query, category)
+            # --- Fire all external fetches in parallel ---
+            # Pre-read DB settings in main thread (Flask app context)
+            searxng_url = SiteSetting.get("searxng_url", "")
+            from profoundd.search.local_intent import detect_local_intent
+            local_intent = detect_local_intent(query)
+
+            with ThreadPoolExecutor(max_workers=4) as pool:
+                fut_enhanced = pool.submit(fetch_all_enhanced, query, category)
+                fut_grok = pool.submit(fetch_grokipedia, query, max_results=3)
+
+                # Web results: SearXNG primary, Brave fallback
+                def _fetch_web():
+                    web = []
+                    if searxng_url:
+                        web = fetch_searxng(query, searxng_url, max_results=10)
+                    if not web:
+                        web = fetch_brave_web(query, max_results=10)
+                    return web
+                fut_web = pool.submit(_fetch_web)
+
+                # Local business search (fast ES query, fine in thread)
+                business_results = []
+                def _fetch_biz():
+                    if not local_intent["is_local"]:
+                        return []
+                    user_loc = _get_user_location()
+                    biz_location = {"lat": user_loc["lat"], "lon": user_loc["lon"]} if user_loc else None
+                    return search_engine.search_businesses(
+                        query=local_intent["clean_query"],
+                        location=biz_location,
+                        radius_km=80, per_page=5,
+                    )
+                fut_biz = pool.submit(_fetch_biz)
+
+                # Collect results as they complete
+                try:
+                    enhanced_articles, enhanced_providers = fut_enhanced.result(timeout=15)
+                except Exception as e:
+                    logger.warning("Enhanced providers failed: %s", e)
+                    enhanced_articles, enhanced_providers = [], set()
+
+                try:
+                    grok_results = fut_grok.result(timeout=15)
+                except Exception as e:
+                    logger.warning("Grokipedia failed: %s", e)
+                    grok_results = []
+
+                try:
+                    web_results = fut_web.result(timeout=15)
+                except Exception as e:
+                    logger.warning("Web results failed: %s", e)
+                    web_results = []
+
+                try:
+                    business_results = fut_biz.result(timeout=15)
+                except Exception as e:
+                    logger.warning("Business search failed: %s", e)
+                    business_results = []
+
+            # --- Merge results (same logic as before, just uses parallel results) ---
             if enhanced_articles:
-                # Insert enhanced results among the top results
                 existing_urls = {a.get("url") for a in results.get("articles", [])}
                 insert_pos = min(3, len(results.get("articles", [])))
                 for ea in enhanced_articles:
@@ -456,8 +533,6 @@ def create_app(config_override=None):
                         insert_pos += 1
                 results["enhanced_providers"] = list(enhanced_providers)
 
-            # Fetch Grokipedia results and insert near the top
-            grok_results = fetch_grokipedia(query, max_results=3)
             if grok_results:
                 existing_urls = {a.get("url") for a in results.get("articles", [])}
                 insert_pos = min(1, len(results.get("articles", [])))
@@ -466,35 +541,6 @@ def create_app(config_override=None):
                         results["articles"].insert(insert_pos, gr)
                         insert_pos += 1
 
-            # Local business search (OSM data)
-            from profoundd.search.local_intent import detect_local_intent
-            local_intent = detect_local_intent(query)
-            business_results = []
-            if local_intent["is_local"]:
-                user_loc = _get_user_location()
-                biz_location = None
-                if user_loc:
-                    biz_location = {"lat": user_loc["lat"], "lon": user_loc["lon"]}
-                try:
-                    business_results = search_engine.search_businesses(
-                        query=local_intent["clean_query"],
-                        location=biz_location,
-                        radius_km=80,
-                        per_page=5,
-                    )
-                except Exception as e:
-                    logger.warning("Business search failed: %s", e)
-
-            # Always fetch external web results so every search taps sources
-            # beyond Profoundd's curated index — especially important for
-            # controversial topics not covered by mainstream media.
-            web_results = []
-            searxng_url = SiteSetting.get("searxng_url", "")
-            if searxng_url:
-                web_results = fetch_searxng(query, searxng_url, max_results=10)
-            if not web_results:
-                # Brave backup when SearXNG is down or returns nothing
-                web_results = fetch_brave_web(query, max_results=10)
             if web_results:
                 web_results = boost_known_domains(web_results)
                 web_fallback = True
@@ -511,10 +557,6 @@ def create_app(config_override=None):
                 existing_urls = {a.get("url") for a in results.get("articles", [])}
                 new_web = [wr for wr in web_results if wr.get("url") not in existing_urls]
 
-                # Check if local results are actually relevant to the query.
-                # If top local results don't contain most query terms in
-                # their title, the local index doesn't cover this topic —
-                # put web results first so the user finds what they need.
                 local_articles = results.get("articles", [])
                 query_terms = set(query.lower().split())
                 local_relevant = False
@@ -526,13 +568,11 @@ def create_app(config_override=None):
                         break
 
                 if local_relevant:
-                    # Local results match — interleave web after every 3
                     blended = list(local_articles)
                     for i, wr in enumerate(new_web):
                         pos = min(3 + i * 4 + i, len(blended))
                         blended.insert(pos, wr)
                 else:
-                    # Local results are weak matches — web results go first
                     blended = list(new_web) + list(local_articles)
                     web_promoted = True
 
@@ -548,19 +588,28 @@ def create_app(config_override=None):
         db.session.add(log)
         db.session.commit()
 
-        resp = make_response(render_template("search.html", results=results, categories=CATEGORIES,
+        rendered_html = render_template("search.html", results=results, categories=CATEGORIES,
                                query=query, category=category, sort_by=sort_by,
                                enhanced_providers=enhanced_providers,
                                web_fallback=web_fallback,
                                web_promoted=web_promoted,
                                business_results=business_results if page == 1 else [],
-                               user_location=_get_user_location()))
+                               user_location=_get_user_location())
+        resp = make_response(rendered_html)
         resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+
+        # Cache rendered HTML for non-admin users (5 min TTL, persists to SQLite)
+        if not is_admin:
+            cache_set(cache_key, rendered_html)
+
         return resp
 
     @app.route("/api/ai-summary")
     def api_ai_summary():
         """Async endpoint for AI search summary. Cookie-limited to 5/day."""
+        from profoundd.utils.cache import cache_get, cache_set, make_ai_key, AI_SUMMARY_TTL
+        import json as _json
+
         query = request.args.get("q", "").strip()
         if not query:
             return jsonify({"answer": "", "error": "No query", "remaining": 0})
@@ -577,6 +626,20 @@ def create_app(config_override=None):
 
         if not is_admin and ai_count >= 5:
             return jsonify({"answer": "", "error": "limit_reached", "remaining": 0})
+
+        # Check cache for AI summary (24h TTL — saves API calls)
+        ai_cache_key = make_ai_key(query)
+        cached_ai = cache_get(ai_cache_key)
+        if cached_ai:
+            try:
+                if isinstance(cached_ai, (bytes, memoryview)):
+                    cached_ai = bytes(cached_ai).decode("utf-8")
+                ai_result = _json.loads(cached_ai)
+                ai_result["remaining"] = -1 if is_admin else (5 - ai_count)
+                ai_result["cached"] = True
+                return jsonify(ai_result)
+            except Exception:
+                pass  # Corrupted cache entry — regenerate
 
         # Get search results to summarize — prioritize web + Grokipedia over local index
         # so the AI sees the most relevant sources first
@@ -610,6 +673,10 @@ def create_app(config_override=None):
             return jsonify({"answer": "", "error": "No results to summarize", "remaining": 5 - ai_count})
 
         ai_result = ai_generate_summary(query, articles)
+
+        # Cache the AI result (24h TTL) — don't count cached hits against rate limit
+        if ai_result.get("answer"):
+            cache_set(ai_cache_key, _json.dumps(ai_result), ttl=AI_SUMMARY_TTL)
 
         # Increment counter and set cookie (skip for admins)
         if is_admin:

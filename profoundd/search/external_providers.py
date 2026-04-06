@@ -6,6 +6,7 @@ matches those domains.
 """
 import logging
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 import requests
@@ -507,7 +508,7 @@ def _bill_type_path(bill_type):
 
 def fetch_all_enhanced(query, category, max_per_provider=5):
     """
-    Fetch results from all applicable external providers.
+    Fetch results from all applicable external providers IN PARALLEL.
     Returns (articles_list, active_providers_set).
     """
     providers = should_enhance(query, category)
@@ -517,46 +518,44 @@ def fetch_all_enhanced(query, category, max_per_provider=5):
     all_articles = []
     active = set()
 
-    if "courtlistener" in providers:
-        results = fetch_courtlistener(query, max_results=max_per_provider)
-        if results:
-            all_articles.extend(results)
-            active.add("courtlistener")
-
-    if "pubmed" in providers:
-        results = fetch_pubmed(query, max_results=max_per_provider)
-        if results:
-            all_articles.extend(results)
-            active.add("pubmed")
-
+    # Pre-fetch congress API key if needed (DB access must happen in main thread
+    # for Flask app-context safety, so grab it before spawning threads)
+    congress_api_key = ""
     if "congress" in providers:
-        # Get API key from SiteSetting (lazy import to avoid circular)
-        api_key = ""
         try:
             from profoundd.utils.models import SiteSetting
-            api_key = SiteSetting.get("congress_gov_api_key", "")
+            congress_api_key = SiteSetting.get("congress_gov_api_key", "")
         except Exception:
             pass
 
-        # Congress.gov bill search (needs API key)
-        if api_key:
-            results = fetch_congress_gov(query, api_key=api_key, max_results=max_per_provider)
-            if results:
-                all_articles.extend(results)
-                active.add("congress")
-
-        # Federal Register (no key needed) — always query for legislative searches
-        fr_results = fetch_federal_register(query, max_results=3)
-        if fr_results:
-            all_articles.extend(fr_results)
-            if "congress" not in active:
-                active.add("congress")
-
+    # Build list of (provider_name, callable) pairs to run concurrently
+    tasks = []
+    if "courtlistener" in providers:
+        tasks.append(("courtlistener", lambda: fetch_courtlistener(query, max_results=max_per_provider)))
+    if "pubmed" in providers:
+        tasks.append(("pubmed", lambda: fetch_pubmed(query, max_results=max_per_provider)))
+    if "congress" in providers:
+        if congress_api_key:
+            # Capture api_key in closure explicitly
+            _key = congress_api_key
+            tasks.append(("congress", lambda: fetch_congress_gov(query, api_key=_key, max_results=max_per_provider)))
+        tasks.append(("federal_register", lambda: fetch_federal_register(query, max_results=3)))
     if "polymarket" in providers:
-        results = fetch_polymarket(query, max_results=max_per_provider)
-        if results:
-            all_articles.extend(results)
-            active.add("polymarket")
+        tasks.append(("polymarket", lambda: fetch_polymarket(query, max_results=max_per_provider)))
+
+    # Fire all providers concurrently
+    with ThreadPoolExecutor(max_workers=len(tasks)) as executor:
+        future_map = {executor.submit(fn): name for name, fn in tasks}
+        for future in as_completed(future_map):
+            name = future_map[future]
+            try:
+                results = future.result(timeout=API_TIMEOUT + 5)
+                if results:
+                    all_articles.extend(results)
+                    # federal_register rolls up under "congress"
+                    active.add("congress" if name == "federal_register" else name)
+            except Exception as e:
+                logger.warning("Enhanced provider %s failed: %s", name, e)
 
     return all_articles, active
 

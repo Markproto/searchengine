@@ -25,11 +25,13 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - "ES_JAVA_OPTS=-Xms4g -Xmx4g"
+      - path.repo=/usr/share/elasticsearch/snapshots
     ports:
       - "127.0.0.1:9201:9200"
     volumes:
       - profoundd-es-data:/usr/share/elasticsearch/data
+      - profoundd-es-snapshots:/usr/share/elasticsearch/snapshots
     healthcheck:
       test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"\\(green\\|yellow\\)\"'"]
       interval: 30s
@@ -41,3 +43,4 @@ services:
 volumes:
   profoundd-data:
   profoundd-es-data:
+  profoundd-es-snapshots:
