@@ -677,12 +677,11 @@ def fetch_searxng_images(query, searxng_url, max_results=20):
             results.append({
                 "title": r.get("title", ""),
                 "url": r.get("url", ""),
-                "img_src": r.get("img_src", r.get("thumbnail_src", "")),
-                "thumbnail": r.get("thumbnail_src", r.get("img_src", "")),
-                "source_name": r.get("engine", ""),
-                "source_url": r.get("source", r.get("url", "")),
-                "width": r.get("img_format", "").split("x")[0] if "x" in r.get("img_format", "") else "",
-                "height": r.get("img_format", "").split("x")[-1] if "x" in r.get("img_format", "") else "",
+                "img_src": r.get("img_src") or r.get("thumbnail_src") or "",
+                "thumbnail": r.get("thumbnail_src") or r.get("img_src") or "",
+                "source_name": r.get("source") or r.get("engine") or "",
+                "source_url": r.get("url", ""),
+                "resolution": r.get("resolution", ""),
             })
         logger.info("SearXNG images returned %d results for '%s'", len(results), query)
         return results
@@ -715,10 +714,10 @@ def fetch_searxng_shopping(query, searxng_url, max_results=20):
                 "title": r.get("title", ""),
                 "url": r.get("url", ""),
                 "summary": r.get("content", ""),
-                "img_src": r.get("img_src", r.get("thumbnail_src", "")),
-                "thumbnail": r.get("thumbnail_src", r.get("img_src", "")),
-                "source_name": r.get("engine", ""),
-                "price": r.get("price", ""),
+                "img_src": r.get("img_src") or r.get("thumbnail_src") or "",
+                "thumbnail": r.get("thumbnail_src") or r.get("img_src") or "",
+                "source_name": r.get("source") or r.get("engine") or "",
+                "price": r.get("price") or "",
             })
         logger.info("SearXNG shopping returned %d results for '%s'", len(results), query)
         return results
