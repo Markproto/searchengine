@@ -569,7 +569,7 @@ def create_app(config_override=None):
                 tab_images = fetch_searxng_images(query, searxng_url, max_results=24)
             elif tab == "shopping":
                 tab_images = fetch_searxng_shopping(query + " buy", searxng_url, max_results=24)
-            return render_template("search.html", results={"articles": [], "total": len(tab_images)},
+            return render_template("search.html", results={"articles": [], "total": len(tab_images), "pages": 1, "page": 1},
                                    categories=CATEGORIES, query=query, category=category,
                                    sort_by=sort_by, enhanced_providers=set(),
                                    web_fallback=False, web_promoted=False,
@@ -615,7 +615,7 @@ def create_app(config_override=None):
             poly_results = fetch_polymarket(query, max_results=15)
             local_results = search_engine.search(query=query, category="markets", page=1, per_page=10, sort_by="date")
             all_articles = poly_results + local_results.get("articles", [])
-            return render_template("search.html", results={"articles": all_articles, "total": len(all_articles)},
+            return render_template("search.html", results={"articles": all_articles, "total": len(all_articles), "pages": 1, "page": 1},
                                    categories=CATEGORIES, query=query, category="markets",
                                    sort_by=sort_by, enhanced_providers={"polymarket"} if poly_results else set(),
                                    web_fallback=False, web_promoted=False,
@@ -630,7 +630,7 @@ def create_app(config_override=None):
                     query=query, location=biz_location, radius_km=80, per_page=20)
             except Exception:
                 business_results = []
-            return render_template("search.html", results={"articles": [], "total": len(business_results)},
+            return render_template("search.html", results={"articles": [], "total": len(business_results), "pages": 1, "page": 1},
                                    categories=CATEGORIES, query=query, category=category,
                                    sort_by=sort_by, enhanced_providers=set(),
                                    web_fallback=False, web_promoted=False,
