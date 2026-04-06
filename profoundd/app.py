@@ -336,8 +336,15 @@ def create_app(config_override=None):
                 .all()
             )
             for q, _ in user_queries:
-                if 3 < len(q) < 60:
-                    topics.append(q.strip())
+                q = q.strip()
+                # Skip junk: URLs, test queries, single short words, numbers-only
+                if (3 < len(q) < 60
+                    and not q.startswith("http")
+                    and not q.startswith("-")
+                    and q.lower() not in ("test", "hello", "asdf")
+                    and not re.match(r'^[\d\s\'"]+$', q)
+                    and len(q.split()) <= 8):
+                    topics.append(q)
         except Exception:
             pass
 
@@ -385,7 +392,7 @@ def create_app(config_override=None):
 
             # Take phrases appearing 2+ times (trending across multiple sources)
             for phrase, count in phrase_counter.most_common(20):
-                if count >= 2 and phrase not in topics:
+                if count >= 2 and phrase not in topics and len(phrase.split()) >= 2:
                     topics.append(phrase)
 
         except Exception:
