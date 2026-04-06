@@ -241,6 +241,10 @@ class SearchEngine:
                 doc = hit["_source"]
                 doc["_score"] = hit["_score"]
                 doc["_highlights"] = hit.get("highlight", {})
+                # Ensure url field exists for template compatibility
+                if not doc.get("url"):
+                    bates = doc.get("bates_number", "")
+                    doc["url"] = f"/epstein-docs/{bates}" if bates else doc.get("source_url", "#")
                 docs.append(doc)
             return {
                 "articles": docs,
