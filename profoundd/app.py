@@ -807,6 +807,11 @@ def create_app(config_override=None):
         db.session.add(log)
         db.session.commit()
 
+        # Spelling correction — only check if few/no results
+        spelling_suggestion = None
+        if page == 1 and results.get("total", 0) < 3:
+            spelling_suggestion = search_engine.get_spelling_suggestion(query)
+
         rendered_html = render_template("search.html", results=results, categories=CATEGORIES,
                                query=query, category=category, sort_by=sort_by,
                                enhanced_providers=enhanced_providers,
@@ -814,7 +819,8 @@ def create_app(config_override=None):
                                web_promoted=web_promoted,
                                business_results=business_results if page == 1 else [],
                                user_location=_get_user_location(),
-                               tab_images=None)
+                               tab_images=None,
+                               spelling_suggestion=spelling_suggestion)
         resp = make_response(rendered_html)
         resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
 
@@ -1246,13 +1252,45 @@ def create_app(config_override=None):
 
     @app.route("/api/suggest")
     def api_suggest():
-        """Search suggestions based on indexed titles."""
+        """Search suggestions from popular queries + indexed titles."""
         query = request.args.get("q", "").strip()
         if not query or len(query) < 2:
             return jsonify({"suggestions": []})
 
-        suggestions = search_engine.get_suggestions(query)
-        return jsonify({"suggestions": suggestions})
+        suggestions = []
+
+        # Source 1: Popular past queries matching prefix (what people actually search)
+        try:
+            from sqlalchemy import func
+            q_lower = query.lower()
+            popular = (
+                db.session.query(SearchLog.query, func.count(SearchLog.id).label("cnt"))
+                .filter(SearchLog.query.ilike(f"{q_lower}%"))
+                .group_by(SearchLog.query)
+                .order_by(func.count(SearchLog.id).desc())
+                .limit(3)
+                .all()
+            )
+            for q, cnt in popular:
+                if q.strip().lower() != q_lower:
+                    suggestions.append({"title": q.strip(), "category": "", "source": f"searched {cnt}x"})
+        except Exception:
+            pass
+
+        # Source 2: Article title matches (existing)
+        title_suggestions = search_engine.get_suggestions(query, size=5)
+        suggestions.extend(title_suggestions)
+
+        # Deduplicate by title
+        seen = set()
+        unique = []
+        for s in suggestions:
+            key = s["title"].lower().strip()
+            if key not in seen:
+                seen.add(key)
+                unique.append(s)
+
+        return jsonify({"suggestions": unique[:7]})
 
     @app.route("/api/sources")
     def api_sources():

@@ -5,6 +5,7 @@ Includes URL-based deduplication and crawl statistics.
 """
 import logging
 import hashlib
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from time import sleep, time
 
@@ -468,15 +469,31 @@ class FeedCrawler:
         return all_articles
 
     def crawl_all(self):
-        """Crawl all configured sources."""
-        logger.info("Starting full crawl of %d sources", len(ALL_SOURCES))
+        """Crawl all configured sources in parallel (4 workers)."""
+        logger.info("Starting parallel crawl of %d sources", len(ALL_SOURCES))
         start_time = time()
         total_articles = []
 
-        for source in ALL_SOURCES:
+        # Split into regular and rate-limited (OpenRSS) sources
+        regular = [s for s in ALL_SOURCES if "openrss.org" not in s.get("url", "")]
+        openrss = [s for s in ALL_SOURCES if "openrss.org" in s.get("url", "")]
+
+        # Crawl regular sources in parallel (4 workers)
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            futures = {pool.submit(self.crawl_source, src): src for src in regular}
+            for future in as_completed(futures):
+                try:
+                    articles = future.result(timeout=60)
+                    total_articles.extend(articles)
+                except Exception as e:
+                    src = futures[future]
+                    logger.warning("Crawl failed for %s: %s", src.get("name", "?"), e)
+
+        # Crawl OpenRSS sources sequentially (rate-limited)
+        for source in openrss:
             articles = self.crawl_source(source)
             total_articles.extend(articles)
-            sleep(self._delay_for(source))
+            sleep(self.OPENRSS_DELAY)
 
         # Bulk index everything
         if total_articles:
@@ -509,8 +526,10 @@ class FeedCrawler:
             logger.warning("No sources to crawl — check that sources are seeded and active")
             return 0
         all_articles = []
+        # Convert DB sources to dicts
+        source_dicts = []
         for source in source_list:
-            source_dict = {
+            source_dicts.append({
                 "name": source.name,
                 "url": source.url,
                 "category": source.category,
@@ -518,10 +537,25 @@ class FeedCrawler:
                 "feed_type": source.feed_type,
                 "sponsors": getattr(source, "sponsor_tags", "") or "",
                 "subcategory": getattr(source, "subcategory", "") or "",
-            }
+            })
+
+        regular = [s for s in source_dicts if "openrss.org" not in s.get("url", "")]
+        openrss = [s for s in source_dicts if "openrss.org" in s.get("url", "")]
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            futures = {pool.submit(self.crawl_source, sd): sd for sd in regular}
+            for future in as_completed(futures):
+                try:
+                    articles = future.result(timeout=60)
+                    all_articles.extend(articles)
+                except Exception as e:
+                    src = futures[future]
+                    logger.warning("Crawl failed for %s: %s", src.get("name", "?"), e)
+
+        for source_dict in openrss:
             articles = self.crawl_source(source_dict)
             all_articles.extend(articles)
-            sleep(self._delay_for(source_dict))
+            sleep(self.OPENRSS_DELAY)
 
         if all_articles:
             indexed = self.search_engine.bulk_index(all_articles)

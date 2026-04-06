@@ -63,6 +63,13 @@
         </form>
     </div>
 
+    {# Spelling correction #}
+    {% if spelling_suggestion %}
+    <div style="margin-bottom: 12px; font-size: 0.9rem; color: var(--text-secondary);">
+        Did you mean: <a href="/search?q={{ spelling_suggestion | urlencode }}{% if category != 'all' %}&category={{ category }}{% endif %}" style="color: var(--accent); font-weight: 500; font-style: italic;">{{ spelling_suggestion }}</a>?
+    </div>
+    {% endif %}
+
     {# Image grid (for Images and Shopping tabs) #}
     {% if tab_images %}
     <div class="image-grid">

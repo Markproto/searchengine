@@ -1115,6 +1115,46 @@ class SearchEngine:
         ).lower()
         return any(kw in text for kw in keywords)
 
+    def get_spelling_suggestion(self, query):
+        """
+        Use ES suggest API to find spelling corrections.
+        Returns corrected query string, or None if no correction found.
+        """
+        try:
+            result = self.es.search(
+                index=self.index_name,
+                body={
+                    "suggest": {
+                        "text": query,
+                        "title_suggest": {
+                            "phrase": {
+                                "field": "title",
+                                "size": 1,
+                                "gram_size": 3,
+                                "direct_generator": [{
+                                    "field": "title",
+                                    "suggest_mode": "popular",
+                                }],
+                                "highlight": {
+                                    "pre_tag": "",
+                                    "post_tag": "",
+                                },
+                            }
+                        },
+                    },
+                    "size": 0,
+                },
+            )
+            suggestions = result.get("suggest", {}).get("title_suggest", [])
+            if suggestions and suggestions[0].get("options"):
+                corrected = suggestions[0]["options"][0]["text"]
+                # Only suggest if it's actually different
+                if corrected.lower().strip() != query.lower().strip():
+                    return corrected
+        except Exception as e:
+            logger.debug("Spelling suggestion failed: %s", e)
+        return None
+
     def get_suggestions(self, query, size=5):
         """Get search suggestions based on article titles."""
         try:
