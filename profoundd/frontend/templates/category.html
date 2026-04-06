@@ -255,6 +255,34 @@
     {% else %}
     <div class="articles-grid">
         {% for article in articles %}
+        {# --- Court document card (Epstein Files PDFs) --- #}
+        {% if article.result_type == 'document' %}
+        <article class="trending-card document-card">
+            <div class="result-body">
+            <div class="result-header">
+                <span class="result-type-badge doc-badge"><i class="fa fa-file-pdf-o"></i> Court Document</span>
+                <span class="result-source">{{ article.source_name }}</span>
+                {% if article.bates_number %}
+                <span class="bates-badge" title="Bates Number">{{ article.bates_number }}</span>
+                {% endif %}
+            </div>
+            <h3><a href="/epstein-docs/{{ article.bates_number or '' }}">{{ article.title }}</a></h3>
+            {% if article.summary %}
+            <p class="result-summary">{{ article.summary[:300] }}{% if article.summary|length > 300 %}...{% endif %}</p>
+            {% elif article._highlights and article._highlights.content %}
+            <p class="result-summary">...{{ article._highlights.content[0] }}...</p>
+            {% endif %}
+            <p class="trending-meta">
+                {% if article.page_count %}<span class="doc-meta-item">{{ article.page_count }} pages</span>{% endif %}
+                {% if article.dataset_number %}<span class="doc-meta-item">Dataset {{ article.dataset_number }}</span>{% endif %}
+                {% if article.custodian %}<span class="doc-meta-item">{{ article.custodian }}</span>{% endif %}
+                {% if article.doc_date %}<span class="date">{{ article.doc_date }}</span>{% endif %}
+                {% if article.source_url %}<a href="{{ article.source_url }}" target="_blank" rel="noopener" class="doj-link">View on DOJ</a>{% endif %}
+            </p>
+            </div>
+        </article>
+        {# --- Standard article card --- #}
+        {% else %}
         <article class="trending-card {% if article.image_url %}has-thumb{% endif %}">
             {% if article.image_url %}
             <div class="result-thumb">
@@ -321,6 +349,7 @@
             </p>
             </div>{# /result-body #}
         </article>
+        {% endif %}{# /document vs article #}
         {% endfor %}
     </div>
     {% endif %}

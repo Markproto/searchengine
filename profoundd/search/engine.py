@@ -34,6 +34,7 @@ ARTICLE_MAPPING = {
             "tags": {"type": "keyword"},
             "published_at": {"type": "date"},
             "crawled_at": {"type": "date"},
+            "result_type": {"type": "keyword"},
         }
     },
     "settings": {
@@ -47,6 +48,49 @@ ARTICLE_MAPPING = {
             }
         }
     }
+}
+
+
+# Separate index for Epstein court documents (100K+ PDFs from DOJ release)
+EPSTEIN_DOC_INDEX_NAME = "profoundd_epstein_docs"
+
+EPSTEIN_DOC_MAPPING = {
+    "mappings": {
+        "properties": {
+            "title": {
+                "type": "text",
+                "analyzer": "english",
+                "fields": {"raw": {"type": "keyword", "ignore_above": 512}},
+            },
+            "content": {"type": "text", "analyzer": "english"},
+            "summary": {"type": "text", "analyzer": "english"},
+            "bates_number": {"type": "keyword"},
+            "dataset_number": {"type": "integer"},
+            "page_count": {"type": "integer"},
+            "source_name": {"type": "keyword"},
+            "source_url": {"type": "keyword"},
+            "category": {"type": "keyword"},
+            "result_type": {"type": "keyword"},
+            "file_path": {"type": "keyword"},
+            "custodian": {"type": "keyword"},
+            "doc_date": {
+                "type": "date",
+                "format": "yyyy-MM-dd||yyyy-MM||yyyy||epoch_millis",
+                "ignore_malformed": True,
+            },
+            "indexed_at": {"type": "date"},
+            "tags": {"type": "keyword"},
+        }
+    },
+    "settings": {
+        "number_of_shards": 2,
+        "number_of_replicas": 0,
+        "analysis": {
+            "analyzer": {
+                "english": {"type": "english"}
+            }
+        },
+    },
 }
 
 
@@ -127,6 +171,98 @@ class SearchEngine:
             except Exception as e:
                 logger.warning("Could not update mapping: %s", e)
             logger.info("Index already exists: %s", self.index_name)
+
+    def create_epstein_doc_index(self):
+        """Create the Epstein documents index if it doesn't exist."""
+        if not self.es.indices.exists(index=EPSTEIN_DOC_INDEX_NAME):
+            self.es.indices.create(
+                index=EPSTEIN_DOC_INDEX_NAME,
+                mappings=EPSTEIN_DOC_MAPPING["mappings"],
+                settings=EPSTEIN_DOC_MAPPING["settings"],
+            )
+            logger.info("Created index: %s", EPSTEIN_DOC_INDEX_NAME)
+        else:
+            try:
+                self.es.indices.put_mapping(
+                    index=EPSTEIN_DOC_INDEX_NAME,
+                    properties=EPSTEIN_DOC_MAPPING["mappings"]["properties"],
+                )
+            except Exception as e:
+                logger.warning("Could not update epstein doc mapping: %s", e)
+            logger.info("Index already exists: %s", EPSTEIN_DOC_INDEX_NAME)
+
+    def bulk_index_epstein_docs(self, docs):
+        """Bulk index Epstein court documents. Returns count indexed."""
+        if not docs:
+            return 0
+        actions = []
+        for doc in docs:
+            doc_id = hashlib.md5(doc.get("bates_number", doc.get("file_path", "")).encode()).hexdigest()
+            clean = {k: v for k, v in doc.items() if not k.startswith("_")}
+            clean.setdefault("result_type", "document")
+            clean.setdefault("category", "epstein-files")
+            actions.append({"index": {"_index": EPSTEIN_DOC_INDEX_NAME, "_id": doc_id}})
+            actions.append(clean)
+        try:
+            result = self.es.bulk(operations=actions, refresh=False)
+            indexed = sum(1 for item in result["items"] if item["index"]["status"] in (200, 201))
+            logger.info("Bulk indexed %d/%d epstein docs", indexed, len(docs))
+            return indexed
+        except Exception as e:
+            logger.error("Bulk index epstein docs failed: %s", e)
+            return 0
+
+    def search_epstein_docs(self, query, page=1, per_page=20):
+        """Search the Epstein documents index."""
+        from_offset = (page - 1) * per_page
+        body = {
+            "query": {
+                "multi_match": {
+                    "query": query,
+                    "fields": ["title^3", "summary^2", "content", "bates_number^5", "custodian^2"],
+                    "type": "best_fields",
+                }
+            },
+            "from": from_offset,
+            "size": per_page,
+            "highlight": {
+                "fields": {
+                    "content": {"fragment_size": 200, "number_of_fragments": 2},
+                    "title": {},
+                },
+                "pre_tags": ["<mark>"],
+                "post_tags": ["</mark>"],
+            },
+        }
+        try:
+            result = self.es.search(index=EPSTEIN_DOC_INDEX_NAME, body=body)
+            docs = []
+            for hit in result["hits"]["hits"]:
+                doc = hit["_source"]
+                doc["_score"] = hit["_score"]
+                doc["_highlights"] = hit.get("highlight", {})
+                docs.append(doc)
+            return {
+                "articles": docs,
+                "total": result["hits"]["total"]["value"],
+                "page": page,
+                "per_page": per_page,
+            }
+        except Exception as e:
+            logger.error("Epstein doc search failed: %s", e)
+            return {"articles": [], "total": 0, "page": page, "per_page": per_page}
+
+    def get_epstein_doc(self, bates_number):
+        """Fetch a single Epstein document by Bates number."""
+        doc_id = hashlib.md5(bates_number.encode()).hexdigest()
+        try:
+            result = self.es.get(index=EPSTEIN_DOC_INDEX_NAME, id=doc_id)
+            return result["_source"]
+        except NotFoundError:
+            return None
+        except Exception as e:
+            logger.error("Epstein doc fetch failed for %s: %s", bates_number, e)
+            return None
 
     def index_article(self, article_data):
         """Index a single article."""

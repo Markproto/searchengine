@@ -914,12 +914,36 @@ def create_app(config_override=None):
             total = results.get("total", 0)
             pages = results.get("pages", 0)
 
+            # For Epstein Files: merge court documents from the dedicated index
+            if category_name == "epstein-files" and subcategory in ("all", "court-docs"):
+                try:
+                    doc_results = search_engine.search_epstein_docs(query="", page=page, per_page=per_page)
+                    doc_articles = doc_results.get("articles", [])
+                    if subcategory == "court-docs":
+                        # Show only documents
+                        articles = doc_articles
+                        total = doc_results.get("total", 0)
+                        pages = (total + per_page - 1) // per_page
+                    else:
+                        # Interleave: news first, then documents
+                        articles.extend(doc_articles[:5])
+                except Exception as e:
+                    logger.warning("Epstein doc search failed: %s", e)
+
         cat_info = CATEGORIES[category_name]
         return render_template("category.html", category_name=category_name,
                                category=cat_info, articles=articles,
                                page=page, pages=pages, total=total,
                                subcategory=subcategory,
                                categories=CATEGORIES)
+
+    @app.route("/epstein-docs/<bates_id>")
+    def epstein_doc_viewer(bates_id):
+        """View an Epstein court document by Bates number."""
+        doc = search_engine.get_epstein_doc(bates_id)
+        if not doc:
+            return render_template("404.html"), 404
+        return render_template("epstein_doc.html", doc=doc)
 
     @app.route("/article/<doc_id>")
     def article_detail(doc_id):

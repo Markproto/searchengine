@@ -3736,3 +3736,64 @@ body,
     object-fit: cover;
 }
 
+/* --- Epstein document cards --- */
+.document-card {
+    border-left: 3px solid #b91c1c;
+}
+.doc-badge {
+    background: #b91c1c;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.bates-badge {
+    background: var(--bg-tertiary, #374151);
+    color: var(--text-secondary, #9ca3af);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-family: monospace;
+}
+.doc-meta-item {
+    margin-right: 12px;
+    color: var(--text-secondary, #9ca3af);
+    font-size: 0.8rem;
+}
+.doc-meta-item::before {
+    content: "·";
+    margin-right: 4px;
+}
+.doc-meta-item:first-child::before {
+    content: "";
+    margin-right: 0;
+}
+.doj-link {
+    color: var(--accent, #3b82f6);
+    font-size: 0.8rem;
+    text-decoration: none;
+}
+.doj-link:hover {
+    text-decoration: underline;
+}
+/* Document viewer page */
+.doc-viewer-content {
+    white-space: pre-wrap;
+    font-family: 'Georgia', serif;
+    line-height: 1.7;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: var(--bg-secondary, #1f2937);
+    border-radius: 8px;
+}
+.doc-viewer-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border, #374151);
+}
+

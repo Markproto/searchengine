@@ -383,7 +383,17 @@ CATEGORIES = {
         "color": "#8b5cf6",
     },
     "news": {"label": "News", "description": "General & World News", "icon": "newspaper", "color": "#3b82f6"},
-    "epstein-files": {"label": "Epstein Files", "description": "Jeffrey Epstein Case Documents & Coverage", "icon": "folder-open", "color": "#b91c1c"},
+    "epstein-files": {
+        "label": "Epstein Files",
+        "description": "Jeffrey Epstein Case Documents & Coverage",
+        "icon": "folder-open",
+        "color": "#b91c1c",
+        "subcategories": {
+            "news": {"label": "News Coverage", "description": "Articles from investigative and news sources"},
+            "court-docs": {"label": "Court Documents", "description": "DOJ case files, depositions, and evidence"},
+            "flight-logs": {"label": "Flight Logs", "description": "Lolita Express manifests and travel records"},
+        },
+    },
     "charlie-kirk": {"label": "Charlie Kirk", "description": "Charlie Kirk Coverage & Commentary", "icon": "megaphone", "color": "#1d4ed8"},
     "medical": {"label": "Medical", "description": "Health, Medicine & Research", "icon": "heartbeat", "color": "#ef4444"},
     "legal": {"label": "Legal", "description": "Law, Courts & Regulations", "icon": "gavel", "color": "#a855f7"},
