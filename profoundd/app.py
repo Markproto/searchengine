@@ -474,13 +474,11 @@ def create_app(config_override=None):
                 fut_enhanced = pool.submit(fetch_all_enhanced, query, category)
                 fut_grok = pool.submit(fetch_grokipedia, query, max_results=3)
 
-                # Web results: SearXNG primary, Brave fallback
+                # Web results: Brave primary, SearXNG fallback
                 def _fetch_web():
-                    web = []
-                    if searxng_url:
+                    web = fetch_brave_web(query, max_results=10)
+                    if not web and searxng_url:
                         web = fetch_searxng(query, searxng_url, max_results=10)
-                    if not web:
-                        web = fetch_brave_web(query, max_results=10)
                     return web
                 fut_web = pool.submit(_fetch_web)
 
@@ -653,15 +651,17 @@ def create_app(config_override=None):
         except Exception:
             pass
 
-        # Web results second (broad coverage)
-        searxng_url = app.config.get("SEARXNG_URL", "")
-        if searxng_url:
-            try:
-                web_articles = fetch_searxng(query, searxng_url, max_results=8)
-                if web_articles:
-                    articles.extend(web_articles)
-            except Exception:
-                pass
+        # Web results second (broad coverage) — Brave primary, SearXNG fallback
+        try:
+            web_articles = fetch_brave_web(query, max_results=8)
+            if not web_articles:
+                searxng_url = app.config.get("SEARXNG_URL", "")
+                if searxng_url:
+                    web_articles = fetch_searxng(query, searxng_url, max_results=8)
+            if web_articles:
+                articles.extend(web_articles)
+        except Exception:
+            pass
 
         # Local index last (may not be relevant to query)
         local_results = search_engine.search(query=query, category="all", page=1)
