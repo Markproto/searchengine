@@ -544,7 +544,7 @@ def create_app(config_override=None):
         """Main search endpoint."""
         from profoundd.search.external_providers import (
             fetch_all_enhanced, fetch_searxng, fetch_brave_web, boost_known_domains,
-            fetch_grokipedia,
+            fetch_grokipedia, fetch_searxng_images, fetch_searxng_shopping,
         )
         from profoundd.utils.cache import cache_get, cache_set, make_search_key, make_ai_key, AI_SUMMARY_TTL
 
@@ -554,11 +554,88 @@ def create_app(config_override=None):
         sort_by = request.args.get("sort", "relevance")
         date_from = request.args.get("date_from")
         date_to = request.args.get("date_to")
+        tab = request.args.get("tab", "all")
 
         if not query:
             return render_template("search.html", results=None, categories=CATEGORIES,
                                    query="", category=category, enhanced_providers=set(),
-                                   web_fallback=False)
+                                   web_fallback=False, tab_images=None)
+
+        # --- Tab-specific handlers (images, shopping, videos, maps, markets) ---
+        if tab in ("images", "shopping") and query:
+            searxng_url = SiteSetting.get("searxng_url", "")
+            tab_images = []
+            if tab == "images":
+                tab_images = fetch_searxng_images(query, searxng_url, max_results=24)
+            elif tab == "shopping":
+                tab_images = fetch_searxng_shopping(query + " buy", searxng_url, max_results=24)
+            return render_template("search.html", results={"articles": [], "total": len(tab_images)},
+                                   categories=CATEGORIES, query=query, category=category,
+                                   sort_by=sort_by, enhanced_providers=set(),
+                                   web_fallback=False, web_promoted=False,
+                                   business_results=[], user_location=None,
+                                   tab_images=tab_images)
+
+        if tab == "videos" and query:
+            # Filter to YouTube/Rumble sources only
+            results = search_engine.search(
+                query=query, category="all", page=page, per_page=20,
+                sort_by=sort_by, source_filter=None,
+            )
+            video_sources = {"youtube", "rumble", "bitchute", "odysee", "rumble.com"}
+            results["articles"] = [
+                a for a in results.get("articles", [])
+                if any(vs in a.get("source_name", "").lower() or vs in a.get("url", "").lower()
+                       for vs in video_sources)
+            ]
+            return render_template("search.html", results=results, categories=CATEGORIES,
+                                   query=query, category=category, sort_by=sort_by,
+                                   enhanced_providers=set(), web_fallback=False,
+                                   web_promoted=False, business_results=[],
+                                   user_location=None, tab_images=None)
+
+        if tab == "news" and query:
+            # Only show RSS-crawled articles (not web-indexed)
+            results = search_engine.search(
+                query=query, category=category if category != "all" else None,
+                page=page, per_page=20, sort_by=sort_by,
+            )
+            results["articles"] = [
+                a for a in results.get("articles", [])
+                if "web-indexed" not in (a.get("tags") or []) and not a.get("_enhanced")
+            ]
+            return render_template("search.html", results=results, categories=CATEGORIES,
+                                   query=query, category=category, sort_by=sort_by,
+                                   enhanced_providers=set(), web_fallback=False,
+                                   web_promoted=False, business_results=[],
+                                   user_location=None, tab_images=None)
+
+        if tab == "markets" and query:
+            from profoundd.search.external_providers import fetch_polymarket
+            poly_results = fetch_polymarket(query, max_results=15)
+            local_results = search_engine.search(query=query, category="markets", page=1, per_page=10, sort_by="date")
+            all_articles = poly_results + local_results.get("articles", [])
+            return render_template("search.html", results={"articles": all_articles, "total": len(all_articles)},
+                                   categories=CATEGORIES, query=query, category="markets",
+                                   sort_by=sort_by, enhanced_providers={"polymarket"} if poly_results else set(),
+                                   web_fallback=False, web_promoted=False,
+                                   business_results=[], user_location=None, tab_images=None)
+
+        if tab == "maps" and query:
+            from profoundd.search.local_intent import detect_local_intent
+            user_loc = _get_user_location()
+            biz_location = {"lat": user_loc["lat"], "lon": user_loc["lon"]} if user_loc else None
+            try:
+                business_results = search_engine.search_businesses(
+                    query=query, location=biz_location, radius_km=80, per_page=20)
+            except Exception:
+                business_results = []
+            return render_template("search.html", results={"articles": [], "total": len(business_results)},
+                                   categories=CATEGORIES, query=query, category=category,
+                                   sort_by=sort_by, enhanced_providers=set(),
+                                   web_fallback=False, web_promoted=False,
+                                   business_results=business_results, user_location=user_loc,
+                                   tab_images=None)
 
         # Check cache first (non-admin only — admins always get fresh results)
         is_admin = session.get("admin_logged_in", False)
@@ -736,7 +813,8 @@ def create_app(config_override=None):
                                web_fallback=web_fallback,
                                web_promoted=web_promoted,
                                business_results=business_results if page == 1 else [],
-                               user_location=_get_user_location())
+                               user_location=_get_user_location(),
+                               tab_images=None)
         resp = make_response(rendered_html)
         resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
 

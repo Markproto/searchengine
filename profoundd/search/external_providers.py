@@ -660,6 +660,73 @@ def fetch_searxng(query, searxng_url, max_results=10):
         return []
 
 
+def fetch_searxng_images(query, searxng_url, max_results=20):
+    """Fetch image results from SearXNG."""
+    if not searxng_url:
+        return []
+    try:
+        resp = requests.get(
+            f"{searxng_url.rstrip('/')}/search",
+            params={"q": query, "format": "json", "categories": "images", "language": "en", "pageno": 1},
+            headers={"User-Agent": "Profoundd/1.0 (search engine)"},
+            timeout=API_TIMEOUT + 3,
+        )
+        resp.raise_for_status()
+        results = []
+        for r in resp.json().get("results", [])[:max_results]:
+            results.append({
+                "title": r.get("title", ""),
+                "url": r.get("url", ""),
+                "img_src": r.get("img_src", r.get("thumbnail_src", "")),
+                "thumbnail": r.get("thumbnail_src", r.get("img_src", "")),
+                "source_name": r.get("engine", ""),
+                "source_url": r.get("source", r.get("url", "")),
+                "width": r.get("img_format", "").split("x")[0] if "x" in r.get("img_format", "") else "",
+                "height": r.get("img_format", "").split("x")[-1] if "x" in r.get("img_format", "") else "",
+            })
+        logger.info("SearXNG images returned %d results for '%s'", len(results), query)
+        return results
+    except Exception as e:
+        logger.warning("SearXNG images error: %s", e)
+        return []
+
+
+def fetch_searxng_shopping(query, searxng_url, max_results=20):
+    """Fetch shopping/product results from SearXNG with images."""
+    if not searxng_url:
+        return []
+    try:
+        # Use Google for shopping (best product results)
+        resp = requests.get(
+            f"{searxng_url.rstrip('/')}/search",
+            params={
+                "q": query, "format": "json",
+                "categories": "general",
+                "engines": "google,duckduckgo",
+                "language": "en", "pageno": 1,
+            },
+            headers={"User-Agent": "Profoundd/1.0 (search engine)"},
+            timeout=API_TIMEOUT + 3,
+        )
+        resp.raise_for_status()
+        results = []
+        for r in resp.json().get("results", [])[:max_results]:
+            results.append({
+                "title": r.get("title", ""),
+                "url": r.get("url", ""),
+                "summary": r.get("content", ""),
+                "img_src": r.get("img_src", r.get("thumbnail_src", "")),
+                "thumbnail": r.get("thumbnail_src", r.get("img_src", "")),
+                "source_name": r.get("engine", ""),
+                "price": r.get("price", ""),
+            })
+        logger.info("SearXNG shopping returned %d results for '%s'", len(results), query)
+        return results
+    except Exception as e:
+        logger.warning("SearXNG shopping error: %s", e)
+        return []
+
+
 def fetch_brave_web(query, max_results=10):
     """
     Query Brave Search directly (no API key required).

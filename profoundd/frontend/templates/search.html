@@ -27,9 +27,22 @@
         <a href="/" class="btn btn-sm btn-secondary">&#8592; Home</a>
         <a href="/search" class="btn btn-sm btn-secondary">New Search</a>
     </div>
+    {# Search tabs #}
+    {% if query %}
+    <nav class="search-tabs">
+        {% set current_tab = request.args.get('tab', 'all') %}
+        {% set tabs = [('all', 'All'), ('news', 'News'), ('videos', 'Videos'), ('images', 'Images'), ('shopping', 'Shopping'), ('markets', 'Markets'), ('maps', 'Maps')] %}
+        {% for tab_key, tab_label in tabs %}
+        <a href="/search?q={{ query | urlencode }}&tab={{ tab_key }}{% if category != 'all' %}&category={{ category }}{% endif %}"
+           class="search-tab {% if current_tab == tab_key %}active{% endif %}">{{ tab_label }}</a>
+        {% endfor %}
+    </nav>
+    {% endif %}
+
     <div class="search-controls">
         <form action="/search" method="GET" class="search-filters">
             <input type="hidden" name="q" value="{{ query }}">
+            <input type="hidden" name="tab" value="{{ request.args.get('tab', 'all') }}">
             <div class="filter-group">
                 <label>Category:</label>
                 <select name="category" onchange="this.form.submit()">
@@ -49,6 +62,21 @@
             </div>
         </form>
     </div>
+
+    {# Image grid (for Images and Shopping tabs) #}
+    {% if tab_images %}
+    <div class="image-grid">
+        {% for img in tab_images %}
+        <a href="{{ img.url }}" target="_blank" rel="noopener" class="image-grid-item" title="{{ img.title }}">
+            <img src="{{ img.img_src or img.thumbnail }}" alt="{{ img.title }}" loading="lazy" decoding="async"
+                 onerror="this.parentElement.style.display='none'">
+            {% if img.price %}<span class="image-price">{{ img.price }}</span>{% endif %}
+            <span class="image-caption">{{ img.title[:60] }}{% if img.title|length > 60 %}...{% endif %}</span>
+            {% if img.source_name %}<span class="image-source">{{ img.source_name }}</span>{% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
 
     {% if results and results.articles %}
     {% if enhanced_providers %}
