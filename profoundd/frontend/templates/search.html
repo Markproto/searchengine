@@ -139,6 +139,15 @@
                 <span style="position:relative;display:inline-block;">
                     <button type="button" class="admin-add-cat-btn" data-url="{{ article.url }}" title="Add to category" style="background:var(--accent);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:14px;cursor:pointer;line-height:1;">+</button>
                 </span>
+                {% if article._enhanced %}
+                <button type="button" class="admin-save-btn"
+                    data-url="{{ article.url }}"
+                    data-title="{{ article.title | e }}"
+                    data-summary="{{ (article.summary or '')[:500] | e }}"
+                    data-source="{{ article.source_name | e }}"
+                    title="Save with full text to index"
+                    style="background:#2d7d46;color:#fff;border:none;border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer;">Save</button>
+                {% endif %}
                 {% endif %}
                 {% if article._enhanced %}
                 <span class="enhanced-badge {% if article._provider == 'searxng' %}web-result-badge{% elif article._provider == 'grokipedia' %}grokipedia-badge{% elif article._provider in ('polymarket', 'manifold', 'predictit') %}polymarket-badge{% endif %}">{% if article._provider == 'courtlistener' %}Court Opinion{% elif article._provider == 'pubmed' %}Research Paper{% elif article._provider == 'congress' %}Primary Source{% elif article._provider == 'grokipedia' %}Grokipedia{% elif article._provider == 'polymarket' %}Polymarket{% elif article._provider == 'manifold' %}Manifold{% elif article._provider == 'predictit' %}PredictIt{% elif article._provider == 'searxng' %}Web Result{% else %}Enhanced{% endif %}</span>
@@ -403,6 +412,35 @@ document.querySelectorAll('.ai-analyze-btn').forEach(function(btn) {
         })
         .catch(function(err) {
             panel.innerHTML = '<div class="ai-error">Analysis failed. Please try again.</div>';
+        });
+    });
+});
+
+// Admin: save web result with full text to index
+document.querySelectorAll('.admin-save-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        var el = this;
+        el.disabled = true;
+        el.textContent = '...';
+        fetch('/api/admin/save-article', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                url: el.dataset.url,
+                title: el.dataset.title,
+                summary: el.dataset.summary,
+                source_name: el.dataset.source
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            el.textContent = data.ok ? '\u2713 Saved' : '\u2717 Failed';
+            el.style.background = data.ok ? '#1a5c2e' : '#c0392b';
+        })
+        .catch(function() {
+            el.textContent = '\u2717 Error';
+            el.style.background = '#c0392b';
         });
     });
 });

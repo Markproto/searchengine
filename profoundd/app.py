@@ -3,6 +3,7 @@ Main Flask application for Profoundd search engine.
 """
 import os
 import json
+import threading
 import uuid
 import logging
 from concurrent.futures import ThreadPoolExecutor
@@ -576,6 +577,27 @@ def create_app(config_override=None):
 
                 results["articles"] = blended
 
+            # Fire-and-forget: index web results to ES so they become organic results
+            if web_results and search_engine.is_available():
+                _now = datetime.now(timezone.utc).isoformat()
+                _to_index = []
+                for wr in web_results:
+                    doc = {k: v for k, v in wr.items() if not k.startswith("_")}
+                    doc["tags"] = ["web-indexed"]
+                    doc["crawled_at"] = _now
+                    doc.setdefault("result_type", "article")
+                    _to_index.append(doc)
+
+                def _bg_index(articles):
+                    try:
+                        count = search_engine.bulk_index(articles)
+                        if count:
+                            logger.info("Auto-indexed %d web results to ES", count)
+                    except Exception as e:
+                        logger.debug("Auto-index web results failed: %s", e)
+
+                threading.Thread(target=_bg_index, args=(_to_index,), daemon=True).start()
+
         # Log the search
         log = SearchLog(
             query=query,
@@ -692,6 +714,41 @@ def create_app(config_override=None):
         resp.set_cookie("ai_searches", f"{today}:{ai_count}",
                         max_age=86400, samesite="Lax", httponly=False)
         return resp
+
+    @app.route("/api/admin/save-article", methods=["POST"])
+    def api_admin_save_article():
+        """Admin: fetch full text from a web result URL and index to ES."""
+        if not session.get("admin_logged_in"):
+            return jsonify({"error": "Unauthorized"}), 403
+
+        data = request.get_json() or {}
+        url = data.get("url", "").strip()
+        if not url:
+            return jsonify({"error": "URL required"}), 400
+
+        # Fetch full text using the crawler's extraction logic
+        from profoundd.crawler.feed_crawler import FeedCrawler
+        crawler = FeedCrawler(search_engine=search_engine)
+        full_text = crawler.fetch_full_text(url) or ""
+
+        article = {
+            "title": data.get("title", ""),
+            "summary": data.get("summary", "") or (full_text[:500] + "..." if len(full_text) > 500 else full_text),
+            "content": full_text,
+            "source_name": data.get("source_name", ""),
+            "source_credibility": 7,
+            "category": "news",
+            "url": url,
+            "published_at": data.get("published_at", ""),
+            "tags": ["web-indexed", "admin-saved"],
+            "crawled_at": datetime.now(timezone.utc).isoformat(),
+            "result_type": "article",
+        }
+
+        doc_id = search_engine.index_article(article)
+        if doc_id:
+            return jsonify({"ok": True, "doc_id": doc_id, "content_length": len(full_text)})
+        return jsonify({"error": "Index failed"}), 500
 
     @app.route("/api/article-analysis", methods=["POST"])
     def api_article_analysis():

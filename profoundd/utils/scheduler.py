@@ -82,6 +82,26 @@ def init_scheduler(app):
         kwargs={"app": app},
     )
 
+    # Backfill full text for popular web-indexed articles
+    _scheduler.add_job(
+        func=_run_web_backfill,
+        trigger=IntervalTrigger(hours=6),
+        id="web_content_backfill",
+        name="Backfill full text for popular web-indexed articles",
+        replace_existing=True,
+        kwargs={"app": app},
+    )
+
+    # Archive stale web-indexed articles to WD drive
+    _scheduler.add_job(
+        func=_run_web_archive,
+        trigger=IntervalTrigger(hours=24),
+        id="web_article_archive",
+        name="Archive stale web-indexed articles to WD drive",
+        replace_existing=True,
+        kwargs={"app": app},
+    )
+
     _scheduler.start()
     logger.info("Scheduler started: crawl every %d min, OSM every %dh, markets every %dm, polls every %dh",
                 interval_minutes, osm_refresh_hours, polymarket_minutes, polls_hours)
@@ -195,6 +215,39 @@ def _run_polls_refresh(app):
                         total_polls, total_states)
         except Exception:
             logger.exception("Polls refresh failed")
+
+
+def _run_web_backfill(app):
+    """Backfill full article text for popular web-indexed articles."""
+    with app.app_context():
+        try:
+            from profoundd.search.engine import SearchEngine
+            from profoundd.utils.models import db
+            from profoundd.utils.archiver import backfill_popular_web_articles
+
+            engine = SearchEngine(app.config.get("ELASTICSEARCH_URL"))
+            if not engine.is_available():
+                return
+            count = backfill_popular_web_articles(engine, db.session, max_articles=20)
+            logger.info("Web backfill: %d articles updated with full text", count)
+        except Exception:
+            logger.exception("Web backfill failed")
+
+
+def _run_web_archive(app):
+    """Archive stale web-indexed articles to Azure7 WD drive."""
+    with app.app_context():
+        try:
+            from profoundd.search.engine import SearchEngine
+            from profoundd.utils.archiver import archive_stale_web_articles
+
+            engine = SearchEngine(app.config.get("ELASTICSEARCH_URL"))
+            if not engine.is_available():
+                return
+            archived, failed = archive_stale_web_articles(engine)
+            logger.info("Web archive: %d archived, %d failed", archived, failed)
+        except Exception:
+            logger.exception("Web archive failed")
 
 
 def _run_cleanup(app):
