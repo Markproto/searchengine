@@ -29,6 +29,7 @@ services:
       - path.repo=/usr/share/elasticsearch/snapshots
     ports:
       - "127.0.0.1:9201:9200"
+      - "100.117.127.32:9201:9200"  # Tailscale — allows Azure7 indexer to reach ES
     volumes:
       - profoundd-es-data:/usr/share/elasticsearch/data
       - profoundd-es-snapshots:/usr/share/elasticsearch/snapshots
