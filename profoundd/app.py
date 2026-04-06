@@ -637,6 +637,21 @@ def create_app(config_override=None):
                                    business_results=business_results, user_location=user_loc,
                                    tab_images=None)
 
+        if tab == "epstein" and query:
+            # Search both Epstein doc index and news articles
+            doc_results = search_engine.search_epstein_docs(query, page=page, per_page=15)
+            news_results = search_engine.search(
+                query=query, category="epstein-files", page=1, per_page=5, sort_by="date")
+            all_articles = doc_results.get("articles", []) + news_results.get("articles", [])
+            total = doc_results.get("total", 0) + news_results.get("total", 0)
+            return render_template("search.html",
+                                   results={"articles": all_articles, "total": total, "pages": (total + 14) // 15, "page": page},
+                                   categories=CATEGORIES, query=query, category="epstein-files",
+                                   sort_by=sort_by, enhanced_providers=set(),
+                                   web_fallback=False, web_promoted=False,
+                                   business_results=[], user_location=None,
+                                   tab_images=None, spelling_suggestion=None)
+
         # Check cache first (non-admin only — admins always get fresh results)
         is_admin = session.get("admin_logged_in", False)
         cache_key = make_search_key(query, category, page, sort_by, date_from, date_to)

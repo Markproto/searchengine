@@ -31,7 +31,7 @@
     {% if query %}
     <nav class="search-tabs">
         {% set current_tab = request.args.get('tab', 'all') %}
-        {% set tabs = [('all', 'All'), ('news', 'News'), ('videos', 'Videos'), ('images', 'Images'), ('shopping', 'Shopping'), ('markets', 'Markets'), ('maps', 'Maps')] %}
+        {% set tabs = [('all', 'All'), ('news', 'News'), ('videos', 'Videos'), ('images', 'Images'), ('shopping', 'Shopping'), ('markets', 'Markets'), ('maps', 'Maps'), ('epstein', 'Epstein Files')] %}
         {% for tab_key, tab_label in tabs %}
         <a href="/search?q={{ query | urlencode }}&tab={{ tab_key }}{% if category != 'all' %}&category={{ category }}{% endif %}"
            class="search-tab {% if current_tab == tab_key %}active{% endif %}">{{ tab_label }}</a>
