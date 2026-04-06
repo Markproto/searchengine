@@ -307,6 +307,101 @@ def create_app(config_override=None):
         except Exception as e:
             logger.warning("Could not start scheduler: %s", e)
 
+    # --- Trending topics builder (from our own sources, not Google) ---
+
+    def _build_trending_topics(engine):
+        """
+        Build trending topic chips from our own data:
+        1. Our users' top searches (past 48h)
+        2. Hot topics from our indexed article headlines (last 12h)
+        Filters out mainstream media noise. Returns list of 12-15 topic strings.
+        """
+        import re
+        from collections import Counter
+
+        topics = []
+
+        # Source 1: Our users' actual searches
+        try:
+            from profoundd.utils.models import SearchLog
+            from sqlalchemy import func
+            from datetime import timedelta
+            cutoff = datetime.now(timezone.utc) - timedelta(hours=48)
+            user_queries = (
+                db.session.query(SearchLog.query, func.count(SearchLog.id))
+                .filter(SearchLog.searched_at >= cutoff)
+                .group_by(SearchLog.query)
+                .order_by(func.count(SearchLog.id).desc())
+                .limit(10)
+                .all()
+            )
+            for q, _ in user_queries:
+                if 3 < len(q) < 60:
+                    topics.append(q.strip())
+        except Exception:
+            pass
+
+        # Source 2: Hot phrases from our indexed headlines (last 12h)
+        try:
+            result = engine.es.search(
+                index=engine.index_name,
+                body={
+                    "size": 150,
+                    "sort": [{"published_at": {"order": "desc"}}],
+                    "query": {"range": {"published_at": {"gte": "now-12h"}}},
+                    "_source": ["title", "source_name"],
+                },
+            )
+            # Extract 2-3 word phrases from titles
+            stopwords = {
+                "the", "a", "an", "is", "are", "was", "were", "be", "been",
+                "have", "has", "had", "do", "does", "did", "will", "would",
+                "could", "should", "may", "might", "can", "to", "of", "in",
+                "for", "on", "with", "at", "by", "from", "as", "into", "about",
+                "and", "but", "or", "not", "so", "this", "that", "it", "its",
+                "he", "she", "they", "we", "you", "what", "which", "who", "how",
+                "when", "where", "why", "new", "says", "said", "just", "now",
+                "more", "than", "also", "after", "over", "up", "out", "get",
+                "been", "being", "going", "back", "us", "our", "his", "her",
+                "their", "my", "your", "report", "reports", "news", "update",
+            }
+            # Skip articles from mainstream sources
+            msm = {"cnn", "msnbc", "cnbc", "abc news", "nbc news", "cbs news",
+                    "new york times", "washington post", "associated press", "reuters"}
+
+            phrase_counter = Counter()
+            for hit in result["hits"]["hits"]:
+                src = hit["_source"].get("source_name", "").lower()
+                if src in msm:
+                    continue
+                title = hit["_source"].get("title", "")
+                words = [w for w in re.findall(r"[a-zA-Z']+", title)
+                         if w.lower() not in stopwords and len(w) > 2]
+                # 2-word phrases
+                for i in range(len(words) - 1):
+                    phrase = f"{words[i]} {words[i+1]}"
+                    if len(phrase) > 6:
+                        phrase_counter[phrase] += 1
+
+            # Take phrases appearing 2+ times (trending across multiple sources)
+            for phrase, count in phrase_counter.most_common(20):
+                if count >= 2 and phrase not in topics:
+                    topics.append(phrase)
+
+        except Exception:
+            pass
+
+        # Deduplicate (case-insensitive)
+        seen = set()
+        unique = []
+        for t in topics:
+            key = t.lower().strip()
+            if key not in seen:
+                seen.add(key)
+                unique.append(t)
+
+        return unique[:15]
+
     # --- Routes ---
 
     @app.route("/")
@@ -320,37 +415,12 @@ def create_app(config_override=None):
             if not trending:
                 trending = search_engine.get_latest(size=6)
 
-        # Fetch trending topics (Google Trends RSS, cached 1 hour)
+        # Build trending topics from OUR sources — not Google/mainstream
         from profoundd.utils.cache import cache_get, cache_set
-        brave_trending = cache_get("homepage:brave_trending")
+        brave_trending = cache_get("homepage:trending_topics")
         if brave_trending is None:
-            try:
-                import xml.etree.ElementTree as ET
-                import re
-                resp = http_requests.get(
-                    "https://trends.google.com/trending/rss?geo=US",
-                    headers={"User-Agent": "Profoundd/1.0"},
-                    timeout=5,
-                )
-                skip = re.compile(
-                    r"\b(nfl|nba|mlb|nhl|soccer|football|basketball|baseball|hockey|"
-                    r"serie a|premier league|la liga|bundesliga|champions league|"
-                    r"kardashian|taylor swift|beyonce|grammys|oscars|emmys|"
-                    r"bachelor|bachelorette|american idol|wordle|fortnite|minecraft)\b",
-                    re.IGNORECASE,
-                )
-                root = ET.fromstring(resp.content)
-                topics = []
-                for item in root.iter("item"):
-                    title = item.findtext("title", "").strip()
-                    if title and not skip.search(title) and len(title) < 50:
-                        topics.append(title)
-                    if len(topics) >= 15:
-                        break
-                brave_trending = topics
-                cache_set("homepage:brave_trending", topics, ttl=3600)
-            except Exception:
-                brave_trending = []
+            brave_trending = _build_trending_topics(search_engine)
+            cache_set("homepage:trending_topics", brave_trending, ttl=1800)
 
         if isinstance(brave_trending, (bytes, memoryview)):
             brave_trending = []
