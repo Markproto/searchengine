@@ -429,7 +429,14 @@ def create_app(config_override=None):
             brave_trending = _build_trending_topics(search_engine)
             cache_set("homepage:trending_topics", brave_trending, ttl=1800)
 
+        # Cache may return bytes from SQLite L2 — deserialize
         if isinstance(brave_trending, (bytes, memoryview)):
+            try:
+                import ast
+                brave_trending = ast.literal_eval(bytes(brave_trending).decode("utf-8"))
+            except Exception:
+                brave_trending = []
+        if not isinstance(brave_trending, list):
             brave_trending = []
 
         return render_template("index.html", categories=CATEGORIES,
