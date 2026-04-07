@@ -137,6 +137,30 @@
     <div class="search-layout {% if business_results %}has-business-panel{% endif %}">
     <div class="search-results">
         {% for article in results.articles %}
+        {# Court document card (Epstein Files) #}
+        {% if article.result_type == 'document' %}
+        <article class="result-card document-card">
+            <div class="result-body">
+            <div class="result-header">
+                <span class="doc-badge">Court Document</span>
+                <span class="result-source">{{ article.source_name }}</span>
+                {% if article.bates_number %}<span class="bates-badge">{{ article.bates_number }}</span>{% endif %}
+            </div>
+            <h3 class="result-title"><a href="{{ article.url }}">{{ article.title }}</a></h3>
+            {% if article.summary %}
+            <p class="result-summary">{{ article.summary[:300] }}{% if article.summary|length > 300 %}...{% endif %}</p>
+            {% elif article._highlights and article._highlights.get('content') %}
+            <p class="result-summary">...{{ article._highlights.content[0] | safe }}...</p>
+            {% endif %}
+            <div class="result-footer">
+                {% if article.page_count %}<span class="doc-meta-item">{{ article.page_count }} pages</span>{% endif %}
+                {% if article.dataset_number %}<span class="doc-meta-item">Dataset {{ article.dataset_number }}</span>{% endif %}
+                {% if article.custodian %}<span class="doc-meta-item">{{ article.custodian }}</span>{% endif %}
+            </div>
+            </div>
+        </article>
+        {% else %}
+        {# Regular article card #}
         <article class="result-card {% if article._enhanced %}enhanced-result{% endif %} {% if article.image_url %}has-thumb{% endif %}">
             {% if article.image_url %}
             <div class="result-thumb">
@@ -280,6 +304,7 @@
             </div>
             </div>{# /result-body #}
         </article>
+        {% endif %}{# /document vs article #}
         {% endfor %}
     </div>{# /search-results #}
 
