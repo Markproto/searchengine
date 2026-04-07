@@ -55,16 +55,16 @@
 
 {# Epstein Files quick access #}
 <section style="max-width: 680px; margin: 0 auto 2rem; padding: 0 1rem;">
-    <a href="/category/epstein-files?sub=court-docs"
-       style="display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: var(--bg-secondary); border: 1px solid #b91c1c33; border-left: 3px solid #b91c1c; border-radius: 8px; text-decoration: none; transition: all 0.2s;"
-       onmouseover="this.style.borderColor='#b91c1c'" onmouseout="this.style.borderColor='#b91c1c33'; this.style.borderLeftColor='#b91c1c'">
+    <form action="/search" method="GET" style="display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: var(--bg-secondary); border: 1px solid #b91c1c33; border-left: 3px solid #b91c1c; border-radius: 8px;">
+        <input type="hidden" name="tab" value="epstein">
         <span style="font-size: 1.5rem;">&#128194;</span>
-        <div>
-            <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">Search the Epstein Files</div>
-            <div style="font-size: 0.8rem; color: var(--text-secondary);">3,500+ DOJ court documents, depositions & evidence — searchable</div>
+        <div style="flex: 1;">
+            <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem; margin-bottom: 6px;">Search the Epstein Files</div>
+            <input type="text" name="q" placeholder="Search 160,000+ DOJ court documents..."
+                   style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.9rem;">
         </div>
-        <span style="margin-left: auto; color: var(--text-secondary);">&rarr;</span>
-    </a>
+        <button type="submit" style="background: #b91c1c; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-weight: 600;">Search</button>
+    </form>
 </section>
 
 {# Trending #}
