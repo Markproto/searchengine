@@ -24,4 +24,4 @@ RUN mkdir -p data
 EXPOSE 5000
 
 # Run with gunicorn
-CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:5000", "--timeout", "120", "profoundd.app:app"]
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "--timeout", "300", "--graceful-timeout", "30", "profoundd.app:app"]
