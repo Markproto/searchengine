@@ -439,8 +439,21 @@ def create_app(config_override=None):
         if not isinstance(brave_trending, list):
             brave_trending = []
 
+        # Epstein doc count for homepage banner (cached 1h)
+        epstein_count = cache_get("homepage:epstein_count")
+        if isinstance(epstein_count, (bytes, memoryview)):
+            try:
+                epstein_count = int(bytes(epstein_count).decode("utf-8"))
+            except Exception:
+                epstein_count = None
+        if not isinstance(epstein_count, int) or epstein_count <= 0:
+            epstein_count = search_engine.count_epstein_docs() if search_engine.is_available() else 0
+            if epstein_count > 0:
+                cache_set("homepage:epstein_count", epstein_count, ttl=3600)
+
         return render_template("index.html", categories=CATEGORIES,
-                               trending=trending, brave_trending=brave_trending)
+                               trending=trending, brave_trending=brave_trending,
+                               epstein_count=epstein_count)
 
     # --- Location API for local business search ---
     @app.route("/api/set-location", methods=["POST"])

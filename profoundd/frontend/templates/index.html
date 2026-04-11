@@ -60,7 +60,7 @@
         <span style="font-size: 1.5rem;">&#128194;</span>
         <div style="flex: 1;">
             <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem; margin-bottom: 6px;">Search the Epstein Files</div>
-            <input type="text" name="q" placeholder="Search 160,000+ DOJ court documents..."
+            <input type="text" name="q" placeholder="Search {% if epstein_count and epstein_count > 0 %}{{ '{:,}'.format(epstein_count) }}{% else %}1,378,000+{% endif %} DOJ court documents..."
                    style="width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.9rem;">
         </div>
         <button type="submit" style="background: #b91c1c; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-weight: 600;">Search</button>

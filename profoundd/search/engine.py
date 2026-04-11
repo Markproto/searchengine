@@ -268,6 +268,15 @@ class SearchEngine:
             logger.error("Epstein doc fetch failed for %s: %s", bates_number, e)
             return None
 
+    def count_epstein_docs(self):
+        """Return the total number of Epstein documents in the index."""
+        try:
+            result = self.es.count(index=EPSTEIN_DOC_INDEX_NAME)
+            return int(result.get("count", 0))
+        except Exception as e:
+            logger.debug("Epstein count failed: %s", e)
+            return 0
+
     def index_article(self, article_data):
         """Index a single article."""
         doc_id = article_data.get("url", "")
