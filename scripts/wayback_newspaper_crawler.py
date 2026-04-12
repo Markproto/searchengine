@@ -425,10 +425,15 @@ def normalize_date(date_str):
 
 
 def index_to_es(es, article_data):
-    # Normalize date before indexing
-    if article_data.get("published_at"):
-        article_data["published_at"] = normalize_date(article_data["published_at"])
-    if not article_data.get("published_at"):
+    # Normalize date before indexing — remove empty/unparseable dates entirely
+    raw_date = article_data.get("published_at", "")
+    if raw_date:
+        normalized = normalize_date(raw_date)
+        if normalized:
+            article_data["published_at"] = normalized
+        else:
+            article_data.pop("published_at", None)
+    else:
         article_data.pop("published_at", None)
     doc_id = hashlib.md5(article_data["url"].encode()).hexdigest()
     try:
