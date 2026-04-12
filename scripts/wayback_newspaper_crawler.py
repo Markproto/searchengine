@@ -83,7 +83,7 @@ ARTICLE_PATTERNS = [
     r"/[a-z-]+-[a-z-]+",  # slug-like paths
 ]
 
-FETCH_DELAY_SEC = 0.2  # 5 req/sec to be polite to archive.org
+FETCH_DELAY_SEC = 1.0  # ~1 req/sec per worker to avoid archive.org rate limits
 
 
 # ---------------------------------------------------------------------------
@@ -272,19 +272,37 @@ def classify_urls(domain, newspaper_name, db, logger):
 # ---------------------------------------------------------------------------
 
 def fetch_wayback_article(url, timestamp):
-    """Fetch an article from the Wayback Machine and extract text."""
+    """Fetch an article from the Wayback Machine and extract text. Retries on transient errors."""
     wb_url = f"{WAYBACK_PREFIX}/{timestamp}id_/{url}"
-    try:
-        req = urllib.request.Request(wb_url, headers={
-            "User-Agent": USER_AGENT,
-            "Accept": "text/html",
-        })
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            if resp.status != 200:
-                return None
-            html = resp.read(500_000).decode("utf-8", errors="replace")
+    html = None
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(wb_url, headers={
+                "User-Agent": USER_AGENT,
+                "Accept": "text/html",
+            })
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                if resp.status != 200:
+                    return None
+                html = resp.read(500_000).decode("utf-8", errors="replace")
+            break  # success
+        except (URLError, TimeoutError, ConnectionError, OSError) as e:
+            if attempt < 2:
+                time.sleep(3 * (attempt + 1))
+                continue
+            return None
+        except HTTPError as e:
+            if e.code in (429, 503, 502) and attempt < 2:
+                time.sleep(10 * (attempt + 1))
+                continue
+            return None
+        except Exception:
+            return None
 
-        # Strip Wayback toolbar injection
+    if not html:
+        return None
+
+    # Strip Wayback toolbar injection
         html = re.sub(
             r"<!-- BEGIN WAYBACK TOOLBAR INSERT -->.*?<!-- END WAYBACK TOOLBAR INSERT -->",
             "", html, flags=re.DOTALL,
