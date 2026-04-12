@@ -310,88 +310,88 @@ def fetch_wayback_article(url, timestamp):
         return None
 
     # Strip Wayback toolbar injection
-        html = re.sub(
-            r"<!-- BEGIN WAYBACK TOOLBAR INSERT -->.*?<!-- END WAYBACK TOOLBAR INSERT -->",
-            "", html, flags=re.DOTALL,
-        )
+    html = re.sub(
+        r"<!-- BEGIN WAYBACK TOOLBAR INSERT -->.*?<!-- END WAYBACK TOOLBAR INSERT -->",
+        "", html, flags=re.DOTALL,
+    )
 
-        # Extract title
-        title = ""
-        m = re.search(r"<title[^>]*>(.*?)</title>", html, re.IGNORECASE | re.DOTALL)
+    # Extract title
+    title = ""
+    m = re.search(r"<title[^>]*>(.*?)</title>", html, re.IGNORECASE | re.DOTALL)
+    if m:
+        title = re.sub(r"<[^>]+>", "", m.group(1)).strip()
+        # Clean common suffixes
+        for suffix in [" - Mail Tribune", " | Mail Tribune", " - Ashland Daily Tidings",
+                       " | Ashland Daily Tidings", " | Ashland Tidings"]:
+            if title.endswith(suffix):
+                title = title[: -len(suffix)].strip()
+        title = title[:500]
+
+    # Extract article text
+    text = ""
+    for tag in ("article", "main", '[class*="article"]', '[class*="story"]', "body"):
+        # For CSS selector-style, fall back to simpler regex
+        if tag.startswith("["):
+            pattern = r'class="[^"]*(?:article|story)[^"]*"[^>]*>(.*?)</(?:div|section)'
+            m = re.search(pattern, html, re.IGNORECASE | re.DOTALL)
+        else:
+            m = re.search(rf"<{tag}[^>]*>(.*?)</{tag}>", html, re.IGNORECASE | re.DOTALL)
         if m:
-            title = re.sub(r"<[^>]+>", "", m.group(1)).strip()
-            # Clean common suffixes
-            for suffix in [" - Mail Tribune", " | Mail Tribune", " - Ashland Daily Tidings",
-                           " | Ashland Daily Tidings", " | Ashland Tidings"]:
-                if title.endswith(suffix):
-                    title = title[: -len(suffix)].strip()
-            title = title[:500]
-
-        # Extract article text
-        text = ""
-        for tag in ("article", "main", '[class*="article"]', '[class*="story"]', "body"):
-            # For CSS selector-style, fall back to simpler regex
-            if tag.startswith("["):
-                pattern = r'class="[^"]*(?:article|story)[^"]*"[^>]*>(.*?)</(?:div|section)'
-                m = re.search(pattern, html, re.IGNORECASE | re.DOTALL)
-            else:
-                m = re.search(rf"<{tag}[^>]*>(.*?)</{tag}>", html, re.IGNORECASE | re.DOTALL)
-            if m:
-                raw = m.group(1)
-                raw = re.sub(r"<(script|style|nav|header|footer|aside|form)[^>]*>.*?</\1>", "", raw, flags=re.IGNORECASE | re.DOTALL)
-                raw = re.sub(r"<[^>]+>", " ", raw)
-                raw = re.sub(r"\s+", " ", raw).strip()
-                if len(raw) > 200:
-                    text = raw[:50000]
-                    break
-
-        if not text or len(text) < 100:
-            return None
-
-        # Extract published date
-        published_at = ""
-        for pattern in [
-            r'property="article:published_time"\s+content="([^"]+)"',
-            r'name="date"\s+content="([^"]+)"',
-            r'"datePublished"\s*:\s*"([^"]+)"',
-            r'class="[^"]*date[^"]*"[^>]*>([A-Z][a-z]+ \d{1,2},?\s*\d{4})',
-        ]:
-            m = re.search(pattern, html, re.IGNORECASE)
-            if m:
-                published_at = m.group(1).strip()[:30]
+            raw = m.group(1)
+            raw = re.sub(r"<(script|style|nav|header|footer|aside|form)[^>]*>.*?</\1>", "", raw, flags=re.IGNORECASE | re.DOTALL)
+            raw = re.sub(r"<[^>]+>", " ", raw)
+            raw = re.sub(r"\s+", " ", raw).strip()
+            if len(raw) > 200:
+                text = raw[:50000]
                 break
 
-        # Fall back to date from URL path (/2021/03/15/...)
-        if not published_at:
-            m = re.search(r"/(\d{4})/(\d{2})/(\d{2})/", url)
-            if m:
-                published_at = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+    if not text or len(text) < 100:
+        return None
 
-        # Fall back to Wayback timestamp
-        if not published_at and timestamp:
-            try:
-                published_at = datetime.strptime(timestamp[:8], "%Y%m%d").strftime("%Y-%m-%d")
-            except Exception:
-                pass
+    # Extract published date
+    published_at = ""
+    for pattern in [
+        r'property="article:published_time"\s+content="([^"]+)"',
+        r'name="date"\s+content="([^"]+)"',
+        r'"datePublished"\s*:\s*"([^"]+)"',
+        r'class="[^"]*date[^"]*"[^>]*>([A-Z][a-z]+ \d{1,2},?\s*\d{4})',
+    ]:
+        m = re.search(pattern, html, re.IGNORECASE)
+        if m:
+            published_at = m.group(1).strip()[:30]
+            break
 
-        # Extract author
-        author = ""
-        for pattern in [
-            r'name="author"\s+content="([^"]+)"',
-            r'"author"\s*:\s*\{[^}]*"name"\s*:\s*"([^"]+)"',
-            r'class="[^"]*(?:author|byline)[^"]*"[^>]*>(?:By\s+)?([A-Z][a-z]+ [A-Z][a-z]+)',
-        ]:
-            m = re.search(pattern, html, re.IGNORECASE)
-            if m:
-                author = m.group(1).strip()[:200]
-                break
+    # Fall back to date from URL path (/2021/03/15/...)
+    if not published_at:
+        m = re.search(r"/(\d{4})/(\d{2})/(\d{2})/", url)
+        if m:
+            published_at = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
 
-        return {
-            "title": title,
-            "text": text,
-            "published_at": published_at,
-            "author": author,
-        }
+    # Fall back to Wayback timestamp
+    if not published_at and timestamp:
+        try:
+            published_at = datetime.strptime(timestamp[:8], "%Y%m%d").strftime("%Y-%m-%d")
+        except Exception:
+            pass
+
+    # Extract author
+    author = ""
+    for pattern in [
+        r'name="author"\s+content="([^"]+)"',
+        r'"author"\s*:\s*\{[^}]*"name"\s*:\s*"([^"]+)"',
+        r'class="[^"]*(?:author|byline)[^"]*"[^>]*>(?:By\s+)?([A-Z][a-z]+ [A-Z][a-z]+)',
+    ]:
+        m = re.search(pattern, html, re.IGNORECASE)
+        if m:
+            author = m.group(1).strip()[:200]
+            break
+
+    return {
+        "title": title,
+        "text": text,
+        "published_at": published_at,
+        "author": author,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -523,7 +523,16 @@ def main():
 
         def process_one(row):
             url, domain, timestamp = row
-            return (url, domain, timestamp, fetch_wayback_article(url, timestamp))
+            try:
+                result = fetch_wayback_article(url, timestamp)
+                if result is None:
+                    logger.debug("FETCH_NONE: %s (ts=%s)", url[-60:], timestamp)
+                else:
+                    logger.debug("FETCH_OK: %s title=%s text=%d", url[-60:], result.get("title", "?")[:40], len(result.get("text", "")))
+                return (url, domain, timestamp, result)
+            except Exception as e:
+                logger.warning("FETCH_EXCEPTION: %s %s: %s", url[-60:], type(e).__name__, e)
+                return (url, domain, timestamp, None)
 
         with ThreadPoolExecutor(max_workers=args.workers) as pool:
             futures = {pool.submit(process_one, r): r for r in rows}
