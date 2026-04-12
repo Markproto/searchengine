@@ -378,7 +378,40 @@ def fetch_wayback_article(url, timestamp):
 # Phase 4: Index to ES
 # ---------------------------------------------------------------------------
 
+def normalize_date(date_str):
+    """Convert various date formats to ISO 8601 for ES."""
+    if not date_str:
+        return ""
+    date_str = date_str.strip()
+    # Already ISO?
+    if re.match(r"^\d{4}-\d{2}-\d{2}", date_str):
+        return date_str
+    # Common formats from newspaper HTML
+    from datetime import datetime as dt
+    for fmt in [
+        "%B %d, %Y",          # March 15, 2021
+        "%B %d,%Y",           # March 15,2021
+        "%b %d, %Y",          # Mar 15, 2021
+        "%b. %d, %Y",         # Mar. 15, 2021
+        "%m/%d/%Y",           # 03/15/2021
+        "%m-%d-%Y",           # 03-15-2021
+        "%d %B %Y",           # 15 March 2021
+        "%Y%m%d",             # 20210315
+        "%B %d %Y",           # March 15 2021
+    ]:
+        try:
+            return dt.strptime(date_str[:30], fmt).strftime("%Y-%m-%dT00:00:00Z")
+        except ValueError:
+            continue
+    return ""  # Can't parse — omit rather than crash ES
+
+
 def index_to_es(es, article_data):
+    # Normalize date before indexing
+    if article_data.get("published_at"):
+        article_data["published_at"] = normalize_date(article_data["published_at"])
+    if not article_data.get("published_at"):
+        article_data.pop("published_at", None)
     doc_id = hashlib.md5(article_data["url"].encode()).hexdigest()
     try:
         es.index(index=ES_INDEX, id=doc_id, document=article_data)
