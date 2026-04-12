@@ -280,11 +280,18 @@ def fetch_wayback_article(url, timestamp):
             req = urllib.request.Request(wb_url, headers={
                 "User-Agent": USER_AGENT,
                 "Accept": "text/html",
+                "Accept-Encoding": "gzip, deflate",
             })
             with urllib.request.urlopen(req, timeout=30) as resp:
                 if resp.status != 200:
                     return None
-                html = resp.read(500_000).decode("utf-8", errors="replace")
+                raw = resp.read(500_000)
+                # Decompress if gzipped
+                enc = resp.headers.get("Content-Encoding", "")
+                if enc == "gzip" or raw[:2] == b"\x1f\x8b":
+                    import gzip as gz
+                    raw = gz.decompress(raw)
+                html = raw.decode("utf-8", errors="replace")
             break  # success
         except (URLError, TimeoutError, ConnectionError, OSError) as e:
             if attempt < 2:
