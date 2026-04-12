@@ -386,11 +386,6 @@ def fetch_wayback_article(url, timestamp):
             "author": author,
         }
 
-    except (HTTPError, URLError, TimeoutError):
-        return None
-    except Exception:
-        return None
-
 
 # ---------------------------------------------------------------------------
 # Phase 4: Index to ES
