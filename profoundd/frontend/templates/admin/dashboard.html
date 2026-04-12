@@ -68,12 +68,6 @@
                 <p class="action-desc">Fetch articles from active sources</p>
             </form>
 
-            <form method="POST" action="{{ url_for('admin.cleanup_old') }}">
-                <input type="number" name="days" value="30" min="1" max="365" class="action-input">
-                <button type="submit" class="btn btn-warning">Cleanup Old</button>
-                <p class="action-desc">Delete articles older than N days</p>
-            </form>
-
             <form method="POST" action="{{ url_for('admin.deduplicate') }}">
                 <button type="submit" class="btn btn-warning">Deduplicate Titles</button>
                 <p class="action-desc">Remove duplicate headlines, keep earliest version</p>

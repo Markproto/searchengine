@@ -1,8 +1,8 @@
 """
-Web article archiver — moves stale web-indexed articles from ES to WD drive.
-Articles tagged "web-indexed" that haven't been refreshed (re-indexed by a
-search) in 30 days get exported to JSONL on Azure7's WD drive, then deleted
-from the active ES index.
+Web article archiver — backs up web-indexed articles to WD drive.
+Articles tagged "web-indexed" that haven't been refreshed in 30 days get
+exported to JSONL on Azure7's WD drive for backup. Articles are KEPT in ES
+permanently — no deletion.
 """
 import json
 import logging
@@ -21,7 +21,7 @@ MAX_PER_RUN = 500
 def archive_stale_web_articles(search_engine):
     """
     Find web-indexed articles older than ARCHIVE_DAYS, export to JSONL,
-    rsync to Azure7 WD drive, then delete from ES.
+    rsync to Azure7 WD drive for backup. Articles remain in ES permanently.
     Returns (archived_count, failed_count).
     """
     logger.info("Starting web article archive check (stale > %d days)...", ARCHIVE_DAYS)
@@ -94,17 +94,11 @@ def archive_stale_web_articles(search_engine):
         os.remove(local_path)
         return 0, len(articles_to_delete)
 
-    # Delete archived articles from ES
-    deleted = 0
-    for url in articles_to_delete:
-        if url and search_engine.delete_article(url):
-            deleted += 1
-
-    # Cleanup local temp file
+    # Articles stay in ES permanently — no deletion
     os.remove(local_path)
 
-    logger.info("Archived %d articles to WD drive, deleted %d from ES", len(articles_to_delete), deleted)
-    return deleted, 0
+    logger.info("Backed up %d articles to WD drive (kept in ES)", len(articles_to_delete))
+    return len(articles_to_delete), 0
 
 
 def backfill_popular_web_articles(search_engine, db_session, max_articles=20):

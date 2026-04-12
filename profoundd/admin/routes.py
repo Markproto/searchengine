@@ -766,17 +766,6 @@ def trigger_crawl():
     return redirect(url_for("admin.dashboard"))
 
 
-@admin_bp.route("/cleanup", methods=["POST"])
-@login_required
-def cleanup_old():
-    """Delete old articles."""
-    days = int(request.form.get("days", 30))
-    engine = SearchEngine(config.ELASTICSEARCH_URL)
-    deleted = engine.delete_old_articles(days=days)
-    flash(f"Cleaned up {deleted} articles older than {days} days.", "info")
-    return redirect(url_for("admin.dashboard"))
-
-
 @admin_bp.route("/sync-sponsors", methods=["POST"])
 @login_required
 def sync_sponsors():
