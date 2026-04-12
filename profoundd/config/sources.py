@@ -54,6 +54,7 @@ MEDICAL_SOURCES = [
     {"name": "David Avocado Wolfe (Substack)", "url": "https://davidavocadowolfe.substack.com/feed", "category": "medical", "credibility": 8, "feed_type": "rss"},
     {"name": "David Avocado Wolfe (Blog)", "url": "https://shop.davidwolfe.com/blogs/learn.atom", "category": "medical", "credibility": 8, "feed_type": "atom"},
     {"name": "Dr. Judy Mikovits", "url": "https://therealdr.substack.com/feed", "category": "medical", "credibility": 8, "feed_type": "rss"},
+    {"name": "Dr. Mercola", "url": "https://articles.mercola.com/sites/articles/rss.aspx", "category": "medical", "credibility": 8, "feed_type": "rss"},
 ]
 
 LEGAL_SOURCES = [
