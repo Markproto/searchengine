@@ -3794,7 +3794,11 @@ body,
     margin: 0 auto;
     padding: 2rem;
     background: var(--bg-secondary, #1f2937);
+    color: var(--text, #e8e8ed);
     border-radius: 8px;
+    font-size: 0.95rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 .doc-viewer-meta {
     display: flex;
