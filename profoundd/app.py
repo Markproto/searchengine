@@ -656,7 +656,7 @@ def create_app(config_override=None):
             all_articles = doc_results.get("articles", [])
             total = doc_results.get("total", 0)
             return render_template("search.html",
-                                   results={"articles": all_articles, "total": total, "pages": (total + 14) // 15, "page": page},
+                                   results={"articles": all_articles, "total": total, "pages": (total + 19) // 20, "page": page},
                                    categories=CATEGORIES, query=query, category="epstein-files",
                                    sort_by=sort_by, enhanced_providers=set(),
                                    web_fallback=False, web_promoted=False,
@@ -684,6 +684,26 @@ def create_app(config_override=None):
             date_from=date_from,
             date_to=date_to,
         )
+
+        # Blend in Epstein court document results on "all" and "epstein-files" category searches
+        if tab == "all" and category in ("all", "epstein-files") and query:
+            try:
+                epstein_results = search_engine.search_epstein_docs(query, page=1, per_page=5)
+                epstein_docs = epstein_results.get("articles", [])
+                if epstein_docs:
+                    # Mark as document result type for proper card rendering
+                    for doc in epstein_docs:
+                        doc["result_type"] = "document"
+                    # Insert after first 3 regular results
+                    articles = results.get("articles", [])
+                    insert_pos = min(3, len(articles))
+                    for i, doc in enumerate(epstein_docs):
+                        articles.insert(insert_pos + i, doc)
+                    results["articles"] = articles
+                    # Update total to reflect blended count
+                    results["total"] = results.get("total", 0) + epstein_results.get("total", 0)
+            except Exception as e:
+                logger.debug("Epstein blend failed: %s", e)
 
         # Fetch enhanced results from external providers (page 1 only)
         enhanced_providers = set()
