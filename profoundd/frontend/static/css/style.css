@@ -518,7 +518,8 @@ main { flex: 1; }
     color: var(--text-secondary);
     font-weight: 500;
 }
-.filter-group select {
+.filter-group select,
+.filter-group input[type="date"] {
     padding: 6px 12px;
     background: var(--bg-input);
     border: 1px solid var(--border);
@@ -526,6 +527,75 @@ main { flex: 1; }
     color: var(--text);
     font-size: 0.85rem;
     cursor: pointer;
+}
+.filter-group input[type="date"] {
+    min-width: 130px;
+}
+.filter-group input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: var(--date-picker-filter, none);
+}
+[data-theme="dark"] {
+    --date-picker-filter: invert(0.8);
+}
+.filter-presets {
+    display: flex;
+    gap: 4px;
+}
+.filter-presets button {
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.filter-presets button:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+.active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+.active-filters-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    font-size: 0.78rem;
+    background: var(--accent-glow);
+    border: 1px solid var(--accent);
+    border-radius: 20px;
+    color: var(--accent);
+}
+.filter-chip a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.85rem;
+    line-height: 1;
+}
+.filter-chip a:hover {
+    color: var(--danger);
+}
+.clear-all-filters {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    text-decoration: underline;
+    margin-left: 4px;
 }
 
 .search-meta {
@@ -1192,7 +1262,9 @@ main { flex: 1; }
     .search-controls { padding: 10px; }
     .search-filters { gap: 10px; }
     .filter-group { flex: 1; min-width: 0; }
-    .filter-group select { width: 100%; font-size: 16px; }
+    .filter-group select,
+    .filter-group input[type="date"] { width: 100%; font-size: 16px; }
+    .filter-presets { flex-basis: 100%; justify-content: center; }
 
     /* Result cards */
     .result-card { padding: 14px; }

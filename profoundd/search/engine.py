@@ -212,17 +212,46 @@ class SearchEngine:
             logger.error("Bulk index epstein docs failed: %s", e)
             return 0
 
-    def search_epstein_docs(self, query, page=1, per_page=20):
-        """Search the Epstein documents index."""
+    def search_epstein_docs(self, query, page=1, per_page=20,
+                            date_from=None, date_to=None,
+                            custodian=None, dataset=None, sort_by="relevance"):
+        """Search the Epstein documents index with optional filters."""
         from_offset = (page - 1) * per_page
-        body = {
-            "query": {
+
+        # Build query: use match_all if no query text, multi_match otherwise
+        if query:
+            main_query = {
                 "multi_match": {
                     "query": query,
                     "fields": ["title^3", "summary^2", "content", "bates_number^5", "custodian^2"],
                     "type": "best_fields",
                 }
-            },
+            }
+        else:
+            main_query = {"match_all": {}}
+
+        # Build filter clauses
+        filter_clauses = []
+        if date_from or date_to:
+            date_range = {}
+            if date_from:
+                date_range["gte"] = date_from
+            if date_to:
+                date_range["lte"] = date_to
+            filter_clauses.append({"range": {"doc_date": date_range}})
+        if custodian:
+            filter_clauses.append({"term": {"custodian": custodian}})
+        if dataset:
+            filter_clauses.append({"term": {"dataset_number": int(dataset)}})
+
+        # Wrap in bool query if filters exist
+        if filter_clauses:
+            es_query = {"bool": {"must": [main_query], "filter": filter_clauses}}
+        else:
+            es_query = main_query
+
+        body = {
+            "query": es_query,
             "from": from_offset,
             "size": per_page,
             "highlight": {
@@ -234,6 +263,11 @@ class SearchEngine:
                 "post_tags": ["</mark>"],
             },
         }
+
+        # Sorting
+        if sort_by == "date":
+            body["sort"] = [{"doc_date": {"order": "desc", "missing": "_last"}}, "_score"]
+
         try:
             result = self.es.search(index=EPSTEIN_DOC_INDEX_NAME, body=body)
             docs = []
@@ -276,6 +310,42 @@ class SearchEngine:
         except Exception as e:
             logger.debug("Epstein count failed: %s", e)
             return 0
+
+    def get_source_names(self):
+        """Return distinct source_name values from the articles index."""
+        try:
+            result = self.es.search(
+                index=self.index_name,
+                body={"size": 0, "aggs": {"sources": {"terms": {"field": "source_name", "size": 500}}}},
+            )
+            return sorted(b["key"] for b in result["aggregations"]["sources"]["buckets"])
+        except Exception as e:
+            logger.debug("get_source_names failed: %s", e)
+            return []
+
+    def get_epstein_facets(self):
+        """Return custodian list and dataset numbers for Epstein filter dropdowns."""
+        try:
+            result = self.es.search(
+                index=EPSTEIN_DOC_INDEX_NAME,
+                body={
+                    "size": 0,
+                    "aggs": {
+                        "custodians": {"terms": {"field": "custodian", "size": 200}},
+                        "datasets": {"terms": {"field": "dataset_number", "size": 20}},
+                    },
+                },
+            )
+            custodians = sorted(
+                b["key"] for b in result["aggregations"]["custodians"]["buckets"] if b["key"]
+            )
+            datasets = sorted(
+                b["key"] for b in result["aggregations"]["datasets"]["buckets"]
+            )
+            return {"custodians": custodians, "datasets": datasets}
+        except Exception as e:
+            logger.debug("get_epstein_facets failed: %s", e)
+            return {"custodians": [], "datasets": []}
 
     def index_article(self, article_data):
         """Index a single article."""

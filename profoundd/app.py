@@ -568,6 +568,9 @@ def create_app(config_override=None):
         date_from = request.args.get("date_from")
         date_to = request.args.get("date_to")
         tab = request.args.get("tab", "all")
+        source_filter = request.args.get("source", "")
+        epstein_custodian = request.args.get("custodian", "")
+        epstein_dataset = request.args.get("dataset", "")
 
         if not query:
             return render_template("search.html", results=None, categories=CATEGORIES,
@@ -652,20 +655,28 @@ def create_app(config_override=None):
 
         if tab == "epstein" and query:
             # Search ONLY the Epstein court documents index
-            doc_results = search_engine.search_epstein_docs(query, page=page, per_page=20)
+            doc_results = search_engine.search_epstein_docs(
+                query, page=page, per_page=20,
+                date_from=date_from, date_to=date_to,
+                custodian=epstein_custodian or None,
+                dataset=epstein_dataset or None,
+                sort_by=sort_by,
+            )
             all_articles = doc_results.get("articles", [])
             total = doc_results.get("total", 0)
+            epstein_facets = search_engine.get_epstein_facets() if search_engine.is_available() else {}
             return render_template("search.html",
                                    results={"articles": all_articles, "total": total, "pages": (total + 19) // 20, "page": page},
                                    categories=CATEGORIES, query=query, category="epstein-files",
                                    sort_by=sort_by, enhanced_providers=set(),
                                    web_fallback=False, web_promoted=False,
                                    business_results=[], user_location=None,
-                                   tab_images=None, spelling_suggestion=None)
+                                   tab_images=None, spelling_suggestion=None,
+                                   epstein_facets=epstein_facets)
 
         # Check cache first (non-admin only — admins always get fresh results)
         is_admin = session.get("admin_logged_in", False)
-        cache_key = make_search_key(query, category, page, sort_by, date_from, date_to)
+        cache_key = make_search_key(query, category, page, sort_by, date_from, date_to, source_filter)
         if not is_admin:
             cached_html = cache_get(cache_key)
             if cached_html:
@@ -683,6 +694,7 @@ def create_app(config_override=None):
             sort_by=sort_by,
             date_from=date_from,
             date_to=date_to,
+            source_filter=source_filter or None,
         )
 
         # Blend in Epstein court document results on "all" and "epstein-files" category searches
@@ -858,6 +870,9 @@ def create_app(config_override=None):
         if page == 1 and results.get("total", 0) < 3:
             spelling_suggestion = search_engine.get_spelling_suggestion(query)
 
+        # Get source list for filter dropdown (cached in search_engine)
+        source_list = search_engine.get_source_names() if search_engine.is_available() else []
+
         rendered_html = render_template("search.html", results=results, categories=CATEGORIES,
                                query=query, category=category, sort_by=sort_by,
                                enhanced_providers=enhanced_providers,
@@ -866,7 +881,8 @@ def create_app(config_override=None):
                                business_results=business_results if page == 1 else [],
                                user_location=_get_user_location(),
                                tab_images=None,
-                               spelling_suggestion=spelling_suggestion)
+                               spelling_suggestion=spelling_suggestion,
+                               source_list=source_list)
         resp = make_response(rendered_html)
         resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
 

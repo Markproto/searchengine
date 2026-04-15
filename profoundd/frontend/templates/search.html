@@ -40,9 +40,13 @@
     {% endif %}
 
     <div class="search-controls">
-        <form action="/search" method="GET" class="search-filters">
+        <form action="/search" method="GET" class="search-filters" id="search-filter-form">
             <input type="hidden" name="q" value="{{ query }}">
             <input type="hidden" name="tab" value="{{ request.args.get('tab', 'all') }}">
+            {% set _current_tab = request.args.get('tab', 'all') %}
+
+            {# Row 1: Category + Sort (always visible) #}
+            {% if _current_tab != 'epstein' %}
             <div class="filter-group">
                 <label>Category:</label>
                 <select name="category" onchange="this.form.submit()">
@@ -52,16 +56,120 @@
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
             <div class="filter-group">
                 <label>Sort:</label>
                 <select name="sort" onchange="this.form.submit()">
                     <option value="relevance" {% if sort_by == 'relevance' %}selected{% endif %}>Relevance</option>
                     <option value="date" {% if sort_by == 'date' %}selected{% endif %}>Newest</option>
+                    {% if _current_tab != 'epstein' %}
                     <option value="credibility" {% if sort_by == 'credibility' %}selected{% endif %}>Credibility</option>
+                    {% endif %}
                 </select>
             </div>
+
+            {# Source filter (non-epstein tabs) #}
+            {% if _current_tab != 'epstein' and source_list is defined and source_list %}
+            <div class="filter-group">
+                <label>Source:</label>
+                <select name="source" onchange="this.form.submit()">
+                    <option value="">All Sources</option>
+                    {% for src in source_list %}
+                    <option value="{{ src }}" {% if request.args.get('source') == src %}selected{% endif %}>{{ src }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            {# Epstein-specific filters #}
+            {% if _current_tab == 'epstein' and epstein_facets is defined %}
+            {% if epstein_facets.custodians %}
+            <div class="filter-group">
+                <label>Custodian:</label>
+                <select name="custodian" onchange="this.form.submit()">
+                    <option value="">All Custodians</option>
+                    {% for c in epstein_facets.custodians %}
+                    <option value="{{ c }}" {% if request.args.get('custodian') == c %}selected{% endif %}>{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            {% if epstein_facets.datasets %}
+            <div class="filter-group">
+                <label>Dataset:</label>
+                <select name="dataset" onchange="this.form.submit()">
+                    <option value="">All Datasets</option>
+                    {% for d in epstein_facets.datasets %}
+                    <option value="{{ d }}" {% if request.args.get('dataset') == d|string %}selected{% endif %}>Dataset {{ d }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            {# Date range #}
+            <div class="filter-group">
+                <label>From:</label>
+                <input type="date" name="date_from" value="{{ request.args.get('date_from', '') }}"
+                       onchange="this.form.submit()">
+            </div>
+            <div class="filter-group">
+                <label>To:</label>
+                <input type="date" name="date_to" value="{{ request.args.get('date_to', '') }}"
+                       onchange="this.form.submit()">
+            </div>
+
+            {# Quick date presets #}
+            <div class="filter-presets">
+                <button type="button" onclick="setDatePreset(1)">24h</button>
+                <button type="button" onclick="setDatePreset(7)">Week</button>
+                <button type="button" onclick="setDatePreset(30)">Month</button>
+                <button type="button" onclick="setDatePreset(365)">Year</button>
+            </div>
         </form>
+
+        {# Active filter chips with clear #}
+        {% set has_filters = request.args.get('date_from') or request.args.get('date_to') or request.args.get('source') or request.args.get('custodian') or request.args.get('dataset') %}
+        {% if has_filters %}
+        <div class="active-filters">
+            <span class="active-filters-label">Filters:</span>
+            {% if request.args.get('date_from') %}
+            <span class="filter-chip">From {{ request.args.get('date_from') }} <a href="#" onclick="clearFilter('date_from')">x</a></span>
+            {% endif %}
+            {% if request.args.get('date_to') %}
+            <span class="filter-chip">To {{ request.args.get('date_to') }} <a href="#" onclick="clearFilter('date_to')">x</a></span>
+            {% endif %}
+            {% if request.args.get('source') %}
+            <span class="filter-chip">{{ request.args.get('source') }} <a href="#" onclick="clearFilter('source')">x</a></span>
+            {% endif %}
+            {% if request.args.get('custodian') %}
+            <span class="filter-chip">{{ request.args.get('custodian') }} <a href="#" onclick="clearFilter('custodian')">x</a></span>
+            {% endif %}
+            {% if request.args.get('dataset') %}
+            <span class="filter-chip">Dataset {{ request.args.get('dataset') }} <a href="#" onclick="clearFilter('dataset')">x</a></span>
+            {% endif %}
+            <a href="/search?q={{ query | urlencode }}&tab={{ _current_tab }}" class="clear-all-filters">Clear all</a>
+        </div>
+        {% endif %}
     </div>
+
+    <script>
+    function setDatePreset(days) {
+        var form = document.getElementById('search-filter-form');
+        var d = new Date();
+        d.setDate(d.getDate() - days);
+        var iso = d.toISOString().split('T')[0];
+        form.querySelector('[name="date_from"]').value = iso;
+        form.querySelector('[name="date_to"]').value = '';
+        form.submit();
+    }
+    function clearFilter(name) {
+        var form = document.getElementById('search-filter-form');
+        var el = form.querySelector('[name="' + name + '"]');
+        if (el) { el.value = ''; }
+        form.submit();
+    }
+    </script>
 
     {# Spelling correction #}
     {% if spelling_suggestion %}
@@ -317,20 +425,26 @@
 
     {% if results.pages > 1 %}
     {% set _tab = request.args.get('tab', 'all') %}
+    {% set _pf = '' %}
+    {% if request.args.get('date_from') %}{% set _pf = _pf ~ '&date_from=' ~ request.args.get('date_from') %}{% endif %}
+    {% if request.args.get('date_to') %}{% set _pf = _pf ~ '&date_to=' ~ request.args.get('date_to') %}{% endif %}
+    {% if request.args.get('source') %}{% set _pf = _pf ~ '&source=' ~ request.args.get('source') %}{% endif %}
+    {% if request.args.get('custodian') %}{% set _pf = _pf ~ '&custodian=' ~ request.args.get('custodian') %}{% endif %}
+    {% if request.args.get('dataset') %}{% set _pf = _pf ~ '&dataset=' ~ request.args.get('dataset') %}{% endif %}
     <nav class="pagination">
         {% if results.page > 1 %}
-        <a href="/search?q={{ query }}&category={{ category }}&sort={{ sort_by }}&tab={{ _tab }}&page={{ results.page - 1 }}" class="page-link">&laquo; Prev</a>
+        <a href="/search?q={{ query }}&category={{ category }}&sort={{ sort_by }}&tab={{ _tab }}{{ _pf }}&page={{ results.page - 1 }}" class="page-link">&laquo; Prev</a>
         {% endif %}
         {% for p in range(1, results.pages + 1) %}
         {% if p <= 5 or p > results.pages - 5 or (p >= results.page - 2 and p <= results.page + 2) %}
-        <a href="/search?q={{ query }}&category={{ category }}&sort={{ sort_by }}&tab={{ _tab }}&page={{ p }}"
+        <a href="/search?q={{ query }}&category={{ category }}&sort={{ sort_by }}&tab={{ _tab }}{{ _pf }}&page={{ p }}"
            class="page-link {% if p == results.page %}active{% endif %}">{{ p }}</a>
         {% elif p == 6 or p == results.pages - 5 %}
         <span class="page-dots">...</span>
         {% endif %}
         {% endfor %}
         {% if results.page < results.pages %}
-        <a href="/search?q={{ query }}&category={{ category }}&sort={{ sort_by }}&tab={{ _tab }}&page={{ results.page + 1 }}" class="page-link">Next &raquo;</a>
+        <a href="/search?q={{ query }}&category={{ category }}&sort={{ sort_by }}&tab={{ _tab }}{{ _pf }}&page={{ results.page + 1 }}" class="page-link">Next &raquo;</a>
         {% endif %}
     </nav>
     {% endif %}
