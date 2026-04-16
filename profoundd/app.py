@@ -96,6 +96,8 @@ def create_app(config_override=None):
     # Load config
     config = config_override or get_config()
     app.config.from_object(config)
+    # Allow audio uploads up to 30 MB (Groq hard-limits at 25 MB; extra headroom)
+    app.config["MAX_CONTENT_LENGTH"] = 30 * 1024 * 1024
     CORS(app)
 
     # Setup logging

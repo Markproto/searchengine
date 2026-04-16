@@ -11,7 +11,7 @@ from functools import wraps
 import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick, AudioTranscript
 from profoundd.config.settings import get_config
 from profoundd.config.sources import ALL_SOURCES, CATEGORIES, SPECIAL_SECTION_KEYWORDS
 from profoundd.search.engine import SearchEngine
@@ -1046,6 +1046,7 @@ def ai_settings():
         SiteSetting.set("ai_default_provider", request.form.get("default_ai_provider", "anthropic"))
         SiteSetting.set("searxng_url", request.form.get("searxng_url", "").strip().rstrip("/"))
         SiteSetting.set("congress_gov_api_key", request.form.get("congress_gov_api_key", "").strip())
+        SiteSetting.set("groq_api_key", request.form.get("groq_api_key", "").strip())
         SiteSetting.set("source_research_guidelines", request.form.get("source_research_guidelines", "").strip())
         flash("Settings saved.", "success")
         return redirect(url_for("admin.ai_settings"))
@@ -1058,6 +1059,7 @@ def ai_settings():
                            default_provider=SiteSetting.get("ai_default_provider", "anthropic"),
                            searxng_url=SiteSetting.get("searxng_url", ""),
                            congress_gov_api_key=SiteSetting.get("congress_gov_api_key", ""),
+                           groq_api_key=SiteSetting.get("groq_api_key", ""),
                            source_research_guidelines=SiteSetting.get("source_research_guidelines", ""),
                            categories=CATEGORIES)
 
@@ -2710,3 +2712,202 @@ def crawler_candidate_action(domain, action):
         flash(f"Update failed: {e}", "error")
 
     return redirect(url_for("admin.crawler_dashboard"))
+
+
+# ============================================================
+# Audio Upload → Transcription → Bob Story Workflow
+# ============================================================
+
+@admin_bp.route("/bob/audio", methods=["GET"])
+@login_required
+def bob_audio_list():
+    """List uploaded transcripts + upload form."""
+    import os
+    transcripts = (
+        db.session.query(AudioTranscript)
+        .order_by(AudioTranscript.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    groq_key_configured = bool(SiteSetting.get("groq_api_key", "") or os.environ.get("GROQ_API_KEY", ""))
+    return render_template(
+        "admin/bob_audio_list.html",
+        transcripts=transcripts,
+        groq_key_configured=groq_key_configured,
+        categories=CATEGORIES,
+    )
+
+
+@admin_bp.route("/bob/audio/upload", methods=["POST"])
+@login_required
+def bob_audio_upload():
+    """Accept an audio file, transcribe it via Groq Whisper, create draft record."""
+    from profoundd.search.audio_transcribe import (
+        transcribe_audio, SUPPORTED_EXTENSIONS, MAX_FILE_BYTES,
+    )
+
+    f = request.files.get("audio_file")
+    if not f or not f.filename:
+        flash("No file uploaded.", "error")
+        return redirect(url_for("admin.bob_audio_list"))
+
+    filename = f.filename
+    ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext not in SUPPORTED_EXTENSIONS:
+        flash(f"Unsupported format: {ext}. Supported: {', '.join(sorted(SUPPORTED_EXTENSIONS))}", "error")
+        return redirect(url_for("admin.bob_audio_list"))
+
+    file_bytes = f.read()
+    if len(file_bytes) > MAX_FILE_BYTES:
+        flash(f"File too large ({len(file_bytes)} bytes, max {MAX_FILE_BYTES}).", "error")
+        return redirect(url_for("admin.bob_audio_list"))
+
+    import os
+    api_key = SiteSetting.get("groq_api_key", "") or os.environ.get("GROQ_API_KEY", "")
+    if not api_key:
+        flash("Groq API key not configured. Set it in AI Settings.", "error")
+        return redirect(url_for("admin.ai_settings"))
+
+    try:
+        result = transcribe_audio(file_bytes, filename, api_key)
+    except Exception as e:
+        logger.exception("Audio transcription failed")
+        flash(f"Transcription failed: {e}", "error")
+        return redirect(url_for("admin.bob_audio_list"))
+
+    tr = AudioTranscript(
+        filename=filename[:300],
+        duration_seconds=result.get("duration"),
+        transcript=result.get("text", ""),
+        detected_language=(result.get("language") or "")[:20],
+        source_url=request.form.get("source_url", "").strip()[:1000],
+        source_description=request.form.get("source_description", "").strip()[:500],
+        transcribed_at=datetime.now(timezone.utc),
+    )
+    db.session.add(tr)
+    db.session.commit()
+
+    flash(f"Transcribed {filename}: {len(tr.transcript)} chars", "success")
+    return redirect(url_for("admin.bob_audio_review", transcript_id=tr.id))
+
+
+@admin_bp.route("/bob/audio/<int:transcript_id>", methods=["GET"])
+@login_required
+def bob_audio_review(transcript_id):
+    """Review / edit transcript before generating Bob story."""
+    tr = db.session.query(AudioTranscript).get(transcript_id)
+    if not tr:
+        flash("Transcript not found.", "error")
+        return redirect(url_for("admin.bob_audio_list"))
+    return render_template(
+        "admin/bob_audio_review.html",
+        transcript=tr,
+        categories=CATEGORIES,
+    )
+
+
+@admin_bp.route("/bob/audio/<int:transcript_id>/update", methods=["POST"])
+@login_required
+def bob_audio_update(transcript_id):
+    """Save edits to a transcript or its metadata."""
+    tr = db.session.query(AudioTranscript).get(transcript_id)
+    if not tr:
+        flash("Transcript not found.", "error")
+        return redirect(url_for("admin.bob_audio_list"))
+    tr.transcript = request.form.get("transcript", tr.transcript)
+    tr.source_description = request.form.get("source_description", tr.source_description or "").strip()[:500]
+    tr.source_url = request.form.get("source_url", tr.source_url or "").strip()[:1000]
+    db.session.commit()
+    flash("Transcript updated.", "success")
+    return redirect(url_for("admin.bob_audio_review", transcript_id=transcript_id))
+
+
+@admin_bp.route("/bob/audio/<int:transcript_id>/generate", methods=["POST"])
+@login_required
+def bob_audio_generate(transcript_id):
+    """Run generate_bob_story() on the transcript, create draft BobStory, redirect to edit."""
+    from profoundd.search.newsroom_bob import generate_bob_story, make_slug
+
+    tr = db.session.query(AudioTranscript).get(transcript_id)
+    if not tr:
+        flash("Transcript not found.", "error")
+        return redirect(url_for("admin.bob_audio_list"))
+
+    # Persist any edits that came with this form submit
+    if "transcript" in request.form:
+        tr.transcript = request.form.get("transcript", tr.transcript)
+        tr.source_description = request.form.get("source_description", tr.source_description or "").strip()[:500]
+        tr.source_url = request.form.get("source_url", tr.source_url or "").strip()[:1000]
+        db.session.commit()
+
+    category = (request.form.get("category", "news") or "news").strip()
+
+    api_key = get_anthropic_key()
+    if not api_key:
+        flash("Anthropic API key not configured.", "error")
+        return redirect(url_for("admin.ai_settings"))
+
+    if not tr.transcript or len(tr.transcript.strip()) < 100:
+        flash("Transcript is too short (need at least 100 chars).", "error")
+        return redirect(url_for("admin.bob_audio_review", transcript_id=transcript_id))
+
+    article_data = {
+        "title": tr.source_description or tr.filename or "Transcribed Audio",
+        "url": tr.source_url or f"profoundd://audio/{tr.id}",
+        "source_name": tr.source_description or "Audio Upload",
+        "category": category,
+        "content": tr.transcript,
+        "summary": tr.transcript[:500],
+    }
+
+    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+    bob_result, err = generate_bob_story(article_data, api_key=api_key, model=model)
+    if err or not bob_result:
+        flash(f"Bob couldn't write this: {err or 'no result'}", "error")
+        return redirect(url_for("admin.bob_audio_review", transcript_id=transcript_id))
+
+    # Build a unique slug
+    base_slug = make_slug(bob_result.get("headline") or tr.source_description or tr.filename or "audio-story")
+    slug = base_slug
+    n = 2
+    while db.session.query(BobStory).filter_by(slug=slug).first():
+        slug = f"{base_slug}-{n}"
+        n += 1
+
+    story = BobStory(
+        title=bob_result.get("headline") or article_data["title"],
+        slug=slug,
+        content=bob_result.get("body", ""),
+        summary=bob_result.get("summary", ""),
+        seo_keywords=bob_result.get("seo_keywords", "")[:500],
+        seo_description=bob_result.get("seo_description", "")[:300],
+        category=category,
+        image_url=None,
+        source_article_url=tr.source_url or f"profoundd://audio/{tr.id}",
+        source_article_title=tr.source_description or tr.filename or "Audio Upload",
+        source_name=tr.source_description or "Audio Transcript",
+        status="draft",
+    )
+    db.session.add(story)
+    db.session.flush()  # get ID before commit
+
+    tr.bob_story_id = story.id
+    tr.status = "story_drafted"
+    db.session.commit()
+
+    flash("Bob generated a draft. Review and publish below.", "success")
+    return redirect(url_for("admin.edit_story", story_id=story.id))
+
+
+@admin_bp.route("/bob/audio/<int:transcript_id>/delete", methods=["POST"])
+@login_required
+def bob_audio_delete(transcript_id):
+    """Delete a transcript (does NOT delete the Bob story if one was created)."""
+    tr = db.session.query(AudioTranscript).get(transcript_id)
+    if not tr:
+        flash("Transcript not found.", "error")
+        return redirect(url_for("admin.bob_audio_list"))
+    db.session.delete(tr)
+    db.session.commit()
+    flash("Transcript deleted.", "success")
+    return redirect(url_for("admin.bob_audio_list"))

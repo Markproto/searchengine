@@ -290,6 +290,24 @@ class BobStory(db.Model):
         }
 
 
+class AudioTranscript(db.Model):
+    """Audio files uploaded by admin, transcribed to text for Bob story seed."""
+    __tablename__ = "audio_transcripts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(300))
+    duration_seconds = db.Column(db.Float)
+    source_url = db.Column(db.String(1000))  # optional: podcast URL / YouTube
+    source_description = db.Column(db.String(500))  # e.g. "Joe Rogan #2024 w/ RFK Jr"
+    transcript = db.Column(db.Text)  # admin-editable
+    detected_language = db.Column(db.String(20))
+    # Status: transcribed | story_drafted | archived
+    status = db.Column(db.String(20), default="transcribed")
+    bob_story_id = db.Column(db.Integer, nullable=True)  # soft FK to BobStory
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    transcribed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+
 class ArticleVote(db.Model):
     """Public thumbs up/down votes on search results."""
     __tablename__ = "article_votes"
