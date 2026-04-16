@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Crawler Dashboard - Admin{% endblock %}
+
+{% block content %}
+<div class="container admin-page" style="max-width:1200px;">
+    <div class="admin-header">
+        <h1>Domain Crawler</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Back to Admin</a>
+    </div>
+
+    <div class="stats-grid" style="margin-bottom:2rem;">
+        <div class="stat-card">
+            <h3>Configured Domains</h3>
+            <p class="stat-value">{{ configured_count }}</p>
+            <p class="stat-detail">Tier-1 targets in crawler config</p>
+        </div>
+        <div class="stat-card">
+            <h3>Articles Crawled</h3>
+            <p class="stat-value">{{ '{:,}'.format(total_targeted) }}</p>
+            <p class="stat-detail">Tagged "targeted-crawl"</p>
+        </div>
+        <div class="stat-card">
+            <h3>Discovered Candidates</h3>
+            <p class="stat-value">{{ candidates|length }}</p>
+            <p class="stat-detail">From outbound links</p>
+        </div>
+    </div>
+
+    <!-- Run crawler form -->
+    <div class="admin-section">
+        <h2>Run Crawler</h2>
+        <form method="POST" action="{{ url_for('admin.crawler_run') }}" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;">
+            <div>
+                <label style="display:block;font-size:0.85rem;color:var(--text-secondary);">Domains (comma-separated, or "all")</label>
+                <input type="text" name="domains" placeholder="judicialwatch.org,unlimitedhangout.com"
+                       style="padding:8px;width:360px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);">
+            </div>
+            <div>
+                <label style="display:block;font-size:0.85rem;color:var(--text-secondary);">Max pages</label>
+                <input type="number" name="max_pages" value="2000" min="10" max="50000"
+                       style="padding:8px;width:100px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);">
+            </div>
+            <div>
+                <label style="display:block;font-size:0.85rem;color:var(--text-secondary);">Workers</label>
+                <input type="number" name="workers" value="4" min="1" max="16"
+                       style="padding:8px;width:80px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);">
+            </div>
+            <button type="submit" class="btn btn-primary">Start Crawl</button>
+        </form>
+    </div>
+
+    <!-- Per-domain counts -->
+    <div class="admin-section">
+        <h2>Articles per Domain</h2>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Domain</th>
+                    <th>Articles</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dc in domain_counts %}
+                <tr>
+                    <td>{{ dc.domain }}</td>
+                    <td><strong>{{ '{:,}'.format(dc.count) }}</strong></td>
+                    <td>
+                        <form method="POST" action="{{ url_for('admin.crawler_run') }}" style="display:inline;">
+                            <input type="hidden" name="domains" value="{{ dc.domain }}">
+                            <input type="hidden" name="max_pages" value="2000">
+                            <input type="hidden" name="workers" value="1">
+                            <button type="submit" class="btn btn-sm btn-secondary">Crawl</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Discovered Candidates -->
+    <div class="admin-section">
+        <h2>Discovered Candidate Domains</h2>
+        <p style="color:var(--text-secondary);font-size:0.9rem;">Domains found via outbound links from crawled pages. Promote to add to Tier 1, exclude to ignore.</p>
+        {% if candidates %}
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Domain</th>
+                    <th>Backlinks</th>
+                    <th>First seen</th>
+                    <th>Sample links</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in candidates %}
+                <tr>
+                    <td>{{ c.domain }}</td>
+                    <td><strong>{{ c.backlinks }}</strong></td>
+                    <td style="font-size:0.8rem;">{{ c.first_seen[:10] if c.first_seen else '' }}</td>
+                    <td style="font-size:0.75rem;max-width:300px;overflow:hidden;text-overflow:ellipsis;">
+                        {% for s in c.samples[:2] %}
+                        <a href="{{ s }}" target="_blank" rel="noopener" style="color:var(--text-muted);">{{ s[:60] }}...</a><br>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('admin.crawler_candidate_action', domain=c.domain, action='promote') }}" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-primary">Promote</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('admin.crawler_candidate_action', domain=c.domain, action='exclude') }}" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-secondary">Exclude</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color:var(--text-muted);">No candidates discovered yet. Run crawlers on more domains with external links.</p>
+        {% endif %}
+    </div>
+
+    <!-- Crawler log -->
+    <div class="admin-section">
+        <h2>Crawler Log (last 30 lines)</h2>
+        {% if log_tail %}
+        <pre style="background:var(--bg-input);padding:12px;border-radius:6px;overflow-x:auto;font-size:0.8rem;max-height:400px;">{{ log_tail }}</pre>
+        {% else %}
+        <p style="color:var(--text-muted);">No log output yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -2540,3 +2540,173 @@ def osm_import_state(state_key):
     threading.Thread(target=run_import, daemon=True).start()
     flash(f"OSM import started for {SUPPORTED_STATES[state_key]['label']}.", "success")
     return redirect(url_for("admin.osm_manage"))
+
+
+# ============================================================
+# Domain Crawler Admin
+# ============================================================
+
+@admin_bp.route("/crawler")
+@login_required
+def crawler_dashboard():
+    """Show domain crawler stats, per-domain article counts, discovered candidates."""
+    import json
+    import os
+    import sqlite3
+
+    engine = SearchEngine(get_config().ELASTICSEARCH_URL)
+
+    # Per-domain article counts from ES
+    domain_counts = []
+    config_path = "/app/scripts/domain_crawler_config.json"
+    configured_domains = []
+    if os.path.exists(config_path):
+        with open(config_path) as f:
+            cfg = json.load(f)
+            configured_domains = list(cfg.get("domains", {}).keys())
+
+    if engine.is_available() and configured_domains:
+        try:
+            result = engine.es.search(
+                index=engine.index_name,
+                body={
+                    "size": 0,
+                    "query": {"term": {"tags": "targeted-crawl"}},
+                    "aggs": {"by_source": {"terms": {"field": "source_name", "size": 200}}},
+                },
+            )
+            counts_map = {
+                b["key"]: b["doc_count"]
+                for b in result["aggregations"]["by_source"]["buckets"]
+            }
+        except Exception as e:
+            logger.warning("Crawler stats ES query failed: %s", e)
+            counts_map = {}
+    else:
+        counts_map = {}
+
+    for d in configured_domains:
+        domain_counts.append({"domain": d, "count": counts_map.get(d, 0)})
+    domain_counts.sort(key=lambda x: -x["count"])
+
+    total_targeted = sum(counts_map.values())
+
+    # Discovered candidates
+    candidates = []
+    cands_db = "/app/data/crawler-state/candidates.db"
+    if os.path.exists(cands_db):
+        try:
+            conn = sqlite3.connect(cands_db)
+            rows = conn.execute(
+                "SELECT domain, backlink_count, first_seen, last_seen, status, sample_urls "
+                "FROM candidates WHERE status='candidate' "
+                "ORDER BY backlink_count DESC LIMIT 100"
+            ).fetchall()
+            for d, n, first, last, status, samples in rows:
+                try:
+                    sample_list = json.loads(samples or "[]")
+                except Exception:
+                    sample_list = []
+                candidates.append({
+                    "domain": d,
+                    "backlinks": n,
+                    "first_seen": first,
+                    "last_seen": last,
+                    "status": status,
+                    "samples": sample_list,
+                })
+            conn.close()
+        except Exception as e:
+            logger.warning("Candidates DB query failed: %s", e)
+
+    # Crawler log tail
+    log_tail = ""
+    log_path = "/tmp/crawler.log"
+    if os.path.exists(log_path):
+        try:
+            with open(log_path) as f:
+                lines = f.readlines()
+                log_tail = "".join(lines[-30:])
+        except Exception:
+            pass
+
+    return render_template(
+        "admin/crawler.html",
+        domain_counts=domain_counts,
+        total_targeted=total_targeted,
+        candidates=candidates,
+        log_tail=log_tail,
+        configured_count=len(configured_domains),
+    )
+
+
+@admin_bp.route("/crawler/run", methods=["POST"])
+@login_required
+def crawler_run():
+    """Trigger a crawl of specific domains or all domains in the background."""
+    import subprocess
+    import os
+
+    domains = request.form.get("domains", "").strip()
+    max_pages = request.form.get("max_pages", "2000")
+    workers = request.form.get("workers", "4")
+
+    if not domains:
+        flash("No domains specified", "error")
+        return redirect(url_for("admin.crawler_dashboard"))
+
+    os.makedirs("/app/data/crawler-state", exist_ok=True)
+    # Start detached background process
+    cmd = [
+        "python", "/app/scripts/domain_crawler.py",
+        "--config", "/app/scripts/domain_crawler_config.json",
+        "--es-url", "http://elasticsearch:9200",
+        "--state-dir", "/app/data/crawler-state",
+        "--domains", domains,
+        "--workers", str(workers),
+        "--max-pages", str(max_pages),
+    ]
+    try:
+        with open("/tmp/crawler.log", "a") as logf:
+            logf.write(f"\n\n=== Manual trigger {datetime.now(timezone.utc).isoformat()} ===\n")
+            logf.write(f"Command: {' '.join(cmd)}\n\n")
+        subprocess.Popen(
+            cmd,
+            stdout=open("/tmp/crawler.log", "a"),
+            stderr=subprocess.STDOUT,
+            close_fds=True,
+        )
+        flash(f"Crawler started for: {domains}", "success")
+    except Exception as e:
+        flash(f"Failed to start crawler: {e}", "error")
+
+    return redirect(url_for("admin.crawler_dashboard"))
+
+
+@admin_bp.route("/crawler/candidates/<domain>/<action>", methods=["POST"])
+@login_required
+def crawler_candidate_action(domain, action):
+    """Mark a candidate domain as promoted, excluded, or reset to candidate."""
+    import sqlite3
+    import os
+
+    cands_db = "/app/data/crawler-state/candidates.db"
+    if not os.path.exists(cands_db):
+        flash("Candidates DB not found", "error")
+        return redirect(url_for("admin.crawler_dashboard"))
+
+    new_status = {"promote": "promoted", "exclude": "excluded", "reset": "candidate"}.get(action)
+    if not new_status:
+        flash("Invalid action", "error")
+        return redirect(url_for("admin.crawler_dashboard"))
+
+    try:
+        conn = sqlite3.connect(cands_db)
+        conn.execute("UPDATE candidates SET status=? WHERE domain=?", (new_status, domain))
+        conn.commit()
+        conn.close()
+        flash(f"Domain {domain} marked as {new_status}", "success")
+    except Exception as e:
+        flash(f"Update failed: {e}", "error")
+
+    return redirect(url_for("admin.crawler_dashboard"))
