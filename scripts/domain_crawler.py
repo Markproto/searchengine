@@ -47,6 +47,31 @@ logger = logging.getLogger("domain_crawler")
 
 ES_INDEX = "profoundd_articles"
 
+# Skip recording these as candidate domains (noise / already decided not to crawl)
+CANDIDATE_SKIP_DOMAINS = {
+    "facebook.com", "twitter.com", "x.com", "instagram.com", "tiktok.com",
+    "linkedin.com", "pinterest.com", "reddit.com", "quora.com",
+    "youtube.com", "youtu.be", "vimeo.com", "api.whatsapp.com", "whatsapp.com",
+    "t.me", "telegram.me", "vk.com",
+    "amazon.com", "ebay.com", "walmart.com", "etsy.com", "paypal.com",
+    "patreon.com", "gofundme.com", "kickstarter.com",
+    "wikipedia.org", "en.wikipedia.org",
+    "google.com", "bing.com", "yahoo.com", "duckduckgo.com",
+    "apple.com", "microsoft.com", "github.com",
+    "archive.org", "web.archive.org",
+}
+
+def _should_record_candidate(domain):
+    if not domain or "." not in domain:
+        return False
+    d = domain.lower().strip(".")
+    if d in CANDIDATE_SKIP_DOMAINS:
+        return False
+    for skip in CANDIDATE_SKIP_DOMAINS:
+        if d.endswith("." + skip):
+            return False
+    return True
+
 # URL classification patterns (reuse from wayback_newspaper_crawler)
 SKIP_PATH_PATTERNS = [
     re.compile(r"\.(css|js|json|xml|rss|atom|ico|svg|png|jpg|jpeg|gif|webp|pdf|zip|mp4|mp3)(\?|$)", re.I),
@@ -115,8 +140,15 @@ def init_state_db(db_path):
     return conn
 
 
+_cands_path = None  # set by init_candidates_db
+_cands_lock = None
+
+
 def init_candidates_db(db_path):
-    """Shared DB of discovered outbound domains."""
+    """Init candidates DB. Each record_candidate() call opens its own
+    connection for thread safety. Returns the path for later use."""
+    global _cands_path, _cands_lock
+    import threading
     conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("""CREATE TABLE IF NOT EXISTS candidates (
@@ -128,30 +160,41 @@ def init_candidates_db(db_path):
         sample_urls TEXT
     )""")
     conn.commit()
-    return conn
+    conn.close()
+    _cands_path = str(db_path)
+    _cands_lock = threading.Lock()
+    return _cands_path
 
 
-def record_candidate(cands_conn, domain, linking_url):
-    row = cands_conn.execute(
-        "SELECT backlink_count, sample_urls FROM candidates WHERE domain=?",
-        (domain,),
-    ).fetchone()
+def record_candidate(_unused, domain, linking_url):
+    """Thread-safe candidate recording. Opens own connection per-call."""
+    if not _cands_path:
+        return
     now = datetime.now(timezone.utc).isoformat()
-    if row:
-        count = row[0] + 1
-        samples = json.loads(row[1] or "[]")
-        if len(samples) < 5 and linking_url not in samples:
-            samples.append(linking_url)
-        cands_conn.execute(
-            "UPDATE candidates SET backlink_count=?, last_seen=?, sample_urls=? WHERE domain=?",
-            (count, now, json.dumps(samples), domain),
-        )
-    else:
-        cands_conn.execute(
-            "INSERT INTO candidates (domain, backlink_count, first_seen, last_seen, sample_urls) VALUES (?, 1, ?, ?, ?)",
-            (domain, now, now, json.dumps([linking_url])),
-        )
-    cands_conn.commit()
+    with _cands_lock:
+        conn = sqlite3.connect(_cands_path, timeout=10)
+        try:
+            row = conn.execute(
+                "SELECT backlink_count, sample_urls FROM candidates WHERE domain=?",
+                (domain,),
+            ).fetchone()
+            if row:
+                count = row[0] + 1
+                samples = json.loads(row[1] or "[]")
+                if len(samples) < 5 and linking_url not in samples:
+                    samples.append(linking_url)
+                conn.execute(
+                    "UPDATE candidates SET backlink_count=?, last_seen=?, sample_urls=? WHERE domain=?",
+                    (count, now, json.dumps(samples), domain),
+                )
+            else:
+                conn.execute(
+                    "INSERT INTO candidates (domain, backlink_count, first_seen, last_seen, sample_urls) VALUES (?, 1, ?, ?, ?)",
+                    (domain, now, now, json.dumps([linking_url])),
+                )
+            conn.commit()
+        finally:
+            conn.close()
 
 
 # ---------------------------------------------------------------------------
@@ -443,11 +486,14 @@ def crawl_domain(domain, config, defaults, state_dir, es_url, cands_conn, max_pa
 
             # Record discovered outbound domains (always, even from index pages)
             for od in result["outbound_domains"]:
-                if od and od != domain and "." in od:
-                    try:
-                        record_candidate(cands_conn, od, url)
-                    except Exception as e:
-                        logger.debug("candidate record error: %s", e)
+                if od == domain:
+                    continue
+                if not _should_record_candidate(od):
+                    continue
+                try:
+                    record_candidate(None, od, url)
+                except Exception as e:
+                    logger.debug("candidate record error: %s", e)
 
             # Queue internal links (always, even if this page isn't an article)
             if depth < max_depth:
