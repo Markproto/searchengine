@@ -3,11 +3,13 @@ Main Flask application for Profoundd search engine.
 """
 import os
 import json
+import hashlib
 import threading
 import uuid
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, date, timezone
+from urllib.parse import urlparse
 
 import requests as http_requests
 from flask import Flask, render_template, request, jsonify, flash, redirect, Response, url_for, make_response, session
@@ -23,6 +25,20 @@ from profoundd.admin.routes import admin_bp
 from profoundd.utils.logging_config import setup_logging
 
 logger = logging.getLogger(__name__)
+
+
+def _hash_ip(ip):
+    """Hash IP with daily salt — useful for vote dedup, not reversible."""
+    salt = f"profoundd:{date.today().isoformat()}"
+    return hashlib.sha256(f"{salt}:{ip}".encode()).hexdigest()[:16]
+
+
+def _clean_referrer(ref):
+    """Strip query params from referrer to avoid leaking external search queries."""
+    if not ref:
+        return ""
+    parsed = urlparse(ref)
+    return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"[:1000]
 
 
 def create_app(config_override=None):
@@ -152,9 +168,9 @@ def create_app(config_override=None):
             pv = PageView(
                 path=path[:1000],
                 visitor_id=visitor_id,
-                ip_address=request.remote_addr,
+                ip_address=_hash_ip(request.remote_addr),
                 user_agent=ua,
-                referrer=(request.referrer or "")[:1000],
+                referrer=_clean_referrer(request.referrer),
                 is_bot=True,
             )
             db.session.add(pv)
@@ -182,9 +198,9 @@ def create_app(config_override=None):
             pv = PageView(
                 path=(data.get("path") or "/")[:1000],
                 visitor_id=visitor_id,
-                ip_address=request.remote_addr,
+                ip_address=_hash_ip(request.remote_addr),
                 user_agent=ua,
-                referrer=(data.get("referrer") or "")[:1000],
+                referrer=_clean_referrer(data.get("referrer") or ""),
                 session_id=(data.get("sessionId") or "")[:64] or None,
                 is_bot=detect_bot(ua),
                 screen_width=data.get("screenWidth"),
@@ -860,7 +876,7 @@ def create_app(config_override=None):
             query=query,
             category=category,
             results_count=results.get("total", 0),
-            ip_address=request.remote_addr,
+            ip_address=_hash_ip(request.remote_addr),
         )
         db.session.add(log)
         db.session.commit()
@@ -1606,7 +1622,7 @@ def create_app(config_override=None):
                 category="news",  # admin assigns the real category on review
                 reason=request.form.get("reason", "").strip(),
                 submitted_by=request.form.get("submitted_by", "").strip() or "Anonymous",
-                ip_address=request.remote_addr,
+                ip_address=_hash_ip(request.remote_addr),
             )
             db.session.add(submission)
             db.session.commit()
@@ -1618,6 +1634,10 @@ def create_app(config_override=None):
     def about():
         about_html = SiteSetting.get("about_page_html", "")
         return render_template("about.html", categories=CATEGORIES, about_html=about_html)
+
+    @app.route("/privacy")
+    def privacy_policy():
+        return render_template("privacy.html", categories=CATEGORIES)
 
     # --- NewsRoom Bob public routes ---
 

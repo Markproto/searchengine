@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Privacy Policy - Profoundd{% endblock %}
+{% block description %}Profoundd's privacy policy. No third-party trackers, no ad profiles, no data sales. Plain-language explanation of what we collect and why.{% endblock %}
+{% block og_title %}Privacy Policy - Profoundd{% endblock %}
+{% block og_description %}Profoundd's privacy policy. No third-party trackers, no ad profiles, no data sales.{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:800px;margin:2rem auto;padding:0 1rem;">
+    <h1 style="font-size:1.8rem;margin-bottom:0.5rem;">Privacy Policy</h1>
+    <p style="color:var(--text-secondary);margin-bottom:2rem;">Last updated: April 15, 2026</p>
+
+    <div style="line-height:1.8;color:var(--text);">
+
+    <h2>The short version</h2>
+    <p>Profoundd has <strong>no third-party trackers</strong>, <strong>no advertising</strong>, and <strong>does not sell your data</strong> to anyone. You can browse the site, search articles, and read Epstein court documents without providing any personal information.</p>
+
+    <h2>What we collect</h2>
+
+    <h3>When you browse (no cookies required)</h3>
+    <ul>
+        <li><strong>Nothing personally identifiable.</strong> You can use Profoundd without accepting cookies or creating an account.</li>
+        <li>Our server processes your request to deliver pages, but we do not store your raw IP address. If analytics are enabled, IP addresses are hashed with a daily rotating salt before storage, making them non-reversible.</li>
+    </ul>
+
+    <h3>When you accept analytics cookies</h3>
+    <p>If you click "Accept" on the cookie banner, we collect anonymous usage data to understand how the site is used:</p>
+    <ul>
+        <li><strong>Page views</strong> &mdash; which pages are visited (not who visits them)</li>
+        <li><strong>Referrer domain</strong> &mdash; where you came from (e.g., "google.com"), but we strip search queries and other URL parameters</li>
+        <li><strong>Device category</strong> &mdash; mobile vs desktop, browser name (not the full user agent fingerprint)</li>
+        <li><strong>Session duration</strong> &mdash; how long you stay</li>
+    </ul>
+    <p>This data is stored on our own servers, not sent to any third party. You can withdraw consent at any time via the "Cookie Settings" link in the footer.</p>
+
+    <h3>When you search</h3>
+    <ul>
+        <li><strong>Search queries</strong> are logged to improve results and show trending topics. They are associated with a hashed, non-reversible IP &mdash; not your real IP address.</li>
+        <li>Search logs are used for aggregate analytics only (e.g., "500 people searched for 'epstein' this week").</li>
+    </ul>
+
+    <h3>When you use location-based search</h3>
+    <ul>
+        <li>If you choose to share your location or enter a ZIP code for local business results, coordinates are stored in a browser cookie on your device &mdash; not on our servers.</li>
+        <li>You can clear your location at any time via the location prompt or by clearing cookies.</li>
+    </ul>
+
+    <h3>When you create an account</h3>
+    <ul>
+        <li>We store your email address and a hashed password (or magic login token).</li>
+        <li>Accounts are optional &mdash; they unlock additional AI analysis features.</li>
+        <li>We do not send marketing emails.</li>
+    </ul>
+
+    <h2>Cookies we use</h2>
+    <table style="width:100%;border-collapse:collapse;margin:1rem 0;">
+        <thead>
+            <tr style="border-bottom:2px solid var(--border);text-align:left;">
+                <th style="padding:8px;">Cookie</th>
+                <th style="padding:8px;">Purpose</th>
+                <th style="padding:8px;">Lifetime</th>
+                <th style="padding:8px;">Required?</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:8px;"><code>cookie_consent</code></td>
+                <td style="padding:8px;">Remembers your cookie choice</td>
+                <td style="padding:8px;">1 year</td>
+                <td style="padding:8px;">Yes</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:8px;"><code>session</code></td>
+                <td style="padding:8px;">Keeps you logged in (admin/user)</td>
+                <td style="padding:8px;">Browser session</td>
+                <td style="padding:8px;">Only if logged in</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:8px;"><code>profoundd_loc</code></td>
+                <td style="padding:8px;">Your location for local search</td>
+                <td style="padding:8px;">1 year</td>
+                <td style="padding:8px;">Only if you opt in</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:8px;"><code>ai_searches</code></td>
+                <td style="padding:8px;">Limits free AI summaries (5/day)</td>
+                <td style="padding:8px;">24 hours</td>
+                <td style="padding:8px;">Only if using AI</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:8px;"><code>profoundd_vid</code></td>
+                <td style="padding:8px;">Anonymous visitor ID for analytics</td>
+                <td style="padding:8px;">1 year</td>
+                <td style="padding:8px;">No &mdash; only after consent</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>What we do NOT do</h2>
+    <ul>
+        <li>We do <strong>not</strong> use Google Analytics, Facebook Pixel, or any third-party tracking service.</li>
+        <li>We do <strong>not</strong> build advertising profiles or sell data to anyone.</li>
+        <li>We do <strong>not</strong> store your raw IP address &mdash; only a hashed, non-reversible version.</li>
+        <li>We do <strong>not</strong> track you across other websites.</li>
+        <li>We do <strong>not</strong> send marketing or promotional emails.</li>
+    </ul>
+
+    <h2>Third-party services</h2>
+    <ul>
+        <li><strong>Google Fonts</strong> &mdash; We load the Inter font family from Google Fonts. Google may see the request but receives no tracking data from us.</li>
+        <li><strong>Cloudflare</strong> &mdash; Our site is served through a Cloudflare tunnel for SSL and DDoS protection. Cloudflare processes requests but does not have access to our database or analytics.</li>
+    </ul>
+
+    <h2>Data retention</h2>
+    <ul>
+        <li>Analytics data (page views, search logs) is stored on our servers and periodically pruned.</li>
+        <li>Account data is retained until you request deletion.</li>
+        <li>Location data is stored only in your browser cookie &mdash; we can't delete it because we don't have it.</li>
+    </ul>
+
+    <h2>Your rights</h2>
+    <ul>
+        <li><strong>Opt out of analytics</strong> &mdash; decline cookies via the banner, or click "Cookie Settings" in the footer at any time.</li>
+        <li><strong>Clear your location</strong> &mdash; click "Clear Location" in the search bar or clear your browser cookies.</li>
+        <li><strong>Delete your account</strong> &mdash; contact us and we will remove all account data.</li>
+        <li><strong>Data export</strong> &mdash; contact us to request a copy of any data associated with your account.</li>
+    </ul>
+
+    <h2>Contact</h2>
+    <p>Questions about this policy? Email <a href="mailto:mark.hutto@protonmail.com" style="color:var(--accent);">mark.hutto@protonmail.com</a></p>
+
+    </div>
+</div>
+{% endblock %}
