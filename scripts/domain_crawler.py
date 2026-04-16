@@ -29,7 +29,6 @@ import re
 import sqlite3
 import sys
 import time
-import urllib.robotparser
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -161,22 +160,74 @@ def record_candidate(cands_conn, domain, linking_url):
 
 _robots_cache = {}
 
+class SimpleRobots:
+    """Minimal robots.txt parser — more lenient than urllib's.
+    Default-allow unless explicit Disallow matches the path.
+    """
+    def __init__(self, text, ua):
+        self.disallows = []
+        self.allows = []
+        ua_lower = ua.split("/")[0].lower()
+        current_uas = []
+        in_matching_block = False
+        for raw in (text or "").splitlines():
+            line = raw.split("#", 1)[0].strip()
+            if not line:
+                current_uas = []
+                in_matching_block = False
+                continue
+            if ":" not in line:
+                continue
+            key, _, val = line.partition(":")
+            key = key.strip().lower()
+            val = val.strip()
+            if key == "user-agent":
+                current_uas.append(val.lower())
+                in_matching_block = any(
+                    u == "*" or ua_lower in u or u in ua_lower for u in current_uas
+                )
+            elif in_matching_block and key == "disallow":
+                if val:
+                    self.disallows.append(val)
+            elif in_matching_block and key == "allow":
+                if val:
+                    self.allows.append(val)
+
+    def can_fetch(self, url):
+        path = urlparse(url).path or "/"
+        # Allow rules take precedence when matched
+        for a in self.allows:
+            if path.startswith(a):
+                return True
+        for d in self.disallows:
+            if path.startswith(d):
+                return False
+        return True
+
+
 def get_robots(domain, ua):
     if domain in _robots_cache:
         return _robots_cache[domain]
-    rp = urllib.robotparser.RobotFileParser()
-    rp.set_url(f"https://{domain}/robots.txt")
+    text = ""
     try:
-        rp.read()
-    except Exception:
-        pass
+        resp = requests.get(
+            f"https://{domain}/robots.txt",
+            headers=ua_headers(ua),
+            timeout=10,
+            allow_redirects=True,
+        )
+        if resp.status_code == 200:
+            text = resp.text[:50000]
+    except Exception as e:
+        logger.debug("robots.txt fetch failed for %s: %s", domain, e)
+    rp = SimpleRobots(text, ua)
     _robots_cache[domain] = rp
     return rp
 
 
 def can_fetch(rp, ua, url):
     try:
-        return rp.can_fetch(ua, url)
+        return rp.can_fetch(url)
     except Exception:
         return True
 
