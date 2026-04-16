@@ -218,13 +218,13 @@ class SearchEngine:
         """Search the Epstein documents index with optional filters."""
         from_offset = (page - 1) * per_page
 
-        # Build query: use match_all if no query text, multi_match otherwise
+        # Build query: simple_query_string supports AND/OR/NOT/"phrases" natively
         if query:
             main_query = {
-                "multi_match": {
+                "simple_query_string": {
                     "query": query,
                     "fields": ["title^3", "summary^2", "content", "bates_number^5", "custodian^2"],
-                    "type": "best_fields",
+                    "default_operator": "AND",
                 }
             }
         else:
@@ -549,34 +549,28 @@ class SearchEngine:
         must_clauses = []
         filter_clauses = []
 
-        # Main text query
+        # Main text query — simple_query_string supports boolean operators
+        # (AND, OR, NOT, -term, "exact phrase", parentheses) natively.
         phrase_boosts = []
         if query:
-            multi_match_query = {
-                "query": query,
-                "fields": ["title^3", "summary^2", "content"],
-                "type": "best_fields",
-            }
-            query_terms = query.split()
-            if len(query_terms) >= 3:
-                # For multi-word queries: no fuzziness and require 75% of terms
-                # to match. Stemming still causes false positives at 50%
-                # (e.g. "electric"→"electr" matches "electricity" in energy articles).
-                multi_match_query["minimum_should_match"] = "75%"
-            elif len(query_terms) == 2:
-                # Two-word queries: require both terms, no fuzziness
-                multi_match_query["minimum_should_match"] = "100%"
-            else:
-                # Single-word queries: allow fuzziness for typo correction
-                multi_match_query["fuzziness"] = "AUTO"
-            must_clauses.append({"multi_match": multi_match_query})
+            must_clauses.append({
+                "simple_query_string": {
+                    "query": query,
+                    "fields": ["title^3", "summary^2", "content"],
+                    "default_operator": "AND",
+                }
+            })
 
-            # Phrase boost: reward articles containing the exact phrase
-            if len(query_terms) >= 2:
+            # Strip boolean operators for phrase boost evaluation
+            clean_query = query.replace(" AND ", " ").replace(" OR ", " ").replace(" NOT ", " ")
+            clean_query = clean_query.replace("+", "").replace("-", "").replace("|", "")
+            clean_query = clean_query.replace("(", "").replace(")", "").strip()
+            clean_terms = clean_query.split()
+            if len(clean_terms) >= 2 and '"' not in query:
                 phrase_boosts = [
-                    {"match_phrase": {"title": {"query": query, "boost": 5}}},
-                    {"match_phrase": {"summary": {"query": query, "boost": 3}}},
-                    {"match_phrase": {"content": {"query": query, "boost": 1}}},
+                    {"match_phrase": {"title": {"query": clean_query, "boost": 5}}},
+                    {"match_phrase": {"summary": {"query": clean_query, "boost": 3}}},
+                    {"match_phrase": {"content": {"query": clean_query, "boost": 1}}},
                 ]
 
         # Category filter

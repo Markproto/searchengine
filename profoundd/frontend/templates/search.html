@@ -171,6 +171,17 @@
     }
     </script>
 
+    <details class="search-syntax-help">
+        <summary>Search tips &mdash; use boolean operators for precise results</summary>
+        <ul>
+            <li><code>"exact phrase"</code> &mdash; match exact words in order</li>
+            <li><code>maxwell AND clinton</code> &mdash; both terms required</li>
+            <li><code>epstein OR maxwell</code> &mdash; either term</li>
+            <li><code>epstein -trump</code> &mdash; exclude a term</li>
+            <li><code>(maxwell OR clinton) AND "flight logs"</code> &mdash; group terms</li>
+        </ul>
+    </details>
+
     {# Spelling correction #}
     {% if spelling_suggestion %}
     <div style="margin-bottom: 12px; font-size: 0.9rem; color: var(--text-secondary);">
