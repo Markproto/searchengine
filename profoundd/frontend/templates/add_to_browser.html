@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Add Profoundd to Your Browser - Profoundd{% endblock %}
+{% block description %}Add Profoundd as your default search engine in Chrome, Firefox, Brave, Edge, and Safari. Search independent news, Epstein files, and government documents from your browser's address bar.{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:800px;margin:2rem auto;padding:0 1rem;">
+    <h1 style="font-size:1.8rem;margin-bottom:0.5rem;">Add Profoundd to Your Browser</h1>
+    <p style="color:var(--text-secondary);margin-bottom:2rem;">Search Profoundd directly from your browser's address bar.</p>
+
+    <div style="line-height:1.8;color:var(--text);">
+
+    <h2>Brave / Chrome / Edge</h2>
+    <ol>
+        <li>Visit <strong>profoundd.com</strong> a few times (the browser learns it supports OpenSearch automatically)</li>
+        <li>Open Settings → <strong>Search engines</strong> (or type <code>brave://settings/searchEngines</code>)</li>
+        <li>Find "Profoundd" in the list and click <strong>Make default</strong></li>
+    </ol>
+    <p>Or do it manually:</p>
+    <ol>
+        <li>Settings → Search engines → <strong>Manage search engines</strong> → Add</li>
+        <li>Name: <code>Profoundd</code></li>
+        <li>Shortcut: <code>profoundd.com</code> or <code>pf</code></li>
+        <li>URL: <code>https://profoundd.com/search?q=%s</code></li>
+    </ol>
+
+    <h2>Firefox</h2>
+    <ol>
+        <li>Visit profoundd.com</li>
+        <li>Right-click the address bar → <strong>Add "Profoundd"</strong></li>
+        <li>Go to Preferences → Search → choose Profoundd as default</li>
+    </ol>
+
+    <h2>Safari</h2>
+    <p>Safari doesn't support adding custom search engines natively. Workaround:</p>
+    <ul>
+        <li>Install the <a href="https://apps.apple.com/us/app/smart-keyword-search/id1484348796" target="_blank" rel="noopener">Smart Keyword Search</a> extension, or</li>
+        <li>Bookmark <code>https://profoundd.com/search?q=</code> with a keyword like <code>pf</code>, then type <code>pf</code> followed by your query in the address bar</li>
+    </ul>
+
+    <h2>Why?</h2>
+    <p>Using Profoundd as your default search engine means:</p>
+    <ul>
+        <li>No Google ad profiles, no third-party trackers</li>
+        <li>Access to 1.3M+ Epstein court documents and 100K+ articles from independent sources</li>
+        <li>Source credibility scores visible on every result</li>
+        <li>Sponsored outlets (Pfizer etc.) clearly badged</li>
+    </ul>
+
+    <h2>Keyboard shortcut</h2>
+    <p>Most browsers let you use a shortcut. If you set Profoundd's shortcut to <code>pf</code>, you can type:</p>
+    <pre style="background:var(--bg-input);padding:12px;border-radius:6px;"><code>pf epstein flight logs</code></pre>
+    <p>in your address bar and go straight to Profoundd search results.</p>
+
+    </div>
+</div>
+{% endblock %}

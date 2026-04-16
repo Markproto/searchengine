@@ -311,6 +311,53 @@ class SearchEngine:
             logger.debug("Epstein count failed: %s", e)
             return 0
 
+    def scroll_epstein_bates(self, chunk_size=50000, chunk_index=0):
+        """Return (bates_number, indexed_at) tuples for sitemap chunk N.
+
+        Uses search_after pagination keyed on bates_number. Page N is the
+        N-th block of chunk_size documents sorted by bates_number.
+        """
+        # We need to skip chunk_index * chunk_size docs and return the next chunk_size.
+        # ES limits "from" to 10,000 by default, so we paginate via search_after.
+        page_size = 5000  # per-request page for search_after
+        target_start = chunk_index * chunk_size
+        target_end = target_start + chunk_size
+
+        results = []
+        fetched = 0
+        search_after = None
+
+        try:
+            while fetched < target_end:
+                body = {
+                    "size": page_size,
+                    "_source": ["bates_number", "indexed_at"],
+                    "sort": [{"bates_number": "asc"}],
+                    "query": {"exists": {"field": "bates_number"}},
+                }
+                if search_after:
+                    body["search_after"] = search_after
+                resp = self.es.search(index=EPSTEIN_DOC_INDEX_NAME, body=body)
+                hits = resp["hits"]["hits"]
+                if not hits:
+                    break
+                for hit in hits:
+                    # Only collect hits in the target window
+                    if target_start <= fetched < target_end:
+                        src = hit["_source"]
+                        bates = src.get("bates_number")
+                        if bates:
+                            results.append((bates, src.get("indexed_at", "")))
+                    fetched += 1
+                    if fetched >= target_end:
+                        break
+                # Advance search_after to last hit's sort key
+                search_after = hits[-1]["sort"]
+            return results
+        except Exception as e:
+            logger.error("scroll_epstein_bates failed (chunk %d): %s", chunk_index, e)
+            return results
+
     def get_source_names(self):
         """Return distinct source_name values from the articles index."""
         try:

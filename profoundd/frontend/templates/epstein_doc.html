@@ -1,6 +1,46 @@
 {% extends "base.html" %}
 {% block title %}{{ doc.title }} - Epstein Files - Profoundd{% endblock %}
 {% block description %}{{ (doc.summary or doc.title)[:160] }}{% endblock %}
+{% block og_title %}{{ doc.title }} | Epstein Files{% endblock %}
+{% block og_description %}{{ (doc.summary or doc.title)[:160] }}{% endblock %}
+{% block og_type %}article{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "DigitalDocument",
+    "name": {{ doc.title | tojson }},
+    "description": {{ (doc.summary or doc.title)[:300] | tojson }},
+    "identifier": {{ (doc.bates_number or '') | tojson }},
+    {% if doc.doc_date %}"datePublished": {{ doc.doc_date | tojson }},{% endif %}
+    "publisher": {
+        "@type": "Organization",
+        "name": "U.S. Department of Justice",
+        "url": "https://www.justice.gov/"
+    },
+    "isPartOf": {
+        "@type": "Collection",
+        "name": "Jeffrey Epstein Court Documents",
+        "url": "https://profoundd.com/category/epstein-files"
+    },
+    "url": "https://profoundd.com/epstein-docs/{{ doc.bates_number }}",
+    "inLanguage": "en"
+}
+</script>
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://profoundd.com/"},
+        {"@type": "ListItem", "position": 2, "name": "Epstein Files", "item": "https://profoundd.com/category/epstein-files"},
+        {"@type": "ListItem", "position": 3, "name": "Court Documents", "item": "https://profoundd.com/category/epstein-files?sub=court-docs"},
+        {"@type": "ListItem", "position": 4, "name": {{ doc.title | tojson }}, "item": "https://profoundd.com/epstein-docs/{{ doc.bates_number }}"}
+    ]
+}
+</script>
+{% endblock %}
 
 {% block content %}
 <div class="container" style="max-width:900px;margin:2rem auto;padding:0 1rem;">

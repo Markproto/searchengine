@@ -1692,6 +1692,10 @@ def create_app(config_override=None):
     def bot_info():
         return render_template("bot.html", categories=CATEGORIES)
 
+    @app.route("/add-to-browser")
+    def add_to_browser():
+        return render_template("add_to_browser.html", categories=CATEGORIES)
+
     # --- NewsRoom Bob public routes ---
 
     @app.route("/newsroom")
@@ -1732,6 +1736,7 @@ Allow: /
 Allow: /search
 Allow: /category/
 Allow: /article/
+Allow: /epstein-docs/
 Allow: /about
 Allow: /submit
 Allow: /newsroom
@@ -1739,10 +1744,115 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /health
 
+Sitemap: https://{domain}/sitemap-index.xml
 Sitemap: https://{domain}/sitemap.xml
 Sitemap: https://{domain}/news-sitemap.xml
 """
         return Response(content, mimetype="text/plain")
+
+    @app.route("/sitemap-index.xml")
+    def sitemap_index():
+        """Master sitemap index listing all sitemaps (main + news + epstein chunks)."""
+        domain = app.config.get("DOMAIN", "profoundd.com")
+        base = f"https://{domain}"
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+        # Count Epstein docs to determine how many sitemap chunks we need
+        epstein_count = 0
+        if search_engine.is_available():
+            try:
+                epstein_count = search_engine.count_epstein_docs()
+            except Exception:
+                pass
+        chunk_size = 50000
+        num_chunks = (epstein_count + chunk_size - 1) // chunk_size
+
+        parts = ['<?xml version="1.0" encoding="UTF-8"?>']
+        parts.append('<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+        parts.append(f"  <sitemap><loc>{base}/sitemap.xml</loc><lastmod>{today}</lastmod></sitemap>")
+        parts.append(f"  <sitemap><loc>{base}/news-sitemap.xml</loc><lastmod>{today}</lastmod></sitemap>")
+        for i in range(num_chunks):
+            parts.append(f"  <sitemap><loc>{base}/sitemap-epstein-{i}.xml</loc><lastmod>{today}</lastmod></sitemap>")
+        parts.append("</sitemapindex>")
+        return Response("\n".join(parts), mimetype="application/xml")
+
+    @app.route("/sitemap-epstein-<int:chunk>.xml")
+    def sitemap_epstein_chunk(chunk):
+        """Generate one 50K-URL chunk of the Epstein doc sitemap."""
+        from profoundd.utils.cache import cache_get, cache_set
+        cache_key = f"sitemap:epstein:{chunk}"
+
+        cached = cache_get(cache_key)
+        if cached:
+            if isinstance(cached, (bytes, memoryview)):
+                cached = bytes(cached).decode("utf-8")
+            return Response(cached, mimetype="application/xml")
+
+        if not search_engine.is_available():
+            return Response("<urlset/>", mimetype="application/xml", status=503)
+
+        domain = app.config.get("DOMAIN", "profoundd.com")
+        base = f"https://{domain}"
+
+        try:
+            items = search_engine.scroll_epstein_bates(chunk_size=50000, chunk_index=chunk)
+        except Exception as e:
+            logger.error("Epstein sitemap chunk %d failed: %s", chunk, e)
+            items = []
+
+        if not items:
+            return Response("<urlset/>", mimetype="application/xml", status=404)
+
+        parts = ['<?xml version="1.0" encoding="UTF-8"?>']
+        parts.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+        for bates, indexed_at in items:
+            lastmod = (indexed_at or "")[:10] or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            parts.append("  <url>")
+            parts.append(f"    <loc>{base}/epstein-docs/{bates}</loc>")
+            parts.append(f"    <lastmod>{lastmod}</lastmod>")
+            parts.append("    <changefreq>yearly</changefreq>")
+            parts.append("    <priority>0.5</priority>")
+            parts.append("  </url>")
+        parts.append("</urlset>")
+
+        xml = "\n".join(parts)
+        # Cache for 24h
+        try:
+            cache_set(cache_key, xml, ttl=86400)
+        except Exception:
+            pass
+        return Response(xml, mimetype="application/xml")
+
+    @app.route("/opensearch.xml")
+    def opensearch_descriptor():
+        """OpenSearch descriptor — lets browsers add Profoundd as a search engine."""
+        domain = app.config.get("DOMAIN", "profoundd.com")
+        xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+  <ShortName>Profoundd</ShortName>
+  <Description>Independent search: news, Epstein files, government docs, source credibility</Description>
+  <InputEncoding>UTF-8</InputEncoding>
+  <Image width="32" height="32" type="image/png">https://{domain}/static/images/favicon-32.png</Image>
+  <Url type="text/html" template="https://{domain}/search?q={{searchTerms}}"/>
+  <Url type="application/opensearchdescription+xml" rel="self" template="https://{domain}/opensearch.xml"/>
+  <moz:SearchForm xmlns:moz="http://www.mozilla.org/2006/browser/search/">https://{domain}/search</moz:SearchForm>
+</OpenSearchDescription>"""
+        return Response(xml, mimetype="application/opensearchdescription+xml")
+
+    @app.route("/indexnow-key.txt")
+    def indexnow_key_file():
+        """Serve the IndexNow verification key at a fixed path.
+
+        IndexNow allows the keyLocation to point to any URL on the host, as
+        long as the file content matches the key. We use a stable path so we
+        don't need a dynamic URL and can't collide with other routes.
+        """
+        from profoundd.utils.indexnow import get_or_create_key
+        try:
+            stored_key = get_or_create_key()
+        except Exception:
+            return Response("", status=503, mimetype="text/plain")
+        return Response(stored_key, mimetype="text/plain")
 
     @app.route("/news-sitemap.xml")
     def news_sitemap_xml():
