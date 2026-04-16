@@ -41,6 +41,50 @@ def _clean_referrer(ref):
     return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"[:1000]
 
 
+# Domains we don't want to auto-index from Brave/SearXNG fallback results
+# (forums, social, shopping — low value for re-finding)
+BRAVE_INDEX_SKIP_DOMAINS = {
+    "reddit.com", "old.reddit.com", "quora.com", "pinterest.com",
+    "facebook.com", "twitter.com", "x.com", "instagram.com", "tiktok.com",
+    "linkedin.com", "threads.net", "mastodon.social",
+    "amazon.com", "ebay.com", "walmart.com", "etsy.com",
+    "wikipedia.org", "en.wikipedia.org",
+    "youtube.com", "youtu.be",
+}
+
+_BRAVE_SKIP_URL_PATTERNS = [
+    "/search?", "/search/", "/tag/", "/tags/", "/category/",
+    "/author/", "/user/", "/profile/",
+]
+
+def _should_index_brave_result(wr):
+    """Quality filter for auto-indexing Brave/SearXNG results."""
+    url = wr.get("url", "")
+    if not url:
+        return False
+    try:
+        netloc = urlparse(url).netloc.replace("www.", "").lower()
+    except Exception:
+        return False
+    if netloc in BRAVE_INDEX_SKIP_DOMAINS:
+        return False
+    # Subdomain check (e.g. en.wikipedia.org)
+    for skip in BRAVE_INDEX_SKIP_DOMAINS:
+        if netloc.endswith("." + skip):
+            return False
+    # Too-short content
+    if len(wr.get("title", "") or "") < 20:
+        return False
+    if len(wr.get("summary", "") or "") < 50:
+        return False
+    # URL patterns that aren't articles
+    lower_url = url.lower()
+    for pat in _BRAVE_SKIP_URL_PATTERNS:
+        if pat in lower_url:
+            return False
+    return True
+
+
 def create_app(config_override=None):
     """Application factory."""
     app = Flask(
@@ -851,25 +895,30 @@ def create_app(config_override=None):
                 results["articles"] = blended
 
             # Fire-and-forget: index web results to ES so they become organic results
+            # Apply quality filter — skip social media, forums, shopping, short content
             if web_results and search_engine.is_available():
                 _now = datetime.now(timezone.utc).isoformat()
                 _to_index = []
+                _skipped = 0
                 for wr in web_results:
+                    if not _should_index_brave_result(wr):
+                        _skipped += 1
+                        continue
                     doc = {k: v for k, v in wr.items() if not k.startswith("_")}
                     doc["tags"] = ["web-indexed"]
                     doc["crawled_at"] = _now
                     doc.setdefault("result_type", "article")
                     _to_index.append(doc)
 
-                def _bg_index(articles):
+                def _bg_index(articles, skipped):
                     try:
                         count = search_engine.bulk_index(articles)
-                        if count:
-                            logger.info("Auto-indexed %d web results to ES", count)
+                        if count or skipped:
+                            logger.info("Auto-indexed %d web results (skipped %d low-quality)", count, skipped)
                     except Exception as e:
                         logger.debug("Auto-index web results failed: %s", e)
 
-                threading.Thread(target=_bg_index, args=(_to_index,), daemon=True).start()
+                threading.Thread(target=_bg_index, args=(_to_index, _skipped), daemon=True).start()
 
         # Log the search
         log = SearchLog(
@@ -1638,6 +1687,10 @@ def create_app(config_override=None):
     @app.route("/privacy")
     def privacy_policy():
         return render_template("privacy.html", categories=CATEGORIES)
+
+    @app.route("/bot")
+    def bot_info():
+        return render_template("bot.html", categories=CATEGORIES)
 
     # --- NewsRoom Bob public routes ---
 

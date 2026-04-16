@@ -1,0 +1,503 @@
+"""
+Profoundd Domain Crawler — Proactive targeted web crawling.
+
+Crawls configured domains comprehensively, extracts article content,
+indexes to Elasticsearch, and discovers new domains via outbound links.
+
+Usage:
+    python scripts/domain_crawler.py --config scripts/domain_crawler_config.json \
+        --es-url http://127.0.0.1:9201 --state-dir /home/mark/domain-crawler-state \
+        --domains all --workers 4
+
+    python scripts/domain_crawler.py --domains judicialwatch.org,unlimitedhangout.com \
+        --max-pages 500
+
+Design:
+- One SQLite state DB per domain (resumable)
+- Respects robots.txt via urllib.robotparser
+- Rate limits per-domain (configurable, default 2s)
+- Dedup via URL MD5 against ES
+- Link discovery: outbound links increment counters in shared candidates DB
+- Full-text extraction via BeautifulSoup (same pattern as feed_crawler)
+"""
+import argparse
+import gzip
+import hashlib
+import json
+import logging
+import re
+import sqlite3
+import sys
+import time
+import urllib.robotparser
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
+from pathlib import Path
+from urllib.parse import urljoin, urlparse
+
+import requests
+from bs4 import BeautifulSoup
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+logger = logging.getLogger("domain_crawler")
+
+ES_INDEX = "profoundd_articles"
+
+# URL classification patterns (reuse from wayback_newspaper_crawler)
+SKIP_PATH_PATTERNS = [
+    re.compile(r"\.(css|js|json|xml|rss|atom|ico|svg|png|jpg|jpeg|gif|webp|pdf|zip|mp4|mp3)(\?|$)", re.I),
+    re.compile(r"/(wp-admin|wp-content|wp-includes)/", re.I),
+    re.compile(r"/(author|tag|category|search|login|register|cart|checkout|subscribe)/?(\?|$)", re.I),
+    re.compile(r"#.*", re.I),
+    re.compile(r"\?.*=", re.I),  # Skip most query-string pages
+]
+
+ARTICLE_PATH_HINTS = [
+    re.compile(r"/\d{4}/\d{1,2}/\d{1,2}/", re.I),  # Date paths
+    re.compile(r"/(news|article|story|blog|post|opinion|analysis|commentary)/[^/]+/?$", re.I),
+    re.compile(r"/[a-z0-9-]{20,}/?$", re.I),  # Slug-like
+]
+
+
+def ua_headers(ua):
+    return {
+        "User-Agent": ua,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+
+def url_hash(url):
+    return hashlib.md5(url.encode()).hexdigest()
+
+
+def is_article_url(url, domain):
+    """Heuristic: does this URL look like an article we want to index?"""
+    parsed = urlparse(url)
+    if parsed.netloc.replace("www.", "") != domain.replace("www.", ""):
+        return False
+    path = parsed.path
+    if not path or path == "/":
+        return False
+    for pattern in SKIP_PATH_PATTERNS:
+        if pattern.search(url):
+            return False
+    for pattern in ARTICLE_PATH_HINTS:
+        if pattern.search(path):
+            return True
+    # Fallback: path must have 2+ segments with decent slug
+    segments = [s for s in path.strip("/").split("/") if s]
+    if len(segments) >= 2 and any(len(s) > 10 for s in segments):
+        return True
+    return False
+
+
+# ---------------------------------------------------------------------------
+# State DB (per-domain)
+# ---------------------------------------------------------------------------
+
+def init_state_db(db_path):
+    conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("""CREATE TABLE IF NOT EXISTS urls (
+        url TEXT PRIMARY KEY,
+        depth INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'pending',
+        indexed_at TEXT,
+        error TEXT
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_status ON urls(status)")
+    conn.commit()
+    return conn
+
+
+def init_candidates_db(db_path):
+    """Shared DB of discovered outbound domains."""
+    conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("""CREATE TABLE IF NOT EXISTS candidates (
+        domain TEXT PRIMARY KEY,
+        backlink_count INTEGER DEFAULT 0,
+        first_seen TEXT,
+        last_seen TEXT,
+        status TEXT DEFAULT 'candidate',
+        sample_urls TEXT
+    )""")
+    conn.commit()
+    return conn
+
+
+def record_candidate(cands_conn, domain, linking_url):
+    row = cands_conn.execute(
+        "SELECT backlink_count, sample_urls FROM candidates WHERE domain=?",
+        (domain,),
+    ).fetchone()
+    now = datetime.now(timezone.utc).isoformat()
+    if row:
+        count = row[0] + 1
+        samples = json.loads(row[1] or "[]")
+        if len(samples) < 5 and linking_url not in samples:
+            samples.append(linking_url)
+        cands_conn.execute(
+            "UPDATE candidates SET backlink_count=?, last_seen=?, sample_urls=? WHERE domain=?",
+            (count, now, json.dumps(samples), domain),
+        )
+    else:
+        cands_conn.execute(
+            "INSERT INTO candidates (domain, backlink_count, first_seen, last_seen, sample_urls) VALUES (?, 1, ?, ?, ?)",
+            (domain, now, now, json.dumps([linking_url])),
+        )
+    cands_conn.commit()
+
+
+# ---------------------------------------------------------------------------
+# robots.txt
+# ---------------------------------------------------------------------------
+
+_robots_cache = {}
+
+def get_robots(domain, ua):
+    if domain in _robots_cache:
+        return _robots_cache[domain]
+    rp = urllib.robotparser.RobotFileParser()
+    rp.set_url(f"https://{domain}/robots.txt")
+    try:
+        rp.read()
+    except Exception:
+        pass
+    _robots_cache[domain] = rp
+    return rp
+
+
+def can_fetch(rp, ua, url):
+    try:
+        return rp.can_fetch(ua, url)
+    except Exception:
+        return True
+
+
+# ---------------------------------------------------------------------------
+# Fetch + extract
+# ---------------------------------------------------------------------------
+
+def fetch_page(url, ua, timeout=15):
+    resp = requests.get(url, headers=ua_headers(ua), timeout=timeout, allow_redirects=True)
+    resp.raise_for_status()
+    ct = resp.headers.get("Content-Type", "")
+    if "html" not in ct.lower():
+        return None
+    return resp.text
+
+
+def extract_article(html, url):
+    """Extract title, content, summary, and outbound links from HTML."""
+    soup = BeautifulSoup(html, "html.parser")
+
+    # Remove junk
+    for tag in soup(["script", "style", "nav", "footer", "aside", "form", "noscript"]):
+        tag.decompose()
+
+    # Title
+    title = ""
+    if soup.title and soup.title.string:
+        title = soup.title.string.strip()
+    h1 = soup.find("h1")
+    if h1 and h1.get_text(strip=True):
+        title = h1.get_text(strip=True)
+    title = title[:300]
+
+    # Main content — try article/main first, fallback to body
+    main = soup.find("article") or soup.find("main") or soup.body
+    if not main:
+        return None
+
+    # Extract text from paragraphs
+    paragraphs = [p.get_text(" ", strip=True) for p in main.find_all("p") if p.get_text(strip=True)]
+    content = "\n".join(paragraphs)[:50000]
+
+    if len(content) < 200:
+        return None  # Too thin — probably not an article
+
+    summary = content[:500].rsplit(" ", 1)[0] + "..."
+
+    # Published date from meta tags
+    published = ""
+    for selector in [
+        ("meta", {"property": "article:published_time"}),
+        ("meta", {"name": "article:published_time"}),
+        ("meta", {"property": "og:published_time"}),
+        ("meta", {"name": "pubdate"}),
+        ("meta", {"name": "date"}),
+        ("time", {"datetime": True}),
+    ]:
+        el = soup.find(*selector)
+        if el:
+            published = el.get("content") or el.get("datetime") or ""
+            if published:
+                break
+
+    # Outbound links
+    outbound_domains = set()
+    internal_links = set()
+    parsed_self = urlparse(url)
+    self_domain = parsed_self.netloc.replace("www.", "")
+
+    for a in soup.find_all("a", href=True):
+        href = a["href"].strip()
+        if not href or href.startswith("#") or href.startswith("mailto:") or href.startswith("javascript:"):
+            continue
+        abs_url = urljoin(url, href)
+        parsed = urlparse(abs_url)
+        if not parsed.netloc:
+            continue
+        netloc = parsed.netloc.replace("www.", "")
+        if netloc == self_domain:
+            if is_article_url(abs_url, self_domain):
+                internal_links.add(abs_url.split("#")[0])
+        else:
+            outbound_domains.add(netloc)
+
+    return {
+        "title": title,
+        "content": content,
+        "summary": summary,
+        "published_at": published,
+        "internal_links": internal_links,
+        "outbound_domains": outbound_domains,
+    }
+
+
+# ---------------------------------------------------------------------------
+# ES indexing
+# ---------------------------------------------------------------------------
+
+def bulk_index_es(es_url, docs):
+    if not docs:
+        return 0
+    payload = []
+    for doc in docs:
+        doc_id = url_hash(doc["url"])
+        payload.append(json.dumps({"index": {"_index": ES_INDEX, "_id": doc_id}}))
+        payload.append(json.dumps(doc))
+    body = "\n".join(payload) + "\n"
+    try:
+        resp = requests.post(
+            f"{es_url}/_bulk",
+            data=body.encode("utf-8"),
+            headers={"Content-Type": "application/x-ndjson"},
+            timeout=60,
+        )
+        if resp.status_code >= 400:
+            logger.error("ES bulk error %s: %s", resp.status_code, resp.text[:300])
+            return 0
+        result = resp.json()
+        successes = sum(
+            1 for item in result.get("items", [])
+            if item.get("index", {}).get("status", 500) in (200, 201)
+        )
+        return successes
+    except Exception as e:
+        logger.error("ES bulk failed: %s", e)
+        return 0
+
+
+# ---------------------------------------------------------------------------
+# Crawl a single domain
+# ---------------------------------------------------------------------------
+
+def crawl_domain(domain, config, defaults, state_dir, es_url, cands_conn, max_pages_override=None):
+    cat = config.get("category", "news")
+    credibility = config.get("credibility", 7)
+    sponsors = config.get("sponsors", "")
+    seeds = config.get("seeds", [f"https://{domain}/"])
+    delay = float(config.get("delay_seconds", defaults["delay_seconds"]))
+    max_pages = int(max_pages_override or config.get("max_pages_per_domain", defaults["max_pages_per_domain"]))
+    max_depth = int(config.get("max_depth", defaults["max_depth"]))
+    timeout = int(config.get("request_timeout", defaults["request_timeout"]))
+    ua = defaults["user_agent"]
+
+    db_path = Path(state_dir) / f"{domain}.db"
+    conn = init_state_db(db_path)
+
+    # Seed URLs
+    for seed in seeds:
+        conn.execute(
+            "INSERT OR IGNORE INTO urls (url, depth, status) VALUES (?, 0, 'pending')",
+            (seed,),
+        )
+    conn.commit()
+
+    rp = get_robots(domain, ua) if defaults.get("respect_robots", True) else None
+    indexed_count = 0
+    fetched_count = 0
+    batch = []
+    start = time.time()
+
+    logger.info("[%s] Starting crawl (max_pages=%d, delay=%.1fs)", domain, max_pages, delay)
+
+    while fetched_count < max_pages:
+        row = conn.execute(
+            "SELECT url, depth FROM urls WHERE status='pending' ORDER BY depth ASC LIMIT 1"
+        ).fetchone()
+        if not row:
+            break
+        url, depth = row
+
+        # Mark as in-progress immediately to avoid re-fetching
+        conn.execute("UPDATE urls SET status='fetching' WHERE url=?", (url,))
+        conn.commit()
+
+        if rp and not can_fetch(rp, ua, url):
+            conn.execute("UPDATE urls SET status='robots_disallowed' WHERE url=?", (url,))
+            conn.commit()
+            continue
+
+        try:
+            html = fetch_page(url, ua, timeout=timeout)
+            fetched_count += 1
+            if not html:
+                conn.execute("UPDATE urls SET status='not_html' WHERE url=?", (url,))
+                conn.commit()
+                time.sleep(delay)
+                continue
+
+            result = extract_article(html, url)
+            if not result:
+                conn.execute("UPDATE urls SET status='not_article' WHERE url=?", (url,))
+                conn.commit()
+                # Still follow internal links even if this page wasn't an article
+                time.sleep(delay)
+                continue
+
+            # Record discovered outbound domains
+            for od in result["outbound_domains"]:
+                if od and od != domain and "." in od:
+                    try:
+                        record_candidate(cands_conn, od, url)
+                    except Exception as e:
+                        logger.debug("candidate record error: %s", e)
+
+            # Queue internal links (if under max depth)
+            if depth < max_depth:
+                for link in result["internal_links"]:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO urls (url, depth, status) VALUES (?, ?, 'pending')",
+                        (link, depth + 1),
+                    )
+                conn.commit()
+
+            # Build ES doc
+            doc = {
+                "title": result["title"],
+                "content": result["content"],
+                "summary": result["summary"],
+                "url": url,
+                "source_name": domain,
+                "source_credibility": credibility,
+                "category": cat,
+                "published_at": result["published_at"] or datetime.now(timezone.utc).isoformat(),
+                "crawled_at": datetime.now(timezone.utc).isoformat(),
+                "tags": ["targeted-crawl", cat],
+                "result_type": "article",
+            }
+            if sponsors:
+                doc["source_sponsors"] = [sponsors]
+            batch.append(doc)
+
+            conn.execute(
+                "UPDATE urls SET status='indexed', indexed_at=? WHERE url=?",
+                (datetime.now(timezone.utc).isoformat(), url),
+            )
+            conn.commit()
+
+            # Flush batch
+            if len(batch) >= 50:
+                n = bulk_index_es(es_url, batch)
+                indexed_count += n
+                logger.info("[%s] Indexed %d (total %d, fetched %d)", domain, n, indexed_count, fetched_count)
+                batch = []
+
+        except Exception as e:
+            conn.execute(
+                "UPDATE urls SET status='error', error=? WHERE url=?",
+                (str(e)[:500], url),
+            )
+            conn.commit()
+            logger.warning("[%s] Error on %s: %s", domain, url, e)
+
+        time.sleep(delay)
+
+    # Final flush
+    if batch:
+        indexed_count += bulk_index_es(es_url, batch)
+
+    elapsed = time.time() - start
+    logger.info("[%s] Done. Indexed %d articles in %.1f min (fetched %d)",
+                domain, indexed_count, elapsed / 60, fetched_count)
+    conn.close()
+    return indexed_count
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default="scripts/domain_crawler_config.json")
+    parser.add_argument("--es-url", default="http://127.0.0.1:9201")
+    parser.add_argument("--state-dir", default="domain-crawler-state")
+    parser.add_argument("--domains", default="all", help="Comma-separated domains or 'all'")
+    parser.add_argument("--workers", type=int, default=4, help="Parallel domains")
+    parser.add_argument("--max-pages", type=int, default=None, help="Override per-domain max pages")
+    args = parser.parse_args()
+
+    with open(args.config) as f:
+        cfg = json.load(f)
+    defaults = cfg["defaults"]
+    all_domains = cfg["domains"]
+
+    if args.domains == "all":
+        targets = list(all_domains.keys())
+    else:
+        targets = [d.strip() for d in args.domains.split(",")]
+        targets = [d for d in targets if d in all_domains]
+
+    if not targets:
+        logger.error("No valid domains to crawl")
+        sys.exit(1)
+
+    state_dir = Path(args.state_dir)
+    state_dir.mkdir(parents=True, exist_ok=True)
+
+    cands_conn = init_candidates_db(state_dir / "candidates.db")
+
+    logger.info("Crawling %d domain(s) with %d worker(s)", len(targets), args.workers)
+
+    total_indexed = 0
+    with ThreadPoolExecutor(max_workers=args.workers) as pool:
+        futures = {
+            pool.submit(
+                crawl_domain,
+                d, all_domains[d], defaults, state_dir, args.es_url, cands_conn, args.max_pages,
+            ): d for d in targets
+        }
+        for fut in as_completed(futures):
+            d = futures[fut]
+            try:
+                n = fut.result()
+                total_indexed += n
+            except Exception as e:
+                logger.error("[%s] Crawler crashed: %s", d, e)
+
+    logger.info("ALL DONE. Total indexed: %d articles across %d domains", total_indexed, len(targets))
+    cands_conn.close()
+
+
+if __name__ == "__main__":
+    main()

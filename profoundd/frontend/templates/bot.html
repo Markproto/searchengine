@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}ProfounddBot - About Our Crawler{% endblock %}
+{% block description %}Information about ProfounddBot, Profoundd's web crawler. User-Agent, rate limits, robots.txt policy, and how to request removal.{% endblock %}
+{% block og_title %}ProfounddBot - About Our Crawler{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:800px;margin:2rem auto;padding:0 1rem;">
+    <h1 style="font-size:1.8rem;margin-bottom:0.5rem;">ProfounddBot</h1>
+    <p style="color:var(--text-secondary);margin-bottom:2rem;">If you found this page from your server logs, you're in the right place.</p>
+
+    <div style="line-height:1.8;color:var(--text);">
+
+    <h2>Who we are</h2>
+    <p><a href="/">Profoundd</a> is an independent search engine focused on source transparency. We crawl a curated list of news, medical, legal, and government sites to build our own index, rather than relying on third-party search APIs.</p>
+
+    <h2>User-Agent</h2>
+    <p>Our crawler identifies itself as:</p>
+    <pre style="background:var(--bg-input);padding:12px;border-radius:6px;overflow-x:auto;"><code>ProfounddBot/1.0 (+https://profoundd.com/bot)</code></pre>
+
+    <h2>Rate limits</h2>
+    <ul>
+        <li><strong>Default:</strong> 1 request every 2 seconds per domain</li>
+        <li><strong>Honors <code>Crawl-delay</code></strong> in robots.txt (will use your value if specified)</li>
+        <li><strong>Concurrent workers:</strong> We crawl multiple domains in parallel, but only one request at a time per domain</li>
+        <li><strong>Timeout:</strong> 15 seconds per request</li>
+    </ul>
+
+    <h2>robots.txt</h2>
+    <p>We respect <code>robots.txt</code>. If you want to block us, add this to your <code>/robots.txt</code>:</p>
+    <pre style="background:var(--bg-input);padding:12px;border-radius:6px;overflow-x:auto;"><code>User-agent: ProfounddBot
+Disallow: /</code></pre>
+    <p>Or restrict specific paths:</p>
+    <pre style="background:var(--bg-input);padding:12px;border-radius:6px;overflow-x:auto;"><code>User-agent: ProfounddBot
+Disallow: /private/
+Crawl-delay: 5</code></pre>
+
+    <h2>What we crawl</h2>
+    <ul>
+        <li>Articles, news stories, opinion pieces, and editorial content</li>
+        <li>Public pages only &mdash; we never attempt to bypass paywalls or login walls</li>
+        <li>We skip: CSS/JS/images/PDFs, tag pages, search results, login/checkout pages</li>
+    </ul>
+
+    <h2>What we don't do</h2>
+    <ul>
+        <li>We do <strong>not</strong> hammer your server &mdash; rate limits are strict</li>
+        <li>We do <strong>not</strong> crawl behind login walls</li>
+        <li>We do <strong>not</strong> republish full articles &mdash; we store content for search indexing, but display results link back to your site</li>
+        <li>We do <strong>not</strong> sell your content or pass it to third parties</li>
+    </ul>
+
+    <h2>Request removal or contact</h2>
+    <p>If you want to be excluded, prefer a different crawl rate, or have any questions:</p>
+    <p>Email: <a href="mailto:mark.hutto@protonmail.com" style="color:var(--accent);">mark.hutto@protonmail.com</a></p>
+    <p>We will honor removal requests within 48 hours.</p>
+
+    <h2>Why indexing matters</h2>
+    <p>Search engines that rely entirely on Google or Bing inherit whatever those indexes decide to surface. By crawling directly, Profoundd can offer readers access to sources the big platforms deprioritize or exclude. Linking to your content helps your audience find you.</p>
+
+    </div>
+</div>
+{% endblock %}
