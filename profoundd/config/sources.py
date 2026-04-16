@@ -9,8 +9,8 @@ NEWS_SOURCES = [
     {"name": "Oregon Corner", "url": "https://oregoncorner.com/api/feed", "category": "news", "credibility": 9, "feed_type": "rss"},
 
     # --- US News ---
-    {"name": "Washington Post", "url": "https://feeds.washingtonpost.com/rss/national", "category": "news", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
-    {"name": "ABC News", "url": "https://abcnews.go.com/abcnews/topstories", "category": "news", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "Washington Post", "url": "https://feeds.washingtonpost.com/rss/national", "category": "news", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "ABC News", "url": "https://abcnews.go.com/abcnews/topstories", "category": "news", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
 
     # --- International ---
     {"name": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml", "category": "news", "credibility": 7, "feed_type": "rss"},
@@ -36,17 +36,31 @@ NEWS_SOURCES = [
     # --- Unbiased / Centrist ---
     {"name": "Straight Arrow News", "url": "https://san.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
 
+    # --- New Independent Sources (no Pfizer advertising) ---
+    {"name": "Revolver News", "url": "https://www.revolver.news/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
+    {"name": "National File", "url": "https://nationalfile.com/feed/", "category": "news", "credibility": 6, "feed_type": "rss"},
+    {"name": "The Federalist", "url": "https://thefederalist.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
+    {"name": "American Greatness", "url": "https://amgreatness.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
+    {"name": "Just The News", "url": "https://justthenews.com/rss.xml", "category": "news", "credibility": 7, "feed_type": "rss"},
+    {"name": "The Post Millennial", "url": "https://thepostmillennial.com/feed", "category": "news", "credibility": 7, "feed_type": "rss"},
+    {"name": "Unlimited Hangout", "url": "https://unlimitedhangout.com/feed/", "category": "news", "credibility": 8, "feed_type": "rss"},
+    {"name": "Corbett Report", "url": "https://www.corbettreport.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
+    {"name": "The Last American Vagabond", "url": "https://www.thelastamericanvagabond.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
+    {"name": "MintPress News", "url": "https://www.mintpressnews.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
+    {"name": "The Grayzone", "url": "https://thegrayzone.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
+    {"name": "Consortium News", "url": "https://consortiumnews.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
+
     # --- Business News ---
-    {"name": "CNBC", "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114", "category": "news", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
-    {"name": "Bloomberg", "url": "https://feeds.bloomberg.com/markets/news.rss", "category": "news", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "CNBC", "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114", "category": "news", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "Bloomberg", "url": "https://feeds.bloomberg.com/markets/news.rss", "category": "news", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
 ]
 
 MEDICAL_SOURCES = [
-    {"name": "WHO News", "url": "https://www.who.int/rss-feeds/news-english.xml", "category": "medical", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
-    {"name": "Medical News Today", "url": "https://www.medicalnewstoday.com/newsfeeds/rss", "category": "medical", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
-    {"name": "The Lancet", "url": "https://www.thelancet.com/rssfeed/lancet_current.xml", "category": "medical", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
-    {"name": "NEJM", "url": "https://www.nejm.org/action/showFeed?jc=nejm&type=etoc&feed=rss", "category": "medical", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
-    {"name": "WebMD Health", "url": "https://rssfeeds.webmd.com/rss/rss.aspx?RSSSource=RSS_PUBLIC", "category": "medical", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "WHO News", "url": "https://www.who.int/rss-feeds/news-english.xml", "category": "medical", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "Medical News Today", "url": "https://www.medicalnewstoday.com/newsfeeds/rss", "category": "medical", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "The Lancet", "url": "https://www.thelancet.com/rssfeed/lancet_current.xml", "category": "medical", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "NEJM", "url": "https://www.nejm.org/action/showFeed?jc=nejm&type=etoc&feed=rss", "category": "medical", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "WebMD Health", "url": "https://rssfeeds.webmd.com/rss/rss.aspx?RSSSource=RSS_PUBLIC", "category": "medical", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
     {"name": "FDA News", "url": "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/fda-newsroom/rss.xml", "category": "medical", "credibility": 7, "feed_type": "rss"},
 
     # --- Independent Health / Substack ---
@@ -55,6 +69,11 @@ MEDICAL_SOURCES = [
     {"name": "David Avocado Wolfe (Blog)", "url": "https://shop.davidwolfe.com/blogs/learn.atom", "category": "medical", "credibility": 8, "feed_type": "atom"},
     {"name": "Dr. Judy Mikovits", "url": "https://therealdr.substack.com/feed", "category": "medical", "credibility": 8, "feed_type": "rss"},
     {"name": "Dr. Mercola", "url": "https://articles.mercola.com/sites/articles/rss.aspx", "category": "medical", "credibility": 8, "feed_type": "rss"},
+
+    # --- Independent Medical (no pharma advertising) ---
+    {"name": "Children's Health Defense", "url": "https://childrenshealthdefense.org/defender/feed/", "category": "medical", "credibility": 7, "feed_type": "rss"},
+    {"name": "GreenMedInfo", "url": "https://greenmedinfo.com/rss.xml", "category": "medical", "credibility": 6, "feed_type": "rss"},
+    {"name": "Retraction Watch", "url": "https://retractionwatch.com/feed/", "category": "medical", "credibility": 8, "feed_type": "rss"},
 ]
 
 LEGAL_SOURCES = [
@@ -64,10 +83,14 @@ LEGAL_SOURCES = [
     {"name": "Jurist", "url": "https://www.jurist.org/news/feed/", "category": "legal", "credibility": 7, "feed_type": "rss"},
     {"name": "Cornell LII", "url": "https://www.law.cornell.edu/lii/rss.xml", "category": "legal", "credibility": 7, "feed_type": "rss"},
     {"name": "Courthouse News", "url": "https://www.courthousenews.com/feed/", "category": "legal", "credibility": 7, "feed_type": "rss"},
-    {"name": "Reuters Legal", "url": "https://www.reuters.com/legal/rss", "category": "legal", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "Reuters Legal", "url": "https://www.reuters.com/legal/rss", "category": "legal", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
     {"name": "Lawfare", "url": "https://www.lawfaremedia.org/feed", "category": "legal", "credibility": 7, "feed_type": "rss"},
     {"name": "Above the Law", "url": "https://abovethelaw.com/feed/", "category": "legal", "credibility": 7, "feed_type": "rss"},
     {"name": "ABA Journal", "url": "https://www.abajournal.com/feed", "category": "legal", "credibility": 7, "feed_type": "rss"},
+
+    # --- Independent Legal / Transparency (no pharma advertising) ---
+    {"name": "Judicial Watch", "url": "https://www.judicialwatch.org/feed/", "category": "legal", "credibility": 7, "feed_type": "rss"},
+    {"name": "Empower Oversight", "url": "https://empoweroversite.org/feed/", "category": "legal", "credibility": 7, "feed_type": "rss"},
 ]
 
 TECH_SOURCES = [
@@ -82,12 +105,12 @@ TECH_SOURCES = [
 
 FINANCE_SOURCES = [
     # --- Finance ---
-    {"name": "Financial Times", "url": "https://www.ft.com/rss/home", "category": "finance", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
-    {"name": "MarketWatch", "url": "https://feeds.marketwatch.com/marketwatch/topstories/", "category": "finance", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
-    {"name": "Yahoo Finance", "url": "https://finance.yahoo.com/news/rssindex", "category": "finance", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "Financial Times", "url": "https://www.ft.com/rss/home", "category": "finance", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "MarketWatch", "url": "https://feeds.marketwatch.com/marketwatch/topstories/", "category": "finance", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "Yahoo Finance", "url": "https://finance.yahoo.com/news/rssindex", "category": "finance", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
     {"name": "Investopedia", "url": "https://www.investopedia.com/feedbuilder/feed/getfeed?feedName=rss_headline", "category": "finance", "credibility": 7, "feed_type": "rss"},
     {"name": "The Economist", "url": "https://www.economist.com/finance-and-economics/rss.xml", "category": "finance", "credibility": 7, "feed_type": "rss"},
-    {"name": "Wall Street Journal", "url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml", "category": "finance", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "Wall Street Journal", "url": "https://feeds.a.dj.com/rss/RSSMarketsMain.xml", "category": "finance", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
     {"name": "Seeking Alpha", "url": "https://seekingalpha.com/feed.xml", "category": "finance", "credibility": 7, "feed_type": "rss"},
     {"name": "Barrons", "url": "https://www.barrons.com/feed", "category": "finance", "credibility": 7, "feed_type": "rss"},
     {"name": "The Solari Report", "url": "https://thesolarireport.substack.com/feed", "category": "finance", "credibility": 8, "feed_type": "rss"},
@@ -122,8 +145,8 @@ ENVIRONMENT_SOURCES = [
 
 POLITICS_SOURCES = [
     # --- Politics & Policy ---
-    {"name": "Politico", "url": "https://www.politico.com/rss/politicopicks.xml", "category": "politics", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
-    {"name": "The Hill", "url": "https://thehill.com/feed/", "category": "politics", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "Politico", "url": "https://www.politico.com/rss/politicopicks.xml", "category": "politics", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "The Hill", "url": "https://thehill.com/feed/", "category": "politics", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
     {"name": "FiveThirtyEight", "url": "https://fivethirtyeight.com/feed/", "category": "politics", "credibility": 7, "feed_type": "rss"},
     {"name": "ProPublica", "url": "https://www.propublica.org/feeds/propublica/main", "category": "politics", "credibility": 7, "feed_type": "rss"},
     {"name": "Brookings", "url": "https://www.brookings.edu/feed/", "category": "politics", "credibility": 7, "feed_type": "rss"},
@@ -176,14 +199,14 @@ EPSTEIN_SOURCES = [
     # Investigative & Legal
     {"name": "Courthouse News", "url": "https://www.courthousenews.com/feed/", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
     {"name": "Lawfare", "url": "https://www.lawfaremedia.org/feed", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
-    {"name": "Reuters Legal", "url": "https://www.reuters.com/legal/rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "Reuters Legal", "url": "https://www.reuters.com/legal/rss", "category": "epstein-files", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
     {"name": "ProPublica", "url": "https://www.propublica.org/feeds/propublica/main", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
     {"name": "The Intercept", "url": "https://theintercept.com/feed/?rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
     # Tabloid / High-volume news
-    {"name": "Daily Mail US", "url": "https://www.dailymail.co.uk/articles.rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
-    {"name": "New York Post", "url": "https://nypost.com/feed/", "category": "epstein-files", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
-    {"name": "Insider", "url": "https://www.businessinsider.com/sai/rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
-    {"name": "Fox News", "url": "https://moxie.foxnews.com/google-publisher/latest.xml", "category": "epstein-files", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "Daily Mail US", "url": "https://www.dailymail.co.uk/articles.rss", "category": "epstein-files", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "New York Post", "url": "https://nypost.com/feed/", "category": "epstein-files", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "Insider", "url": "https://www.businessinsider.com/sai/rss", "category": "epstein-files", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "Fox News", "url": "https://moxie.foxnews.com/google-publisher/latest.xml", "category": "epstein-files", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
     # Independent investigative
     {"name": "Andrew Murphy (Substack)", "url": "https://andrewmurphy950923.substack.com/feed", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
     {"name": "Unlimited Hangout", "url": "https://unlimitedhangout.com/feed/", "category": "epstein-files", "credibility": 8, "feed_type": "rss"},
@@ -202,9 +225,9 @@ CHARLIE_KIRK_SOURCES = [
     {"name": "Breitbart", "url": "https://feeds.feedburner.com/breitbart", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
     {"name": "The Federalist", "url": "https://thefederalist.com/feed/", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
     {"name": "Campus Reform", "url": "https://www.campusreform.org/rss/CampusReform.rss", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
-    {"name": "Fox News", "url": "https://moxie.foxnews.com/google-publisher/latest.xml", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
-    {"name": "New York Post", "url": "https://nypost.com/feed/", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
-    {"name": "Newsmax", "url": "https://www.newsmax.com/rss/Newsfront/1/", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "Fox News", "url": "https://moxie.foxnews.com/google-publisher/latest.xml", "category": "charlie-kirk", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "New York Post", "url": "https://nypost.com/feed/", "category": "charlie-kirk", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
+    {"name": "Newsmax", "url": "https://www.newsmax.com/rss/Newsfront/1/", "category": "charlie-kirk", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
     {"name": "The Blaze", "url": "https://www.theblaze.com/rss", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
     {"name": "Epoch Times", "url": "https://www.theepochtimes.com/feed", "category": "charlie-kirk", "credibility": 8, "feed_type": "rss"},
     {"name": "Washington Examiner", "url": "https://www.washingtonexaminer.com/feed", "category": "charlie-kirk", "credibility": 7, "feed_type": "rss"},
