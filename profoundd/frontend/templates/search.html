@@ -240,6 +240,26 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
             Share Results
         </button>
+        {% if session.get('user_logged_in') %}
+        <form method="POST" action="{{ url_for('auth.alerts_create') }}" style="display:inline-flex;align-items:center;gap:4px;margin-left:8px;">
+            <input type="hidden" name="query" value="{{ query }}">
+            <input type="hidden" name="category" value="{{ category }}">
+            <select name="frequency" style="padding:4px 8px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:0.8rem;">
+                <option value="daily">Daily</option>
+                <option value="immediate">Immediate</option>
+                <option value="weekly">Weekly</option>
+            </select>
+            <button type="submit" class="share-link-btn" title="Email me when new results appear">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                Save Alert
+            </button>
+        </form>
+        {% else %}
+        <a href="{{ url_for('auth.login', next=request.full_path) }}" class="share-link-btn" style="margin-left:8px;text-decoration:none;" title="Log in to save this search as an email alert">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Save Alert
+        </a>
+        {% endif %}
     </div>
 
     <div class="ai-answer-box" id="ai-answer-box" style="display:none;">

@@ -290,6 +290,30 @@ class BobStory(db.Model):
         }
 
 
+class SavedAlert(db.Model):
+    """A user's saved search that emails them when new matches appear."""
+    __tablename__ = "saved_alerts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("public_users.id"), nullable=False, index=True)
+    query = db.Column(db.String(500), nullable=False)
+    category = db.Column(db.String(50), default="all")
+    # Frequency: "immediate" (every 15 min check), "daily", "weekly"
+    frequency = db.Column(db.String(20), default="daily")
+    enabled = db.Column(db.Boolean, default=True)
+    # Unsubscribe token — lets users disable without logging in
+    unsub_token = db.Column(db.String(64), unique=True, index=True)
+    # Track last time we successfully ran + emailed for this alert
+    last_checked_at = db.Column(db.DateTime)
+    last_emailed_at = db.Column(db.DateTime)
+    # Count of emails sent (for UI display + abuse detection)
+    emails_sent = db.Column(db.Integer, default=0)
+    # Hash of URLs already emailed (JSON array, last 500 URL hashes) — prevents
+    # re-emailing the same article if it resurfaces on a later check
+    seen_urls = db.Column(db.Text, default="[]")
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+
 class AudioTranscript(db.Model):
     """Audio files uploaded by admin, transcribed to text for Bob story seed."""
     __tablename__ = "audio_transcripts"

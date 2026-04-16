@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Unsubscribed - Profoundd{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:600px;margin:4rem auto;padding:0 1rem;text-align:center;">
+    {% if found %}
+    <h1 style="font-size:1.6rem;margin-bottom:1rem;">Unsubscribed</h1>
+    <p style="color:var(--text-secondary);">
+        You'll no longer receive emails for:<br>
+        <strong style="color:var(--text);">"{{ alert.query }}"</strong>
+    </p>
+    <p style="color:var(--text-muted);font-size:0.9rem;margin-top:1.5rem;">
+        You can re-enable or delete this alert at any time by logging into your account.
+    </p>
+    <p style="margin-top:2rem;">
+        <a href="{{ url_for('auth.alerts_list') }}" class="btn btn-primary">Manage your alerts</a>
+    </p>
+    {% else %}
+    <h1 style="font-size:1.6rem;margin-bottom:1rem;">Link not recognized</h1>
+    <p style="color:var(--text-secondary);">
+        This unsubscribe link isn't valid or has already been used.
+    </p>
+    <p style="margin-top:2rem;">
+        <a href="/" class="btn btn-primary">Back to Profoundd</a>
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

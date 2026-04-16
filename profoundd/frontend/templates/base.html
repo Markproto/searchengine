@@ -97,6 +97,7 @@
                 <a href="/submit">Suggest Source</a>
                 <a href="/about">About</a>
                 {% if user_logged_in %}
+                <a href="/auth/alerts" class="nav-user-link" title="Your saved alerts">Alerts</a>
                 <a href="/auth/settings" class="nav-user-link" title="{{ user_email }}">Account</a>
                 {% else %}
                 <a href="/auth/login" class="nav-user-link">Log In</a>

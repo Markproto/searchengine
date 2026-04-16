@@ -6,6 +6,9 @@
     <div class="auth-card auth-card-wide">
         <h1>Account Settings</h1>
         <p class="auth-subtitle">{{ user.email }} &mdash; {{ user.ai_uses_count }} AI analyses used</p>
+        <p style="margin-bottom:1.5rem;">
+            <a href="{{ url_for('auth.alerts_list') }}" class="btn btn-primary">Saved Alerts &rarr;</a>
+        </p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}

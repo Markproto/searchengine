@@ -7,7 +7,7 @@ from flask import (
 )
 
 from profoundd.auth import auth_bp
-from profoundd.utils.models import db, PublicUser
+from profoundd.utils.models import db, PublicUser, SavedAlert
 from profoundd.auth.email import send_magic_link
 
 
@@ -202,3 +202,79 @@ def agree_terms():
     db.session.commit()
     flash("Terms accepted. Welcome to Profoundd!", "success")
     return redirect(url_for("auth.settings"))
+
+
+# --- Saved search alerts ---
+
+@auth_bp.route("/alerts")
+def alerts_list():
+    """List the current user's saved alerts."""
+    user = _current_user()
+    if not user:
+        return redirect(url_for("auth.login", next=url_for("auth.alerts_list")))
+    alerts = db.session.query(SavedAlert).filter_by(user_id=user.id).order_by(SavedAlert.created_at.desc()).all()
+    return render_template("auth/alerts.html", user=user, alerts=alerts)
+
+
+@auth_bp.route("/alerts/create", methods=["POST"])
+def alerts_create():
+    """Create a new saved alert."""
+    user = _current_user()
+    if not user:
+        return redirect(url_for("auth.login"))
+    query = request.form.get("query", "").strip()
+    if not query or len(query) < 2:
+        flash("Query is required.", "error")
+        return redirect(url_for("auth.alerts_list"))
+    category = (request.form.get("category", "all") or "all").strip()
+    frequency = request.form.get("frequency", "daily")
+    if frequency not in ("immediate", "daily", "weekly"):
+        frequency = "daily"
+    alert = SavedAlert(
+        user_id=user.id,
+        query=query[:500],
+        category=category[:50],
+        frequency=frequency,
+        unsub_token=secrets.token_urlsafe(32),
+    )
+    db.session.add(alert)
+    db.session.commit()
+    flash(f'Alert saved: "{query}" ({frequency})', "success")
+    return redirect(url_for("auth.alerts_list"))
+
+
+@auth_bp.route("/alerts/<int:alert_id>/toggle", methods=["POST"])
+def alerts_toggle(alert_id):
+    user = _current_user()
+    if not user:
+        return redirect(url_for("auth.login"))
+    alert = db.session.query(SavedAlert).filter_by(id=alert_id, user_id=user.id).first()
+    if alert:
+        alert.enabled = not alert.enabled
+        db.session.commit()
+        flash(f"Alert {'enabled' if alert.enabled else 'paused'}.", "success")
+    return redirect(url_for("auth.alerts_list"))
+
+
+@auth_bp.route("/alerts/<int:alert_id>/delete", methods=["POST"])
+def alerts_delete(alert_id):
+    user = _current_user()
+    if not user:
+        return redirect(url_for("auth.login"))
+    alert = db.session.query(SavedAlert).filter_by(id=alert_id, user_id=user.id).first()
+    if alert:
+        db.session.delete(alert)
+        db.session.commit()
+        flash("Alert deleted.", "success")
+    return redirect(url_for("auth.alerts_list"))
+
+
+@auth_bp.route("/alerts/unsubscribe/<token>")
+def alerts_unsubscribe(token):
+    """One-click unsubscribe from an alert (no login required — uses token)."""
+    alert = db.session.query(SavedAlert).filter_by(unsub_token=token).first()
+    if not alert:
+        return render_template("auth/unsubscribed.html", found=False)
+    alert.enabled = False
+    db.session.commit()
+    return render_template("auth/unsubscribed.html", found=True, alert=alert)

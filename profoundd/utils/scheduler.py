@@ -102,6 +102,17 @@ def init_scheduler(app):
         kwargs={"app": app},
     )
 
+    # Saved-search alert matcher — checks every 15 min; per-alert frequency
+    # (immediate/daily/weekly) controls when emails are actually sent.
+    _scheduler.add_job(
+        func=_run_alert_matcher,
+        trigger=IntervalTrigger(minutes=15),
+        id="alert_matcher",
+        name="Check saved alerts and email new matches",
+        replace_existing=True,
+        kwargs={"app": app},
+    )
+
     _scheduler.start()
     logger.info("Scheduler started: crawl every %d min, OSM every %dh, markets every %dm, polls every %dh",
                 interval_minutes, osm_refresh_hours, polymarket_minutes, polls_hours)
@@ -258,6 +269,22 @@ def _run_cleanup(app):
         if engine.is_available():
             deleted = engine.delete_old_articles(days=30)
             logger.info("Daily cleanup: deleted %d old articles", deleted)
+
+
+def _run_alert_matcher(app):
+    """Check saved alerts against new search results and email matches."""
+    with app.app_context():
+        try:
+            from profoundd.alerts.matcher import match_and_send_alerts
+            from profoundd.search.engine import SearchEngine
+            engine = SearchEngine(app.config.get("ELASTICSEARCH_URL"))
+            if not engine.is_available():
+                return
+            sent = match_and_send_alerts(engine)
+            if sent:
+                logger.info("Alert matcher: %d alert email(s) sent", sent)
+        except Exception as e:
+            logger.exception("Alert matcher failed: %s", e)
 
 
 def shutdown_scheduler():

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Saved Alerts - Profoundd{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:800px;margin:2rem auto;padding:0 1rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+        <h1 style="font-size:1.6rem;">Saved Alerts</h1>
+        <div>
+            <a href="{{ url_for('auth.settings') }}" class="btn btn-secondary">Settings</a>
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-secondary">Log out</a>
+        </div>
+    </div>
+
+    <p style="color:var(--text-secondary);margin-bottom:1.5rem;">
+        Save a search and get emailed when new results match.
+        Emails come from <code>alerts@profoundd.com</code>.
+    </p>
+
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:2rem;">
+        <h2 style="font-size:1.1rem;margin-bottom:1rem;">New Alert</h2>
+        <form method="POST" action="{{ url_for('auth.alerts_create') }}" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;">
+            <div style="flex:1;min-width:240px;">
+                <label style="display:block;font-size:0.85rem;color:var(--text-secondary);margin-bottom:4px;">Search query</label>
+                <input type="text" name="query" required placeholder='e.g. "epstein flight logs" AND maxwell'
+                       style="width:100%;padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.95rem;">
+            </div>
+            <div>
+                <label style="display:block;font-size:0.85rem;color:var(--text-secondary);margin-bottom:4px;">Category</label>
+                <select name="category" style="padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);">
+                    <option value="all">All</option>
+                    <option value="news">News</option>
+                    <option value="epstein-files">Epstein Files</option>
+                    <option value="medical">Medical</option>
+                    <option value="legal">Legal</option>
+                    <option value="politics">Politics</option>
+                    <option value="markets">Markets</option>
+                    <option value="science">Science</option>
+                    <option value="tech">Tech</option>
+                </select>
+            </div>
+            <div>
+                <label style="display:block;font-size:0.85rem;color:var(--text-secondary);margin-bottom:4px;">Frequency</label>
+                <select name="frequency" style="padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);">
+                    <option value="daily" selected>Daily</option>
+                    <option value="immediate">As it happens (every 15m)</option>
+                    <option value="weekly">Weekly</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Alert</button>
+        </form>
+    </div>
+
+    {% if alerts %}
+    <h2 style="font-size:1.1rem;margin-bottom:1rem;">Your alerts ({{ alerts|length }})</h2>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+        {% for a in alerts %}
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;{% if not a.enabled %}opacity:0.5;{% endif %}">
+            <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:12px;">
+                <div style="flex:1;min-width:240px;">
+                    <div style="font-weight:600;font-size:1rem;margin-bottom:4px;">
+                        <a href="/search?q={{ a.query | urlencode }}" style="color:var(--accent);">{{ a.query }}</a>
+                    </div>
+                    <div style="font-size:0.8rem;color:var(--text-secondary);">
+                        {% if a.category and a.category != 'all' %}{{ a.category }} &middot; {% endif %}
+                        {{ a.frequency }}
+                        {% if a.emails_sent %} &middot; {{ a.emails_sent }} email{{ 's' if a.emails_sent != 1 else '' }} sent{% endif %}
+                        {% if a.last_emailed_at %} &middot; last: {{ a.last_emailed_at.strftime('%Y-%m-%d %H:%M UTC') }}{% endif %}
+                        {% if not a.enabled %} &middot; <strong style="color:var(--danger);">paused</strong>{% endif %}
+                    </div>
+                </div>
+                <div style="display:flex;gap:6px;">
+                    <form method="POST" action="{{ url_for('auth.alerts_toggle', alert_id=a.id) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-secondary">{{ 'Pause' if a.enabled else 'Enable' }}</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('auth.alerts_delete', alert_id=a.id) }}" style="display:inline;"
+                          onsubmit="return confirm('Delete this alert?')">
+                        <button type="submit" class="btn btn-sm" style="background:var(--danger);color:#fff;border:none;border-radius:6px;padding:6px 10px;">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="color:var(--text-muted);text-align:center;padding:2rem;">
+        No alerts yet. Save a search above and we'll email you when new results appear.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}
