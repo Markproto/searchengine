@@ -245,13 +245,61 @@ def fetch_page(url, ua, timeout=15):
     return resp.text
 
 
+def extract_links(soup, url, self_domain):
+    """Extract internal article links and outbound domains from parsed HTML."""
+    internal_links = set()
+    outbound_domains = set()
+    for a in soup.find_all("a", href=True):
+        href = a["href"].strip()
+        if not href or href.startswith("#") or href.startswith("mailto:") or href.startswith("javascript:"):
+            continue
+        abs_url = urljoin(url, href)
+        parsed = urlparse(abs_url)
+        if not parsed.netloc:
+            continue
+        netloc = parsed.netloc.replace("www.", "")
+        if netloc == self_domain or netloc.endswith("." + self_domain):
+            if is_article_url(abs_url, self_domain):
+                internal_links.add(abs_url.split("#")[0])
+            else:
+                # Index/category pages can also be crawled for link discovery
+                # (but won't be indexed as articles)
+                lower = abs_url.lower()
+                # Queue category/archive pages for traversal
+                if any(seg in lower for seg in ["/page/", "/archive", "/news", "/blog", "/opinion"]):
+                    if not any(skip.search(abs_url) for skip in SKIP_PATH_PATTERNS):
+                        internal_links.add(abs_url.split("#")[0])
+        else:
+            outbound_domains.add(netloc)
+    return internal_links, outbound_domains
+
+
 def extract_article(html, url):
-    """Extract title, content, summary, and outbound links from HTML."""
+    """Extract title, content, summary, and links from HTML.
+    Returns a dict with links always populated; content fields may be empty
+    if the page isn't an article (e.g. a category index).
+    """
     soup = BeautifulSoup(html, "html.parser")
 
     # Remove junk
     for tag in soup(["script", "style", "nav", "footer", "aside", "form", "noscript"]):
         tag.decompose()
+
+    parsed_self = urlparse(url)
+    self_domain = parsed_self.netloc.replace("www.", "")
+
+    # Always extract links (so category/archive pages can still feed crawl queue)
+    internal_links, outbound_domains = extract_links(soup, url, self_domain)
+
+    result = {
+        "title": "",
+        "content": "",
+        "summary": "",
+        "published_at": "",
+        "internal_links": internal_links,
+        "outbound_domains": outbound_domains,
+        "is_article": False,
+    }
 
     # Title
     title = ""
@@ -260,24 +308,25 @@ def extract_article(html, url):
     h1 = soup.find("h1")
     if h1 and h1.get_text(strip=True):
         title = h1.get_text(strip=True)
-    title = title[:300]
+    result["title"] = title[:300]
 
     # Main content — try article/main first, fallback to body
     main = soup.find("article") or soup.find("main") or soup.body
     if not main:
-        return None
+        return result
 
     # Extract text from paragraphs
     paragraphs = [p.get_text(" ", strip=True) for p in main.find_all("p") if p.get_text(strip=True)]
     content = "\n".join(paragraphs)[:50000]
 
     if len(content) < 200:
-        return None  # Too thin — probably not an article
+        return result  # Not an article, but we still have links
 
-    summary = content[:500].rsplit(" ", 1)[0] + "..."
+    result["content"] = content
+    result["summary"] = content[:500].rsplit(" ", 1)[0] + "..."
+    result["is_article"] = True
 
     # Published date from meta tags
-    published = ""
     for selector in [
         ("meta", {"property": "article:published_time"}),
         ("meta", {"name": "article:published_time"}),
@@ -290,37 +339,10 @@ def extract_article(html, url):
         if el:
             published = el.get("content") or el.get("datetime") or ""
             if published:
+                result["published_at"] = published
                 break
 
-    # Outbound links
-    outbound_domains = set()
-    internal_links = set()
-    parsed_self = urlparse(url)
-    self_domain = parsed_self.netloc.replace("www.", "")
-
-    for a in soup.find_all("a", href=True):
-        href = a["href"].strip()
-        if not href or href.startswith("#") or href.startswith("mailto:") or href.startswith("javascript:"):
-            continue
-        abs_url = urljoin(url, href)
-        parsed = urlparse(abs_url)
-        if not parsed.netloc:
-            continue
-        netloc = parsed.netloc.replace("www.", "")
-        if netloc == self_domain:
-            if is_article_url(abs_url, self_domain):
-                internal_links.add(abs_url.split("#")[0])
-        else:
-            outbound_domains.add(netloc)
-
-    return {
-        "title": title,
-        "content": content,
-        "summary": summary,
-        "published_at": published,
-        "internal_links": internal_links,
-        "outbound_domains": outbound_domains,
-    }
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -418,14 +440,8 @@ def crawl_domain(domain, config, defaults, state_dir, es_url, cands_conn, max_pa
                 continue
 
             result = extract_article(html, url)
-            if not result:
-                conn.execute("UPDATE urls SET status='not_article' WHERE url=?", (url,))
-                conn.commit()
-                # Still follow internal links even if this page wasn't an article
-                time.sleep(delay)
-                continue
 
-            # Record discovered outbound domains
+            # Record discovered outbound domains (always, even from index pages)
             for od in result["outbound_domains"]:
                 if od and od != domain and "." in od:
                     try:
@@ -433,7 +449,7 @@ def crawl_domain(domain, config, defaults, state_dir, es_url, cands_conn, max_pa
                     except Exception as e:
                         logger.debug("candidate record error: %s", e)
 
-            # Queue internal links (if under max depth)
+            # Queue internal links (always, even if this page isn't an article)
             if depth < max_depth:
                 for link in result["internal_links"]:
                     conn.execute(
@@ -441,6 +457,13 @@ def crawl_domain(domain, config, defaults, state_dir, es_url, cands_conn, max_pa
                         (link, depth + 1),
                     )
                 conn.commit()
+
+            # If not an article, mark and continue
+            if not result["is_article"]:
+                conn.execute("UPDATE urls SET status='not_article' WHERE url=?", (url,))
+                conn.commit()
+                time.sleep(delay)
+                continue
 
             # Build ES doc
             doc = {
