@@ -824,6 +824,77 @@ def deduplicate():
     return redirect(url_for("admin.dashboard"))
 
 
+@admin_bp.route("/search-analytics")
+@login_required
+def search_analytics():
+    """Search analytics: queries grouped by category, top queries, trends."""
+    from sqlalchemy import func, desc
+
+    days = request.args.get("days", 7, type=int)
+    if days not in (1, 7, 30, 90):
+        days = 7
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+    # Total searches in period
+    total_searches = db.session.query(func.count(SearchLog.id)).filter(
+        SearchLog.searched_at >= cutoff
+    ).scalar() or 0
+
+    # Searches by category
+    category_breakdown = db.session.query(
+        SearchLog.category,
+        func.count(SearchLog.id).label("count"),
+    ).filter(
+        SearchLog.searched_at >= cutoff,
+    ).group_by(SearchLog.category).order_by(desc("count")).all()
+
+    # Top 50 queries overall
+    top_queries = db.session.query(
+        SearchLog.query.label("q"),
+        SearchLog.category,
+        func.count(SearchLog.id).label("count"),
+        func.avg(SearchLog.results_count).label("avg_results"),
+    ).filter(
+        SearchLog.searched_at >= cutoff,
+    ).group_by(SearchLog.query, SearchLog.category).order_by(desc("count")).limit(50).all()
+
+    # Zero-result queries (people searching but finding nothing)
+    zero_result = db.session.query(
+        SearchLog.query.label("q"),
+        SearchLog.category,
+        func.count(SearchLog.id).label("count"),
+    ).filter(
+        SearchLog.searched_at >= cutoff,
+        SearchLog.results_count == 0,
+    ).group_by(SearchLog.query, SearchLog.category).order_by(desc("count")).limit(20).all()
+
+    # Top queries per category (build a dict: {category: [(query, count), ...]})
+    per_category = {}
+    for row in top_queries:
+        cat = row.category or "all"
+        if cat not in per_category:
+            per_category[cat] = []
+        if len(per_category[cat]) < 10:
+            per_category[cat].append({"query": row.q, "count": row.count, "avg_results": round(row.avg_results or 0)})
+
+    # Recent 30 searches (for the raw feed)
+    recent = db.session.query(SearchLog).order_by(
+        SearchLog.searched_at.desc()
+    ).limit(30).all()
+
+    return render_template(
+        "admin/search_analytics.html",
+        days=days,
+        total_searches=total_searches,
+        category_breakdown=category_breakdown,
+        top_queries=top_queries[:30],
+        zero_result=zero_result,
+        per_category=per_category,
+        recent=recent,
+        categories=CATEGORIES,
+    )
+
+
 @admin_bp.route("/crawl-history")
 @login_required
 def crawl_history():

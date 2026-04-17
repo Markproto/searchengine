@@ -95,6 +95,7 @@
         <h2>Manage</h2>
         <div class="admin-links">
             <a href="{{ url_for('admin.analytics') }}" class="btn btn-primary">Visitor Analytics</a>
+            <a href="{{ url_for('admin.search_analytics') }}" class="btn btn-primary">Search Analytics</a>
             <a href="{{ url_for('admin.sources_list') }}" class="btn btn-secondary">Manage Sources</a>
             <a href="{{ url_for('admin.add_source') }}" class="btn btn-secondary">Add New Source</a>
             <a href="{{ url_for('admin.submissions_list') }}" class="btn btn-secondary">Source Submissions</a>
@@ -119,7 +120,7 @@
     <!-- Recent Searches -->
     {% if recent_searches %}
     <div class="admin-section">
-        <h2>Recent Searches</h2>
+        <h2>Recent Searches <a href="{{ url_for('admin.search_analytics') }}" style="font-size:0.85rem;font-weight:400;margin-left:12px;color:var(--accent);">Full Analytics &rarr;</a></h2>
         <table class="admin-table">
             <thead>
                 <tr>

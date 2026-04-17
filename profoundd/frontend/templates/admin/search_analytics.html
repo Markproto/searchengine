@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Search Analytics - Admin{% endblock %}
+
+{% block content %}
+<div class="container admin-page" style="max-width:1200px;">
+    <div class="admin-header">
+        <h1>Search Analytics</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+    </div>
+
+    {# Time range selector #}
+    <div style="margin-bottom:1.5rem;display:flex;gap:8px;">
+        {% for d in [1, 7, 30, 90] %}
+        <a href="{{ url_for('admin.search_analytics', days=d) }}"
+           class="btn btn-sm {% if days == d %}btn-primary{% else %}btn-secondary{% endif %}">
+            {% if d == 1 %}24h{% elif d == 7 %}7 days{% elif d == 30 %}30 days{% else %}90 days{% endif %}
+        </a>
+        {% endfor %}
+    </div>
+
+    {# Summary cards #}
+    <div class="stats-grid" style="margin-bottom:2rem;">
+        <div class="stat-card">
+            <h3>Total Searches</h3>
+            <p class="stat-value">{{ '{:,}'.format(total_searches) }}</p>
+            <p class="stat-detail">Last {{ days }} day{{ 's' if days != 1 else '' }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>Categories Used</h3>
+            <p class="stat-value">{{ category_breakdown | length }}</p>
+            <p class="stat-detail">Distinct categories searched</p>
+        </div>
+        <div class="stat-card">
+            <h3>Zero-Result Queries</h3>
+            <p class="stat-value">{{ zero_result | length }}</p>
+            <p class="stat-detail">Searches that returned 0 results</p>
+        </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+
+    {# Category breakdown #}
+    <div class="admin-section">
+        <h2>Searches by Category</h2>
+        <table class="admin-table">
+            <thead><tr><th>Category</th><th>Searches</th><th>%</th></tr></thead>
+            <tbody>
+                {% for cat, count in category_breakdown %}
+                <tr>
+                    <td>
+                        <strong>{{ cat or 'all' }}</strong>
+                        {% if cat and cat != 'all' and cat in categories %}
+                        <span style="font-size:0.8rem;color:var(--text-muted);"> &mdash; {{ categories[cat].label }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ '{:,}'.format(count) }}</td>
+                    <td>{{ '%.0f' % (count / total_searches * 100 if total_searches else 0) }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {# Top queries overall #}
+    <div class="admin-section">
+        <h2>Top Queries (all categories)</h2>
+        <table class="admin-table">
+            <thead><tr><th>Query</th><th>Cat</th><th>#</th><th>Avg results</th></tr></thead>
+            <tbody>
+                {% for row in top_queries %}
+                <tr>
+                    <td><a href="/search?q={{ row.q | urlencode }}" style="color:var(--accent);">{{ row.q[:50] }}</a></td>
+                    <td style="font-size:0.8rem;">{{ row.category or 'all' }}</td>
+                    <td><strong>{{ row.count }}</strong></td>
+                    <td>{{ '%.0f' % (row.avg_results or 0) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    </div>{# /grid #}
+
+    {# Per-category breakdown #}
+    {% if per_category %}
+    <div class="admin-section" style="margin-top:2rem;">
+        <h2>Top Queries by Category</h2>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:16px;">
+            {% for cat, queries in per_category.items() | sort %}
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:16px;">
+                <h3 style="font-size:1rem;margin-bottom:10px;color:var(--accent);">
+                    {{ categories[cat].label if cat in categories else cat }}
+                </h3>
+                {% for q in queries %}
+                <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:0.85rem;">
+                    <a href="/search?q={{ q.query | urlencode }}&category={{ cat }}" style="color:var(--text);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%;">{{ q.query[:40] }}</a>
+                    <span style="color:var(--text-muted);">{{ q.count }}x ({{ q.avg_results }} avg)</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# Zero-result queries #}
+    {% if zero_result %}
+    <div class="admin-section" style="margin-top:2rem;">
+        <h2>Zero-Result Queries <span style="font-size:0.85rem;color:var(--text-muted);">(gaps in your index)</span></h2>
+        <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:12px;">
+            These queries returned 0 results. Consider adding sources that cover these topics, or check if the spelling is off.
+        </p>
+        <table class="admin-table">
+            <thead><tr><th>Query</th><th>Category</th><th># attempts</th></tr></thead>
+            <tbody>
+                {% for row in zero_result %}
+                <tr>
+                    <td><a href="/search?q={{ row.q | urlencode }}" style="color:var(--danger);">{{ row.q }}</a></td>
+                    <td>{{ row.category or 'all' }}</td>
+                    <td>{{ row.count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {# Recent raw feed #}
+    <div class="admin-section" style="margin-top:2rem;">
+        <h2>Recent Searches (raw)</h2>
+        <table class="admin-table">
+            <thead><tr><th>Query</th><th>Category</th><th>Results</th><th>Time</th></tr></thead>
+            <tbody>
+                {% for log in recent %}
+                <tr>
+                    <td>{{ log.query }}</td>
+                    <td>{{ log.category or 'all' }}</td>
+                    <td>{{ log.results_count }}</td>
+                    <td style="font-size:0.8rem;">{{ log.searched_at.strftime('%Y-%m-%d %H:%M') if log.searched_at else '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
