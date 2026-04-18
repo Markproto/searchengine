@@ -290,6 +290,35 @@ class BobStory(db.Model):
         }
 
 
+class DailyStats(db.Model):
+    """Privacy-friendly aggregate daily traffic counters.
+
+    No PII stored — just date + page_type + counts. Incremented server-side
+    on every request without requiring cookies or consent.
+    """
+    __tablename__ = "daily_stats"
+
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, nullable=False, index=True)
+    page_type = db.Column(db.String(30), nullable=False)  # home, search, category, article, epstein-doc, newsroom, other
+    is_bot = db.Column(db.Boolean, default=False)
+    requests = db.Column(db.Integer, default=0)
+
+    __table_args__ = (
+        db.UniqueConstraint("date", "page_type", "is_bot", name="uq_daily_stats"),
+    )
+
+    @classmethod
+    def increment(cls, date_val, page_type, is_bot=False):
+        """Atomically increment the counter for this date/page_type/is_bot combo."""
+        row = cls.query.filter_by(date=date_val, page_type=page_type, is_bot=is_bot).first()
+        if row:
+            row.requests = (row.requests or 0) + 1
+        else:
+            row = cls(date=date_val, page_type=page_type, is_bot=is_bot, requests=1)
+            db.session.add(row)
+
+
 class SavedAlert(db.Model):
     """A user's saved search that emails them when new matches appear."""
     __tablename__ = "saved_alerts"

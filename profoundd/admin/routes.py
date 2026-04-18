@@ -11,7 +11,7 @@ from functools import wraps
 import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick, AudioTranscript
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick, AudioTranscript, DailyStats
 from profoundd.config.settings import get_config
 from profoundd.config.sources import ALL_SOURCES, CATEGORIES, SPECIAL_SECTION_KEYWORDS
 from profoundd.search.engine import SearchEngine
@@ -189,6 +189,27 @@ def dashboard():
         count = db.session.query(Source).filter_by(category=cat_key, is_active=True).count()
         category_stats[cat_key] = {"label": cat_info["label"], "count": count, "icon": cat_info["icon"]}
 
+    # Real traffic from DailyStats (privacy-friendly, no cookies needed)
+    from sqlalchemy import func as sqlfunc
+    from datetime import date as datemod
+    today = datemod.today()
+    daily_traffic = []
+    for d in range(6, -1, -1):
+        day = today - timedelta(days=d)
+        rows = db.session.query(
+            DailyStats.is_bot, sqlfunc.sum(DailyStats.requests)
+        ).filter(DailyStats.date == day).group_by(DailyStats.is_bot).all()
+        human = sum(r[1] or 0 for r in rows if not r[0])
+        bot = sum(r[1] or 0 for r in rows if r[0])
+        daily_traffic.append({"date": day.strftime("%b %d"), "human": human, "bot": bot})
+
+    # Today's breakdown by page type (humans only)
+    today_pages = db.session.query(
+        DailyStats.page_type, sqlfunc.sum(DailyStats.requests)
+    ).filter(
+        DailyStats.date == today, DailyStats.is_bot == False
+    ).group_by(DailyStats.page_type).order_by(sqlfunc.sum(DailyStats.requests).desc()).all()
+
     return render_template("admin/dashboard.html",
                            es_stats=es_stats,
                            es_available=engine.is_available(),
@@ -198,7 +219,9 @@ def dashboard():
                            bob_stories_count=bob_stories_count,
                            recent_searches=recent_searches,
                            category_stats=category_stats,
-                           categories=CATEGORIES)
+                           categories=CATEGORIES,
+                           daily_traffic=daily_traffic,
+                           today_pages=today_pages)
 
 
 def _get_day_leaning(day_start, day_end):

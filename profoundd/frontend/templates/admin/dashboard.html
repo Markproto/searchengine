@@ -90,6 +90,32 @@
         </div>
     </div>
 
+    <!-- Real Traffic (privacy-friendly, no cookies needed) -->
+    {% if daily_traffic %}
+    <div class="admin-section">
+        <h2>Real Traffic (server-side, no cookies needed)</h2>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+            {% for day in daily_traffic %}
+            <div style="text-align:center;flex:1;min-width:80px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 8px;">
+                <div style="font-size:0.75rem;color:var(--text-muted);">{{ day.date }}</div>
+                <div style="font-size:1.3rem;font-weight:700;color:var(--accent);">{{ day.human }}</div>
+                <div style="font-size:0.7rem;color:var(--text-muted);">+{{ day.bot }} bots</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if today_pages %}
+        <h3 style="font-size:0.95rem;margin-bottom:8px;">Today by page type (humans only)</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            {% for page_type, count in today_pages %}
+            <span style="background:var(--accent-glow);border:1px solid var(--accent);border-radius:20px;padding:4px 12px;font-size:0.8rem;">
+                {{ page_type }}: <strong>{{ count }}</strong>
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <!-- Quick Links -->
     <div class="admin-section">
         <h2>Manage</h2>

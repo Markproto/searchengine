@@ -18,7 +18,7 @@ from flask_login import LoginManager
 
 from profoundd.config.settings import get_config
 from profoundd.config.sources import CATEGORIES
-from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick
+from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick, DailyStats
 from profoundd.search.engine import SearchEngine
 from profoundd.search.ai_summary import generate_summary as ai_generate_summary, is_available as ai_is_available
 from profoundd.admin.routes import admin_bp
@@ -193,11 +193,14 @@ def create_app(config_override=None):
 
     @app.after_request
     def track_page_view(response):
-        """Record bot page views server-side. Human views come from JS tracking."""
+        """Record page views server-side. Two tracks:
+        1. DailyStats: privacy-friendly aggregate counter for ALL requests (no PII)
+        2. PageView: detailed bot-only log (bots get full tracking, humans opt-in via JS)
+        """
         path = request.path
         if (
             request.method != "GET"
-            or path.startswith(("/static", "/api/", "/admin", "/health", "/robots", "/sitemap"))
+            or path.startswith(("/static", "/api/", "/admin", "/health", "/robots", "/sitemap", "/opensearch", "/indexnow"))
             or response.status_code >= 400
         ):
             return response
@@ -205,7 +208,31 @@ def create_app(config_override=None):
         ua = (request.user_agent.string or "")[:500]
         is_bot = detect_bot(ua)
 
-        # Only record bots here; humans are tracked via JS /api/analytics/track
+        # Privacy-friendly aggregate counter — no PII, just daily counts by page type
+        try:
+            from profoundd.utils.models import DailyStats
+            if path == "/" or path == "":
+                page_type = "home"
+            elif path.startswith("/search"):
+                page_type = "search"
+            elif path.startswith("/category/"):
+                page_type = "category"
+            elif path.startswith("/epstein-docs/"):
+                page_type = "epstein-doc"
+            elif path.startswith("/newsroom"):
+                page_type = "newsroom"
+            elif path.startswith("/article/"):
+                page_type = "article"
+            elif path.startswith("/auth/"):
+                page_type = "auth"
+            else:
+                page_type = "other"
+            DailyStats.increment(date.today(), page_type, is_bot=is_bot)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+        # Detailed tracking: bots only (humans opt-in via JS /api/analytics/track)
         if not is_bot:
             return response
 
