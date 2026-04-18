@@ -1426,6 +1426,73 @@ def create_app(config_override=None):
         trending = search_engine.get_trending(category=category, hours=hours)
         return jsonify({"articles": trending, "category": category})
 
+    @app.route("/api/epstein-explain", methods=["POST"])
+    def api_epstein_explain():
+        """AI-powered explanation of a person's connection to an Epstein document."""
+        # Auth check: must be logged in or admin
+        if not session.get("user_logged_in") and not session.get("admin_logged_in"):
+            return jsonify(error="Log in to use AI analysis"), 401
+
+        data = request.get_json(silent=True) or {}
+        bates = data.get("bates_number", "").strip()
+        query = data.get("query", "").strip()
+        title = data.get("title", "").strip()
+
+        if not bates or not query:
+            return jsonify(error="Missing bates_number or query"), 400
+
+        # Fetch the document
+        doc = search_engine.get_epstein_doc(bates)
+        if not doc:
+            return jsonify(error=f"Document {bates} not found"), 404
+
+        content = doc.get("content", "")
+        if not content:
+            return jsonify(error="This document has no extracted text"), 400
+
+        # Truncate for API call
+        if len(content) > 8000:
+            content = content[:8000] + "\n\n[Document truncated...]"
+
+        # Get API key
+        from profoundd.admin.routes import get_anthropic_key
+        api_key = get_anthropic_key()
+        if not api_key:
+            return jsonify(error="Anthropic API key not configured"), 500
+
+        prompt = f"""You are analyzing a court document from the Jeffrey Epstein case files (DOJ release).
+
+The user searched for: "{query}"
+Document title: {title}
+Bates number: {bates}
+Custodian: {doc.get('custodian', 'Unknown')}
+
+Full document text:
+{content}
+
+Based ONLY on what this document says, explain:
+1. Who or what is "{query}" in relation to this document?
+2. Why are they mentioned? What is the context?
+3. What role do they appear to play — victim, witness, associate, attorney, judge, reporter, or other?
+4. Any other relevant details from this specific document.
+
+Be factual and concise. Only state what the document contains. If the search term doesn't clearly appear in the document, say so. Do not speculate beyond the text."""
+
+        try:
+            import anthropic
+            model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+            client = anthropic.Anthropic(api_key=api_key)
+            message = client.messages.create(
+                model=model,
+                max_tokens=1500,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            explanation = message.content[0].text
+            return jsonify(explanation=explanation)
+        except Exception as e:
+            logger.warning("Epstein explain failed: %s", e)
+            return jsonify(error=f"AI analysis failed: {e}"), 500
+
     @app.route("/api/spelling")
     def api_spelling():
         """Async spelling suggestion — loaded via AJAX after page renders."""

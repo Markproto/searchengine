@@ -73,12 +73,85 @@
     </div>
 
     {% if doc.content %}
-    <div class="doc-viewer-content">{{ doc.content }}</div>
+    <div class="doc-viewer-content" id="doc-content">{{ doc.content }}</div>
+
+    {# AI Explain Connection button (logged-in or admin) #}
+    {% if session.get('user_logged_in') or session.get('admin_logged_in') %}
+    <div style="margin-top:1.5rem;text-align:center;">
+        <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;">
+            Search for a name and click "Explain Connection" to understand their role in this document.
+        </div>
+        <form id="doc-explain-form" style="display:inline-flex;gap:8px;align-items:center;">
+            <input type="text" id="doc-explain-query" placeholder="Enter a name (e.g. Maxwell, Clinton)"
+                   style="padding:8px 12px;width:280px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.9rem;">
+            <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Explain Connection</button>
+        </form>
+        <div id="doc-explain-result" style="display:none;margin-top:16px;text-align:left;"></div>
+    </div>
+    <script>
+    document.getElementById('doc-explain-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var query = document.getElementById('doc-explain-query').value.trim();
+        if (!query) return;
+        var panel = document.getElementById('doc-explain-result');
+        panel.innerHTML = '<div style="padding:12px;color:var(--text-secondary);"><em>Analyzing document for "' + query + '"...</em></div>';
+        panel.style.display = 'block';
+        fetch('/api/epstein-explain', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                bates_number: {{ doc.bates_number | tojson }},
+                query: query,
+                title: {{ doc.title | tojson }}
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d.error) {
+                panel.innerHTML = '<div class="ai-epstein-result"><div class="ai-epstein-header">Error</div><div class="ai-epstein-body">' + d.error + '</div></div>';
+            } else {
+                panel.innerHTML = '<div class="ai-epstein-result"><div class="ai-epstein-header">AI Analysis: "' + query + '"</div><div class="ai-epstein-body">' + (d.explanation || '').replace(/\n/g, '<br>') + '</div></div>';
+            }
+        })
+        .catch(function(err) {
+            panel.innerHTML = '<div style="padding:12px;color:var(--danger);">Failed: ' + err + '</div>';
+        });
+    });
+    </script>
+    {% endif %}
+
     {% else %}
     <div style="padding:2rem;text-align:center;color:var(--text-secondary);background:var(--bg-secondary);border-radius:8px;">
         <p style="font-size:1.1rem;">No text could be extracted from this document.</p>
         <p>This may be a scanned image PDF. {% if doc.source_url %}<a href="{{ doc.source_url }}" target="_blank" class="doj-link">View the original on DOJ</a>{% endif %}</p>
     </div>
     {% endif %}
+
+    {# Highlight search terms from the referring search page #}
+    <script>
+    (function() {
+        var q = new URLSearchParams(location.search).get('q');
+        if (!q) return;
+        var el = document.getElementById('doc-content');
+        if (!el) return;
+        // Also pre-fill the explain form if it exists
+        var input = document.getElementById('doc-explain-query');
+        if (input && !input.value) input.value = q;
+        // Highlight all occurrences (case-insensitive)
+        var escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        var re = new RegExp('(' + escaped + ')', 'gi');
+        // Walk text nodes only (don't corrupt HTML structure)
+        var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+        var nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+        nodes.forEach(function(node) {
+            if (re.test(node.nodeValue)) {
+                var span = document.createElement('span');
+                span.innerHTML = node.nodeValue.replace(re, '<mark>$1</mark>');
+                node.parentNode.replaceChild(span, node);
+            }
+        });
+    })();
+    </script>
 </div>
 {% endblock %}

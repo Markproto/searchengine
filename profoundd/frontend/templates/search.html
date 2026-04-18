@@ -182,6 +182,42 @@
         if (el) { el.value = ''; }
         form.submit();
     }
+
+    // AI Explain Connection for Epstein docs
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.ai-epstein-btn');
+        if (!btn) return;
+        var panel = btn.closest('.result-body').querySelector('.ai-epstein-panel');
+        if (!panel) return;
+        if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
+        var bates = btn.getAttribute('data-bates');
+        var query = btn.getAttribute('data-query');
+        var title = btn.getAttribute('data-title');
+        panel.innerHTML = '<div style="padding:12px;color:var(--text-secondary);font-size:0.9rem;"><em>Analyzing document...</em></div>';
+        panel.style.display = 'block';
+        btn.disabled = true;
+        fetch('/api/epstein-explain', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({bates_number: bates, query: query, title: title})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            btn.disabled = false;
+            if (d.error) {
+                panel.innerHTML = '<div style="padding:12px;color:var(--danger);font-size:0.9rem;">' + d.error + '</div>';
+            } else {
+                panel.innerHTML = '<div class="ai-epstein-result">' +
+                    '<div class="ai-epstein-header">AI Analysis: "' + query + '" in ' + bates + '</div>' +
+                    '<div class="ai-epstein-body">' + (d.explanation || '').replace(/\n/g, '<br>') + '</div>' +
+                    '</div>';
+            }
+        })
+        .catch(function(err) {
+            btn.disabled = false;
+            panel.innerHTML = '<div style="padding:12px;color:var(--danger);font-size:0.9rem;">Failed: ' + err + '</div>';
+        });
+    });
     </script>
 
     <details class="search-syntax-help">
@@ -304,7 +340,7 @@
     <div class="search-layout {% if business_results %}has-business-panel{% endif %}">
     <div class="search-results">
         {% for article in results.articles %}
-        {# Court document card (Epstein Files) #}
+        {# Court document card (Epstein Files) — with highlights + AI explain #}
         {% if article.result_type == 'document' %}
         <article class="result-card document-card">
             <div class="result-body">
@@ -313,17 +349,32 @@
                 <span class="result-source">{{ article.source_name }}</span>
                 {% if article.bates_number %}<span class="bates-badge">{{ article.bates_number }}</span>{% endif %}
             </div>
-            <h3 class="result-title"><a href="{{ article.url }}">{{ article.title }}</a></h3>
-            {% if article.summary %}
+            {# Title — show highlighted version if available #}
+            {% if article._highlights and article._highlights.get('title') %}
+            <h3 class="result-title"><a href="{{ article.url }}?q={{ query | urlencode }}">{{ article._highlights.title[0] | safe }}</a></h3>
+            {% else %}
+            <h3 class="result-title"><a href="{{ article.url }}?q={{ query | urlencode }}">{{ article.title }}</a></h3>
+            {% endif %}
+            {# Content snippets — prefer highlights to show WHERE the term appears #}
+            {% if article._highlights and article._highlights.get('content') %}
+            {% for fragment in article._highlights.content %}
+            <p class="result-summary highlight-snippet">...{{ fragment | safe }}...</p>
+            {% endfor %}
+            {% elif article.summary %}
             <p class="result-summary">{{ article.summary[:300] }}{% if article.summary|length > 300 %}...{% endif %}</p>
-            {% elif article._highlights and article._highlights.get('content') %}
-            <p class="result-summary">...{{ article._highlights.content[0] | safe }}...</p>
             {% endif %}
             <div class="result-footer">
                 {% if article.page_count %}<span class="doc-meta-item">{{ article.page_count }} pages</span>{% endif %}
                 {% if article.dataset_number %}<span class="doc-meta-item">Dataset {{ article.dataset_number }}</span>{% endif %}
                 {% if article.custodian %}<span class="doc-meta-item">{{ article.custodian }}</span>{% endif %}
+                {% if session.get('user_logged_in') or session.get('admin_logged_in') %}
+                <button type="button" class="ai-epstein-btn"
+                        data-bates="{{ article.bates_number }}"
+                        data-title="{{ article.title }}"
+                        data-query="{{ query }}">Explain Connection</button>
+                {% endif %}
             </div>
+            <div class="ai-epstein-panel" style="display:none;"></div>
             </div>
         </article>
         {% else %}

@@ -597,6 +597,48 @@ main { flex: 1; }
     text-decoration: underline;
     margin-left: 4px;
 }
+/* Epstein search highlights + AI explain */
+.highlight-snippet mark,
+.result-title mark,
+.doc-viewer-content mark {
+    background: rgba(234, 179, 8, 0.35);
+    color: inherit;
+    padding: 1px 3px;
+    border-radius: 2px;
+}
+.ai-epstein-btn {
+    background: #6366f1;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-weight: 600;
+    margin-left: 8px;
+}
+.ai-epstein-btn:hover { background: #4f46e5; }
+.ai-epstein-btn:disabled { opacity: 0.5; cursor: wait; }
+.ai-epstein-result {
+    margin-top: 12px;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-left: 3px solid #6366f1;
+    border-radius: 8px;
+}
+.ai-epstein-header {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--accent);
+    margin-bottom: 10px;
+}
+.ai-epstein-body {
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: var(--text);
+}
+
 .pfizer-exclude-bar {
     margin-bottom: 10px;
     padding: 8px 14px;
