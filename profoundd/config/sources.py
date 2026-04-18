@@ -383,11 +383,9 @@ SPECIAL_SECTION_KEYWORDS = {
         "kirk interview", "kirk debate", "kirk speech",
     ],
     "polymarket": [
-        "polymarket", "prediction market", "prediction markets",
-        "betting odds", "market odds", "forecast odds",
-        "what are the odds", "probability of", "chances of",
-        "will trump", "will biden", "election odds",
-        "prediction contract", "event contract",
+        "polymarket", "predictit", "manifold markets", "metaculus",
+        "kalshi", "prediction market", "prediction markets",
+        "event contract", "prediction contract",
     ],
 }
 
