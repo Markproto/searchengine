@@ -188,6 +188,19 @@ def create_app(config_override=None):
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         return response
 
+    # --- Block SEO leech bots that ignore robots.txt ---
+    import re as _re
+    _BLOCKED_BOTS_RE = _re.compile(
+        r"SemrushBot|AhrefsBot|MJ12bot|DotBot|SERankingBacklinksBot|BLEXBot|PetalBot|Bytespider",
+        _re.IGNORECASE,
+    )
+
+    @app.before_request
+    def block_leech_bots():
+        ua = request.user_agent.string or ""
+        if _BLOCKED_BOTS_RE.search(ua):
+            return Response("Blocked. See /robots.txt", status=403, mimetype="text/plain")
+
     # --- Analytics: record page views ---
     from profoundd.utils.bot_detection import detect_bot
 
@@ -1776,6 +1789,40 @@ Disallow: /health
 Sitemap: https://{domain}/sitemap-index.xml
 Sitemap: https://{domain}/sitemap.xml
 Sitemap: https://{domain}/news-sitemap.xml
+
+# Throttle Facebook/Meta crawler (was 333K hits/week, aggressive)
+User-agent: meta-webindexer
+Crawl-delay: 10
+Disallow: /search
+Disallow: /api/
+
+# Block SEO analysis bots (provide zero value, just scrape for their paid tools)
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: SemrushBot-BA
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: SERankingBacklinksBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
 """
         return Response(content, mimetype="text/plain")
 

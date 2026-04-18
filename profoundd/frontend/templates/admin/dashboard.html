@@ -116,6 +116,39 @@
     </div>
     {% endif %}
 
+    <!-- Bot Breakdown -->
+    {% if bot_breakdown %}
+    <div class="admin-section">
+        <h2>Bot Traffic (last 7 days)</h2>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;">
+            SEO leeches (SemrushBot, AhrefsBot, etc.) are now blocked via robots.txt.
+            Facebook meta-webindexer is throttled to 1 req per 10 seconds.
+        </p>
+        <table class="admin-table">
+            <thead><tr><th>Bot</th><th>Hits (7d)</th><th>Status</th></tr></thead>
+            <tbody>
+                {% for b in bot_breakdown %}
+                <tr>
+                    <td><code style="font-size:0.8rem;">{{ b.name }}</code></td>
+                    <td><strong>{{ '{:,}'.format(b.count) }}</strong></td>
+                    <td>
+                        {% if 'Semrush' in b.name or 'Ahrefs' in b.name or 'MJ12' in b.name or 'DotBot' in b.name or 'SERanking' in b.name %}
+                        <span style="color:var(--danger);font-size:0.8rem;">Blocked</span>
+                        {% elif 'meta-web' in b.name %}
+                        <span style="color:var(--warning);font-size:0.8rem;">Throttled</span>
+                        {% elif 'bingbot' in b.name or 'Googlebot' in b.name %}
+                        <span style="color:var(--success);font-size:0.8rem;">Allowed</span>
+                        {% else %}
+                        <span style="color:var(--text-muted);font-size:0.8rem;">Allowed</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
     <!-- Quick Links -->
     <div class="admin-section">
         <h2>Manage</h2>

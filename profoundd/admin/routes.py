@@ -210,6 +210,24 @@ def dashboard():
         DailyStats.date == today, DailyStats.is_bot == False
     ).group_by(DailyStats.page_type).order_by(sqlfunc.sum(DailyStats.requests).desc()).all()
 
+    # Top bots (last 7 days from PageView, grouped by UA)
+    top_bots = db.session.query(
+        PageView.user_agent,
+        sqlfunc.count(PageView.id).label("c"),
+    ).filter(
+        PageView.is_bot == True,
+        PageView.viewed_at >= datetime.now(timezone.utc) - timedelta(days=7),
+    ).group_by(PageView.user_agent).order_by(sqlfunc.count(PageView.id).desc()).limit(10).all()
+
+    # Extract short bot names from full UA strings
+    import re
+    bot_breakdown = []
+    for ua, count in top_bots:
+        # Try to extract bot name from UA (e.g. "SemrushBot/7" from full string)
+        m = re.search(r'([\w-]+[Bb]ot|meta-webindexer|Amzn-SearchBot|bingbot|Googlebot|curl|python-requests)[/\s]?[\d.]*', ua or "")
+        name = m.group(0) if m else (ua or "Unknown")[:40]
+        bot_breakdown.append({"name": name, "count": count})
+
     return render_template("admin/dashboard.html",
                            es_stats=es_stats,
                            es_available=engine.is_available(),
@@ -221,7 +239,8 @@ def dashboard():
                            category_stats=category_stats,
                            categories=CATEGORIES,
                            daily_traffic=daily_traffic,
-                           today_pages=today_pages)
+                           today_pages=today_pages,
+                           bot_breakdown=bot_breakdown)
 
 
 def _get_day_leaning(day_start, day_end):
