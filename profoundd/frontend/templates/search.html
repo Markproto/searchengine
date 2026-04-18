@@ -182,11 +182,26 @@
         </ul>
     </details>
 
-    {# Spelling correction #}
-    {% if spelling_suggestion %}
-    <div style="margin-bottom: 12px; font-size: 0.9rem; color: var(--text-secondary);">
-        Did you mean: <a href="/search?q={{ spelling_suggestion | urlencode }}{% if category != 'all' %}&category={{ category }}{% endif %}" style="color: var(--accent); font-weight: 500; font-style: italic;">{{ spelling_suggestion }}</a>?
-    </div>
+    {# Spelling correction — loaded async via /api/spelling so it doesn't block page render #}
+    <div id="spelling-suggestion" style="margin-bottom: 12px; font-size: 0.9rem; color: var(--text-secondary); display: none;"></div>
+    {% if query and results and results.total is defined and results.total < 3 %}
+    <script>
+    (function() {
+        fetch('/api/spelling?q=' + encodeURIComponent({{ query | tojson }}))
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.suggestion) {
+                    var el = document.getElementById('spelling-suggestion');
+                    var cat = {{ category | tojson }};
+                    var href = '/search?q=' + encodeURIComponent(d.suggestion);
+                    if (cat !== 'all') href += '&category=' + encodeURIComponent(cat);
+                    el.innerHTML = 'Did you mean: <a href="' + href + '" style="color:var(--accent);font-weight:500;font-style:italic;">' + d.suggestion + '</a>?';
+                    el.style.display = 'block';
+                }
+            })
+            .catch(function() {});
+    })();
+    </script>
     {% endif %}
 
     {# Image grid (for Images and Shopping tabs) #}

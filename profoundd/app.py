@@ -858,25 +858,25 @@ def create_app(config_override=None):
 
                 # Collect results as they complete
                 try:
-                    enhanced_articles, enhanced_providers = fut_enhanced.result(timeout=15)
+                    enhanced_articles, enhanced_providers = fut_enhanced.result(timeout=5)
                 except Exception as e:
                     logger.warning("Enhanced providers failed: %s", e)
                     enhanced_articles, enhanced_providers = [], set()
 
                 try:
-                    grok_results = fut_grok.result(timeout=15)
+                    grok_results = fut_grok.result(timeout=5)
                 except Exception as e:
                     logger.warning("Grokipedia failed: %s", e)
                     grok_results = []
 
                 try:
-                    web_results = fut_web.result(timeout=15)
+                    web_results = fut_web.result(timeout=5)
                 except Exception as e:
                     logger.warning("Web results failed: %s", e)
                     web_results = []
 
                 try:
-                    business_results = fut_biz.result(timeout=15)
+                    business_results = fut_biz.result(timeout=5)
                 except Exception as e:
                     logger.warning("Business search failed: %s", e)
                     business_results = []
@@ -962,20 +962,25 @@ def create_app(config_override=None):
 
                 threading.Thread(target=_bg_index, args=(_to_index, _skipped), daemon=True).start()
 
-        # Log the search
-        log = SearchLog(
-            query=query,
-            category=category,
-            results_count=results.get("total", 0),
-            ip_address=_hash_ip(request.remote_addr),
-        )
-        db.session.add(log)
-        db.session.commit()
+        # Log the search (background — don't block response for DB write)
+        _search_q = query
+        _search_cat = category
+        _search_count = results.get("total", 0)
+        _search_ip = _hash_ip(request.remote_addr)
 
-        # Spelling correction — only check if few/no results
+        def _bg_log_search():
+            try:
+                log = SearchLog(query=_search_q, category=_search_cat,
+                                results_count=_search_count, ip_address=_search_ip)
+                db.session.add(log)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+        threading.Thread(target=_bg_log_search, daemon=True).start()
+
+        # Spelling correction now loads async via /api/spelling (Fix 5: don't block render)
         spelling_suggestion = None
-        if page == 1 and results.get("total", 0) < 3:
-            spelling_suggestion = search_engine.get_spelling_suggestion(query)
 
         # Get source list for filter dropdown (cached in search_engine)
         source_list = search_engine.get_source_names() if search_engine.is_available() else []
@@ -1418,6 +1423,18 @@ def create_app(config_override=None):
         hours = request.args.get("hours", 24, type=int)
         trending = search_engine.get_trending(category=category, hours=hours)
         return jsonify({"articles": trending, "category": category})
+
+    @app.route("/api/spelling")
+    def api_spelling():
+        """Async spelling suggestion — loaded via AJAX after page renders."""
+        query = request.args.get("q", "").strip()
+        if not query or len(query) < 2:
+            return jsonify(suggestion=None)
+        try:
+            suggestion = search_engine.get_spelling_suggestion(query)
+            return jsonify(suggestion=suggestion)
+        except Exception:
+            return jsonify(suggestion=None)
 
     @app.route("/api/suggest")
     def api_suggest():

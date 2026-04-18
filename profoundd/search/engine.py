@@ -358,20 +358,39 @@ class SearchEngine:
             logger.error("scroll_epstein_bates failed (chunk %d): %s", chunk_index, e)
             return results
 
+    # In-memory caches for expensive aggregation queries (TTL-based)
+    _source_names_cache = {"data": None, "expires": 0}
+    _epstein_facets_cache = {"data": None, "expires": 0}
+
     def get_source_names(self):
-        """Return distinct source_name values from the articles index."""
+        """Return distinct source_name values from the articles index.
+        Cached in memory for 1 hour (source list changes rarely).
+        """
+        import time
+        now = time.time()
+        if self._source_names_cache["data"] is not None and now < self._source_names_cache["expires"]:
+            return self._source_names_cache["data"]
         try:
             result = self.es.search(
                 index=self.index_name,
                 body={"size": 0, "aggs": {"sources": {"terms": {"field": "source_name", "size": 500}}}},
             )
-            return sorted(b["key"] for b in result["aggregations"]["sources"]["buckets"])
+            data = sorted(b["key"] for b in result["aggregations"]["sources"]["buckets"])
+            self._source_names_cache["data"] = data
+            self._source_names_cache["expires"] = now + 3600
+            return data
         except Exception as e:
             logger.debug("get_source_names failed: %s", e)
-            return []
+            return self._source_names_cache["data"] or []
 
     def get_epstein_facets(self):
-        """Return custodian list and dataset numbers for Epstein filter dropdowns."""
+        """Return custodian list and dataset numbers for Epstein filter dropdowns.
+        Cached in memory for 1 hour (Epstein docs never change).
+        """
+        import time
+        now = time.time()
+        if self._epstein_facets_cache["data"] is not None and now < self._epstein_facets_cache["expires"]:
+            return self._epstein_facets_cache["data"]
         try:
             result = self.es.search(
                 index=EPSTEIN_DOC_INDEX_NAME,
@@ -389,10 +408,13 @@ class SearchEngine:
             datasets = sorted(
                 b["key"] for b in result["aggregations"]["datasets"]["buckets"]
             )
-            return {"custodians": custodians, "datasets": datasets}
+            data = {"custodians": custodians, "datasets": datasets}
+            self._epstein_facets_cache["data"] = data
+            self._epstein_facets_cache["expires"] = now + 3600
+            return data
         except Exception as e:
             logger.debug("get_epstein_facets failed: %s", e)
-            return {"custodians": [], "datasets": []}
+            return self._epstein_facets_cache["data"] or {"custodians": [], "datasets": []}
 
     def index_article(self, article_data):
         """Index a single article."""
