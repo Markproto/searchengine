@@ -169,6 +169,13 @@ POLITICS_SOURCES = [
     {"name": "Ian Miles Cheong", "url": "https://stillgray.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Ian Miles Cheong (Midnight Directive)", "url": "https://midnightdirective.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Ian Carroll", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCXN75hqjDGF0sKsCRoAZ6fz", "category": "politics", "credibility": 8, "feed_type": "atom"},
+
+    # --- YouTube Channels (RSS feeds) ---
+    {"name": "Tim Pool (YouTube)", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCG749Dj4V2fKa143f8sE60Q", "category": "politics", "credibility": 8, "feed_type": "atom"},
+    {"name": "Steven Crowder (YouTube)", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCIveFvW-ARp_B_RckhweNJw", "category": "politics", "credibility": 8, "feed_type": "atom"},
+    {"name": "Breaking Points (YouTube)", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCDRIjKy6eZOvKtOELtTdeUA", "category": "politics", "credibility": 8, "feed_type": "atom"},
+    {"name": "Candace Owens (YouTube)", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCL0u5uz7KZ9q-pe-VC8TY-w", "category": "politics", "credibility": 8, "feed_type": "atom"},
+    {"name": "JRE Clips (YouTube)", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCnxGkOGNMqQEUMvroOWps6Q", "category": "politics", "credibility": 8, "feed_type": "atom"},
 ]
 
 MARKETS_SOURCES = [

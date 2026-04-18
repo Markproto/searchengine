@@ -65,6 +65,17 @@
         </div>
 
         <div class="admin-section">
+            <h2>YouTube Data API (Video Discovery)</h2>
+            <p class="action-desc">Free API key from <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a>. Enable "YouTube Data API v3" in your project. 10,000 units/day free. Powers daily video discovery based on popular Profoundd searches.</p>
+            <div class="form-group">
+                <label>YouTube Data API Key</label>
+                <input type="password" name="youtube_api_key" value="{{ youtube_api_key }}"
+                       placeholder="AIza..." class="form-control">
+                <small class="text-muted">Searches YouTube daily for videos matching popular queries on Profoundd</small>
+            </div>
+        </div>
+
+        <div class="admin-section">
             <h2>Congress.gov API (Legislative Watch)</h2>
             <p class="action-desc">Free API key from <a href="https://api.congress.gov/sign-up/" target="_blank">api.congress.gov/sign-up</a>. Enables live bill search and status lookups when users search legislative topics. 5,000 requests/hour.</p>
             <div class="form-group">

@@ -113,6 +113,16 @@ def init_scheduler(app):
         kwargs={"app": app},
     )
 
+    # YouTube video discovery — search YouTube for popular Profoundd queries daily
+    _scheduler.add_job(
+        func=_run_youtube_crawl,
+        trigger=IntervalTrigger(hours=24),
+        id="youtube_crawl",
+        name="Discover YouTube videos matching popular searches",
+        replace_existing=True,
+        kwargs={"app": app},
+    )
+
     _scheduler.start()
     logger.info("Scheduler started: crawl every %d min, OSM every %dh, markets every %dm, polls every %dh",
                 interval_minutes, osm_refresh_hours, polymarket_minutes, polls_hours)
@@ -269,6 +279,23 @@ def _run_cleanup(app):
         if engine.is_available():
             deleted = engine.delete_old_articles(days=30)
             logger.info("Daily cleanup: deleted %d old articles", deleted)
+
+
+def _run_youtube_crawl(app):
+    """Search YouTube for videos matching popular Profoundd queries."""
+    with app.app_context():
+        try:
+            from profoundd.search.engine import SearchEngine
+            from profoundd.utils.models import db
+            from profoundd.crawler.youtube_crawler import run_youtube_crawl
+            engine = SearchEngine(app.config.get("ELASTICSEARCH_URL"))
+            if not engine.is_available():
+                return
+            count = run_youtube_crawl(engine, db.session)
+            if count:
+                logger.info("YouTube crawl: %d videos indexed", count)
+        except Exception as e:
+            logger.exception("YouTube crawl failed: %s", e)
 
 
 def _run_alert_matcher(app):

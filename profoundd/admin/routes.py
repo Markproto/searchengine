@@ -1160,6 +1160,7 @@ def ai_settings():
         SiteSetting.set("searxng_url", request.form.get("searxng_url", "").strip().rstrip("/"))
         SiteSetting.set("congress_gov_api_key", request.form.get("congress_gov_api_key", "").strip())
         SiteSetting.set("groq_api_key", request.form.get("groq_api_key", "").strip())
+        SiteSetting.set("youtube_api_key", request.form.get("youtube_api_key", "").strip())
         SiteSetting.set("source_research_guidelines", request.form.get("source_research_guidelines", "").strip())
         flash("Settings saved.", "success")
         return redirect(url_for("admin.ai_settings"))
@@ -1173,6 +1174,7 @@ def ai_settings():
                            searxng_url=SiteSetting.get("searxng_url", ""),
                            congress_gov_api_key=SiteSetting.get("congress_gov_api_key", ""),
                            groq_api_key=SiteSetting.get("groq_api_key", ""),
+                           youtube_api_key=SiteSetting.get("youtube_api_key", ""),
                            source_research_guidelines=SiteSetting.get("source_research_guidelines", ""),
                            categories=CATEGORIES)
 
