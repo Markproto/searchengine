@@ -673,6 +673,7 @@ def create_app(config_override=None):
         source_filter = request.args.get("source", "")
         epstein_custodian = request.args.get("custodian", "")
         epstein_dataset = request.args.get("dataset", "")
+        exclude_sponsored = request.args.get("nopfizer", "") == "1"
 
         if not query:
             return render_template("search.html", results=None, categories=CATEGORIES,
@@ -797,6 +798,7 @@ def create_app(config_override=None):
             date_from=date_from,
             date_to=date_to,
             source_filter=source_filter or None,
+            exclude_sponsored=exclude_sponsored,
         )
 
         # Blend in Epstein court document results on "all" and "epstein-files" category searches

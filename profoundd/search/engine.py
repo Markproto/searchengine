@@ -606,7 +606,8 @@ class SearchEngine:
             return False
 
     def search(self, query, category=None, subcategory=None, page=1, per_page=20,
-               sort_by="relevance", source_filter=None, date_from=None, date_to=None):
+               sort_by="relevance", source_filter=None, date_from=None, date_to=None,
+               exclude_sponsored=False):
         """
         Search articles with custom ranking.
 
@@ -662,6 +663,10 @@ class SearchEngine:
             if date_to:
                 date_range["lte"] = date_to
             filter_clauses.append({"range": {"published_at": date_range}})
+
+        # Exclude Pfizer-sponsored sources
+        if exclude_sponsored:
+            filter_clauses.append({"bool": {"must_not": {"exists": {"field": "source_sponsors"}}}})
 
         # Build the inner bool query
         bool_query = {

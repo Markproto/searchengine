@@ -39,10 +39,23 @@
     </nav>
     {% endif %}
 
+    {# Pfizer exclusion checkbox — fundamental right to exclude sponsored sources #}
+    <div class="pfizer-exclude-bar">
+        <label class="pfizer-exclude-label">
+            <input type="checkbox" id="nopfizer-toggle"
+                   {% if request.args.get('nopfizer') == '1' %}checked{% endif %}
+                   onchange="var u=new URL(window.location); if(this.checked){u.searchParams.set('nopfizer','1')}else{u.searchParams.delete('nopfizer')}; window.location=u.toString();">
+            <span>Exclude Pfizer-sponsored sources</span>
+        </label>
+    </div>
+
     <div class="search-controls">
         <form action="/search" method="GET" class="search-filters" id="search-filter-form">
             <input type="hidden" name="q" value="{{ query }}">
             <input type="hidden" name="tab" value="{{ request.args.get('tab', 'all') }}">
+            {% if request.args.get('nopfizer') == '1' %}
+            <input type="hidden" name="nopfizer" value="1">
+            {% endif %}
             {% set _current_tab = request.args.get('tab', 'all') %}
 
             {# Row 1: Category + Sort (always visible) #}
@@ -477,6 +490,7 @@
     {% if request.args.get('source') %}{% set _pf = _pf ~ '&source=' ~ request.args.get('source') %}{% endif %}
     {% if request.args.get('custodian') %}{% set _pf = _pf ~ '&custodian=' ~ request.args.get('custodian') %}{% endif %}
     {% if request.args.get('dataset') %}{% set _pf = _pf ~ '&dataset=' ~ request.args.get('dataset') %}{% endif %}
+    {% if request.args.get('nopfizer') %}{% set _pf = _pf ~ '&nopfizer=1' %}{% endif %}
     <nav class="pagination">
         {% if results.page > 1 %}
         <a href="/search?q={{ query }}&category={{ category }}&sort={{ sort_by }}&tab={{ _tab }}{{ _pf }}&page={{ results.page - 1 }}" class="page-link">&laquo; Prev</a>

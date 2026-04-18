@@ -597,6 +597,29 @@ main { flex: 1; }
     text-decoration: underline;
     margin-left: 4px;
 }
+.pfizer-exclude-bar {
+    margin-bottom: 10px;
+    padding: 8px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid #b91c1c;
+    border-radius: var(--radius-sm);
+}
+.pfizer-exclude-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text);
+    font-weight: 500;
+}
+.pfizer-exclude-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #b91c1c;
+    cursor: pointer;
+}
 .search-syntax-help {
     margin: 8px 0 12px;
     font-size: 0.8rem;
