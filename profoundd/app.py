@@ -47,6 +47,17 @@ _download_rate_state = {}
 _download_rate_lock = threading.Lock()
 
 
+def _get_client_ip():
+    """Real client IP — honor Cloudflare/proxy headers before falling back to remote_addr."""
+    cf = request.headers.get("CF-Connecting-IP")
+    if cf:
+        return cf.strip()
+    xff = request.headers.get("X-Forwarded-For")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.remote_addr or ""
+
+
 def _check_download_rate_limit(ip_hash, max_per_hour=20):
     now = time.time()
     cutoff = now - 3600
@@ -1515,7 +1526,7 @@ Be factual and concise. Only state what the document contains. If the search ter
     @app.route("/epstein-docs/<bates_id>/download")
     def epstein_doc_download(bates_id):
         """Stream the original Epstein PDF from the Azure7 file server."""
-        ip_hash = _hash_ip(request.remote_addr or "")
+        ip_hash = _hash_ip(_get_client_ip())
         if not _check_download_rate_limit(ip_hash):
             return jsonify(error="Rate limit exceeded, try again later"), 429
 
