@@ -3953,6 +3953,29 @@ body,
 .doj-link:hover {
     text-decoration: underline;
 }
+.download-pdf-btn {
+    display: inline-block;
+    background: #059669;
+    color: #fff !important;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-weight: 600;
+    margin-left: 8px;
+}
+.download-pdf-btn:hover {
+    background: #047857;
+    text-decoration: none;
+}
+.download-pdf-link {
+    color: #059669;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    margin-left: 8px;
+}
+.download-pdf-link:hover {
+    text-decoration: underline;
+}
 /* Document viewer page */
 .doc-viewer-content {
     white-space: pre-wrap;

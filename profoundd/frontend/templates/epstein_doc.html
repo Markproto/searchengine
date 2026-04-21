@@ -67,9 +67,7 @@
         {% if doc.doc_date %}
         <span class="doc-meta-item">Date: {{ doc.doc_date }}</span>
         {% endif %}
-        {% if doc.source_url %}
-        <a href="{{ doc.source_url }}" target="_blank" rel="noopener" class="doj-link">Download from DOJ</a>
-        {% endif %}
+        <a href="/epstein-docs/{{ doc.bates_number }}/download" class="doj-link download-pdf-btn" download>Download original PDF</a>
     </div>
 
     {% if doc.content %}
@@ -123,7 +121,7 @@
     {% else %}
     <div style="padding:2rem;text-align:center;color:var(--text-secondary);background:var(--bg-secondary);border-radius:8px;">
         <p style="font-size:1.1rem;">No text could be extracted from this document.</p>
-        <p>This may be a scanned image PDF. {% if doc.source_url %}<a href="{{ doc.source_url }}" target="_blank" class="doj-link">View the original on DOJ</a>{% endif %}</p>
+        <p>This may be a scanned image PDF. <a href="/epstein-docs/{{ doc.bates_number }}/download" class="doj-link" download>Download the original PDF</a></p>
     </div>
     {% endif %}
 

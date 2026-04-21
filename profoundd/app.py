@@ -5,14 +5,16 @@ import os
 import json
 import hashlib
 import threading
+import time
 import uuid
 import logging
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, date, timezone
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 
 import requests as http_requests
-from flask import Flask, render_template, request, jsonify, flash, redirect, Response, url_for, make_response, session
+from flask import Flask, render_template, request, jsonify, flash, redirect, Response, stream_with_context, url_for, make_response, session
 from flask_cors import CORS
 from flask_login import LoginManager
 
@@ -39,6 +41,23 @@ def _clean_referrer(ref):
         return ""
     parsed = urlparse(ref)
     return f"{parsed.scheme}://{parsed.netloc}{parsed.path}"[:1000]
+
+
+_download_rate_state = {}
+_download_rate_lock = threading.Lock()
+
+
+def _check_download_rate_limit(ip_hash, max_per_hour=20):
+    now = time.time()
+    cutoff = now - 3600
+    with _download_rate_lock:
+        dq = _download_rate_state.setdefault(ip_hash, deque())
+        while dq and dq[0] < cutoff:
+            dq.popleft()
+        if len(dq) >= max_per_hour:
+            return False
+        dq.append(now)
+        return True
 
 
 # Domains we don't want to auto-index from Brave/SearXNG fallback results
@@ -1492,6 +1511,57 @@ Be factual and concise. Only state what the document contains. If the search ter
         except Exception as e:
             logger.warning("Epstein explain failed: %s", e)
             return jsonify(error=f"AI analysis failed: {e}"), 500
+
+    @app.route("/epstein-docs/<bates_id>/download")
+    def epstein_doc_download(bates_id):
+        """Stream the original Epstein PDF from the Azure7 file server."""
+        ip_hash = _hash_ip(request.remote_addr or "")
+        if not _check_download_rate_limit(ip_hash):
+            return jsonify(error="Rate limit exceeded, try again later"), 429
+
+        doc = search_engine.get_epstein_doc(bates_id)
+        if not doc:
+            return render_template("404.html"), 404
+
+        file_path = doc.get("file_path", "")
+        base = "/mnt/backup/epstein-files/extracted/"
+        if not file_path.startswith(base):
+            logger.warning("Epstein doc %s has unexpected file_path: %s", bates_id, file_path)
+            return jsonify(error="File path invalid"), 500
+        relpath = file_path[len(base):]
+
+        server_url = os.environ.get("EPSTEIN_FILE_SERVER_URL", "").rstrip("/")
+        token = os.environ.get("EPSTEIN_FILE_SERVER_TOKEN", "")
+        if not server_url or not token:
+            return jsonify(error="Download server not configured"), 503
+
+        try:
+            upstream = http_requests.get(
+                f"{server_url}/files/{quote(relpath)}",
+                headers={"Authorization": f"Bearer {token}"},
+                stream=True,
+                timeout=(5, 60),
+            )
+        except http_requests.RequestException as e:
+            logger.warning("Epstein download upstream connect failed for %s: %s", bates_id, e)
+            return jsonify(error="Upstream file server unreachable"), 502
+
+        if upstream.status_code != 200:
+            logger.warning("Epstein download upstream %s for %s", upstream.status_code, bates_id)
+            return jsonify(error=f"Upstream returned {upstream.status_code}"), 502
+
+        headers = {
+            "Content-Disposition": f'attachment; filename="{bates_id}.pdf"',
+        }
+        content_length = upstream.headers.get("Content-Length")
+        if content_length:
+            headers["Content-Length"] = content_length
+
+        return Response(
+            stream_with_context(upstream.iter_content(chunk_size=65536)),
+            mimetype="application/pdf",
+            headers=headers,
+        )
 
     @app.route("/api/spelling")
     def api_spelling():

@@ -367,6 +367,9 @@
                 {% if article.page_count %}<span class="doc-meta-item">{{ article.page_count }} pages</span>{% endif %}
                 {% if article.dataset_number %}<span class="doc-meta-item">Dataset {{ article.dataset_number }}</span>{% endif %}
                 {% if article.custodian %}<span class="doc-meta-item">{{ article.custodian }}</span>{% endif %}
+                {% if article.bates_number %}
+                <a href="/epstein-docs/{{ article.bates_number }}/download" class="download-pdf-link" download>Download PDF</a>
+                {% endif %}
                 {% if session.get('user_logged_in') or session.get('admin_logged_in') %}
                 <button type="button" class="ai-epstein-btn"
                         data-bates="{{ article.bates_number }}"

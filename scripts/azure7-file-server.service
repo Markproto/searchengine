@@ -1,0 +1,16 @@
+[Unit]
+Description=Profoundd Epstein PDF file server (Tailscale-only, read-only)
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mark
+WorkingDirectory=/home/mark
+EnvironmentFile=/home/mark/azure7-file-server.env
+ExecStart=/home/mark/epstein-venv/bin/python /home/mark/azure7_file_server.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

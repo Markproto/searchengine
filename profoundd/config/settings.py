@@ -40,6 +40,10 @@ class Config:
     OSM_DATA_DIR = os.path.join(BASE_DIR, "data", "osm")
     OSM_REFRESH_HOURS = int(os.getenv("OSM_REFRESH_HOURS", "24"))
 
+    # Epstein PDF file server (Azure7 over Tailscale)
+    EPSTEIN_FILE_SERVER_URL = os.getenv("EPSTEIN_FILE_SERVER_URL", "http://100.71.230.11:8090")
+    EPSTEIN_FILE_SERVER_TOKEN = os.getenv("EPSTEIN_FILE_SERVER_TOKEN", "")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
