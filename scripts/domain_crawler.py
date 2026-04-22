@@ -440,10 +440,16 @@ def crawl_domain(domain, config, defaults, state_dir, es_url, cands_conn, max_pa
     db_path = Path(state_dir) / f"{domain}.db"
     conn = init_state_db(db_path)
 
-    # Seed URLs
+    # Seed URLs — re-queue on every run so homepages get re-fetched and
+    # newly-published articles get discovered via their internal links.
+    # Without this, a domain stalls at 0 pending once it exhausts its queue.
     for seed in seeds:
         conn.execute(
             "INSERT OR IGNORE INTO urls (url, depth, status) VALUES (?, 0, 'pending')",
+            (seed,),
+        )
+        conn.execute(
+            "UPDATE urls SET status='pending' WHERE url=? AND status NOT IN ('pending','fetching')",
             (seed,),
         )
     conn.commit()
