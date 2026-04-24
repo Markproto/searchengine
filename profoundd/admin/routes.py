@@ -1030,6 +1030,10 @@ def edit_seo():
             SiteSetting.set(f"seo_{page}_description", request.form.get(f"{page}_description", "").strip())
             SiteSetting.set(f"seo_{page}_keywords", request.form.get(f"{page}_keywords", "").strip())
         SiteSetting.set("seo_global_keywords", request.form.get("global_keywords", "").strip())
+        # Search-engine verification tokens — site-wide meta tags
+        SiteSetting.set("google_site_verification", request.form.get("google_site_verification", "").strip())
+        SiteSetting.set("bing_site_verification", request.form.get("bing_site_verification", "").strip())
+        SiteSetting.set("yandex_verification", request.form.get("yandex_verification", "").strip())
         flash("SEO settings updated.", "success")
         return redirect(url_for("admin.edit_seo"))
 
@@ -1041,8 +1045,13 @@ def edit_seo():
             "keywords": SiteSetting.get(f"seo_{page}_keywords", ""),
         }
     seo["global_keywords"] = SiteSetting.get("seo_global_keywords", "")
+    verification = {
+        "google_site_verification": SiteSetting.get("google_site_verification", ""),
+        "bing_site_verification": SiteSetting.get("bing_site_verification", ""),
+        "yandex_verification": SiteSetting.get("yandex_verification", ""),
+    }
 
-    return render_template("admin/edit_seo.html", seo=seo, categories=CATEGORIES)
+    return render_template("admin/edit_seo.html", seo=seo, verification=verification, categories=CATEGORIES)
 
 
 @admin_bp.route("/research", methods=["GET", "POST"])

@@ -42,6 +42,40 @@
         {% endif %}
         {% endfor %}
 
+        <div class="admin-section">
+            <h2>Search Engine Verification</h2>
+            <p class="text-muted">
+                Paste the verification token from each provider to prove ownership.
+                Only the token (the <code>content=&quot;...&quot;</code> value), not the full HTML tag.
+            </p>
+            <div class="form-group">
+                <label for="google_site_verification">
+                    Google Search Console
+                    <small style="color:var(--text-secondary);"> — <a href="https://search.google.com/search-console" target="_blank" rel="noopener">open GSC</a>, choose URL prefix <code>https://profoundd.com</code>, pick HTML tag verification, paste the token here</small>
+                </label>
+                <input type="text" id="google_site_verification" name="google_site_verification"
+                       value="{{ verification.google_site_verification if verification is defined else '' }}"
+                       placeholder="abc123...xyz (from &lt;meta name=&quot;google-site-verification&quot; content=&quot;...&quot;&gt;)">
+            </div>
+            <div class="form-group">
+                <label for="bing_site_verification">
+                    Bing Webmaster Tools
+                    <small style="color:var(--text-secondary);"> — <a href="https://www.bing.com/webmasters" target="_blank" rel="noopener">open Bing Webmaster</a>, pick HTML meta tag verification</small>
+                </label>
+                <input type="text" id="bing_site_verification" name="bing_site_verification"
+                       value="{{ verification.bing_site_verification if verification is defined else '' }}"
+                       placeholder="token from &lt;meta name=&quot;msvalidate.01&quot; content=&quot;...&quot;&gt;">
+            </div>
+            <div class="form-group">
+                <label for="yandex_verification">
+                    Yandex Webmaster (optional)
+                </label>
+                <input type="text" id="yandex_verification" name="yandex_verification"
+                       value="{{ verification.yandex_verification if verification is defined else '' }}"
+                       placeholder="token from &lt;meta name=&quot;yandex-verification&quot; content=&quot;...&quot;&gt;">
+            </div>
+        </div>
+
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">Save SEO Settings</button>
         </div>

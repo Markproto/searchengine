@@ -186,8 +186,10 @@ def create_app(config_override=None):
         # OG image (admin-configurable, fallback to default)
         og_image = SiteSetting.get("seo_og_image", f"https://{domain}/static/images/og-default.png")
 
-        # Google Search Console verification
+        # Search engine verification tokens (rendered as <meta> in base.html)
         gsc_verification = SiteSetting.get("google_site_verification", "")
+        bing_verification = SiteSetting.get("bing_site_verification", "")
+        yandex_verification = SiteSetting.get("yandex_verification", "")
 
         # Batch-load all notes in one query each (avoids N+1 per-article DB hits)
         _newsroom_notes = {n.article_url: n for n in db.session.query(NewsroomNote).all()}
@@ -214,6 +216,8 @@ def create_app(config_override=None):
             "og_image": og_image,
             "site_domain": domain,
             "gsc_verification": gsc_verification,
+            "bing_verification": bing_verification,
+            "yandex_verification": yandex_verification,
             "is_admin": request.path.startswith("/admin"),
             "get_newsroom_note": get_newsroom_note,
             "get_source_note": get_source_note,
