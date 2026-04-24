@@ -3,9 +3,9 @@
    {title, url, snippet}. Gracefully hides empty sections. #}
 {% if related %}
 {% set _labels = {"climate": "Oregon Climate Docs", "wef": "WEF Publications", "epstein": "Epstein Files", "articles": "Recent News"} %}
-{% set _any = false %}
-{% for k, items in related.items() %}{% if items %}{% set _any = true %}{% endif %}{% endfor %}
-{% if _any %}
+{% set ns = namespace(any=false) %}
+{% for k, items in related.items() %}{% if items %}{% set ns.any = true %}{% endif %}{% endfor %}
+{% if ns.any %}
 <aside class="related-docs-panel" style="margin-top:2rem;padding:1.25rem 1.25rem 0.5rem;background:var(--bg-secondary);border-left:3px solid var(--accent);border-radius:8px;">
     <h2 style="font-size:1rem;margin:0 0 0.75rem 0;color:var(--text-secondary);letter-spacing:0.02em;">Related across Profoundd</h2>
     {% for coll, items in related.items() %}

@@ -23,6 +23,7 @@ Public API:
 import hashlib
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 from profoundd.utils.cache import cache_get, cache_set, AI_SUMMARY_TTL
 
@@ -129,34 +130,36 @@ def find_related(es, source_type, source_id, title, content, limit=3):
     if not es or not like_text.strip():
         return results
 
-    # Build msearch body — one request per target index
-    msearch_lines = []
-    active_targets = []
-    for target_type in results:
+    # Fire the 4 MLT queries in parallel via thread pool. ES-py 8.x msearch
+    # expects searches= list of dicts instead of raw NDJSON body, but single
+    # searches in parallel is easier to reason about and has the same wall
+    # time since ES processes them concurrently anyway.
+    def _run_one(target_type):
         index_name = _TARGETS[target_type][0]
-        msearch_lines.append(json.dumps({"index": index_name}))
-        msearch_lines.append(json.dumps(_mlt_body(like_text, limit)))
-        active_targets.append(target_type)
-
-    body = "\n".join(msearch_lines) + "\n"
-
-    try:
-        resp = es.msearch(body=body, request_timeout=3)
-    except Exception as e:
-        logger.warning("related msearch failed: %s", e)
-        return results
-
-    responses = resp.get("responses", []) if isinstance(resp, dict) else []
-    for target_type, r in zip(active_targets, responses):
-        if not isinstance(r, dict) or "hits" not in r:
-            continue
-        for hit in r["hits"].get("hits", []):
-            src = hit.get("_source", {})
-            # Don't include the source doc itself
+        try:
+            r = es.search(index=index_name, body=_mlt_body(like_text, limit + 1))
+            hits_out = []
             id_field = _TARGETS[target_type][1]
-            if source_type == target_type and src.get(id_field) == source_id:
-                continue
-            results[target_type].append(_format_hit(target_type, src))
+            for hit in r["hits"]["hits"]:
+                src = hit.get("_source", {})
+                # Don't include the source doc itself (only matters when
+                # source_type == target_type, which we already skip, but
+                # also skip near-duplicates from the same doc_id)
+                if source_type == target_type and src.get(id_field) == source_id:
+                    continue
+                hits_out.append(_format_hit(target_type, src))
+                if len(hits_out) >= limit:
+                    break
+            return target_type, hits_out
+        except Exception as e:
+            logger.warning("related MLT failed for %s: %s", index_name, e)
+            return target_type, []
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = [pool.submit(_run_one, t) for t in results]
+        for f in futures:
+            target_type, hits_out = f.result()
+            results[target_type] = hits_out
 
     try:
         cache_set(key, json.dumps(results), ttl=AI_SUMMARY_TTL)
