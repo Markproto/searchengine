@@ -1797,8 +1797,12 @@ Be factual and concise. Only state what the page contains."""
     def wef_doc_viewer(doc_id, page_number):
         doc = search_engine.get_wef_page(doc_id, page_number)
         if not doc:
+            # Fall back to the first indexed page for this doc
+            first = search_engine.search_wef_docs(query="", doc_id=doc_id, page=1, per_page=1, sort_by="relevance")
+            hits = first.get("articles", [])
+            if hits and hits[0].get("page_number") != page_number:
+                return redirect(f"/wef-docs/{doc_id}/{hits[0]['page_number']}")
             return render_template("404.html"), 404
-        # Use aggregation on doc_id to know total pages for prev/next
         total = search_engine.search_wef_docs(query="", doc_id=doc_id, page=1, per_page=1).get("total", 0)
         return render_template("wef_doc_viewer.html", doc=doc, total_pages=total, categories=CATEGORIES)
 
@@ -1807,7 +1811,12 @@ Be factual and concise. Only state what the page contains."""
         ip_hash = _hash_ip(_get_client_ip())
         if not _check_download_rate_limit(ip_hash):
             return jsonify(error="Rate limit exceeded, try again later"), 429
+        # Grab any page's metadata for this doc (file_path is the same)
         page = search_engine.get_wef_page(doc_id, 1)
+        if not page:
+            hits = search_engine.search_wef_docs(query="", doc_id=doc_id, page=1, per_page=1).get("articles", [])
+            if hits:
+                page = hits[0]
         if not page:
             return render_template("404.html"), 404
         file_path = page.get("file_path", "")
