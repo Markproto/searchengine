@@ -79,5 +79,7 @@
         nodes.forEach(function(n){ if(re.test(n.nodeValue)){ var s=document.createElement('span'); s.innerHTML=n.nodeValue.replace(re,'<mark>$1</mark>'); n.parentNode.replaceChild(s,n);} });
     })();
     </script>
+
+    {% include "_related_docs.html" %}
 </div>
 {% endblock %}

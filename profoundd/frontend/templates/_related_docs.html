@@ -1,0 +1,30 @@
+{# Reusable related-docs panel. Expects `related` dict with keys
+   "climate", "wef", "epstein", "articles" — each a list of
+   {title, url, snippet}. Gracefully hides empty sections. #}
+{% if related %}
+{% set _labels = {"climate": "Oregon Climate Docs", "wef": "WEF Publications", "epstein": "Epstein Files", "articles": "Recent News"} %}
+{% set _any = false %}
+{% for k, items in related.items() %}{% if items %}{% set _any = true %}{% endif %}{% endfor %}
+{% if _any %}
+<aside class="related-docs-panel" style="margin-top:2rem;padding:1.25rem 1.25rem 0.5rem;background:var(--bg-secondary);border-left:3px solid var(--accent);border-radius:8px;">
+    <h2 style="font-size:1rem;margin:0 0 0.75rem 0;color:var(--text-secondary);letter-spacing:0.02em;">Related across Profoundd</h2>
+    {% for coll, items in related.items() %}
+        {% if items %}
+        <section style="margin-bottom:1rem;">
+            <h3 style="font-size:0.85rem;margin:0 0 0.4rem 0;color:var(--accent);">{{ _labels.get(coll, coll|title) }}</h3>
+            <ul style="list-style:none;padding:0;margin:0;">
+                {% for r in items %}
+                <li style="padding:6px 0;border-top:1px solid var(--border);">
+                    <a href="{{ r.url }}" style="color:var(--text);text-decoration:none;font-weight:500;font-size:0.9rem;">{{ r.title }}</a>
+                    {% if r.snippet %}
+                    <div style="color:var(--text-secondary);font-size:0.8rem;margin-top:2px;line-height:1.35;">{{ r.snippet }}</div>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+    {% endfor %}
+</aside>
+{% endif %}
+{% endif %}

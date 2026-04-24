@@ -58,6 +58,63 @@ def _cache_key(doc_type, doc_id, page_number, query_norm):
     return f"explain:{hashlib.md5(raw.encode()).hexdigest()}"
 
 
+def _summary_cache_key(doc_type, doc_id, page_number):
+    """Per-page summary cache key — independent of user's query so every
+    pre-flight miss on the same page shares one cached answer."""
+    raw = f"explain:{doc_type}:{doc_id}:{page_number}:__summary__"
+    return f"explain:{hashlib.md5(raw.encode()).hexdigest()}"
+
+
+def _get_or_make_summary(doc_type, doc_id, page_number, content, meta):
+    """Return (summary_text, was_cached). Returns (None, False) on failure.
+
+    Summaries are keyed per-page and reused across every query that
+    pre-flights away. One LLM call per page, no matter how many users
+    search terms that don't match.
+    """
+    template = SUMMARY_PROMPTS.get(doc_type)
+    if not template:
+        return None, False
+
+    key = _summary_cache_key(doc_type, doc_id, page_number or 0)
+    cached = cache_get(key)
+    if cached is not None:
+        try:
+            txt = cached.decode("utf-8") if isinstance(cached, (bytes, memoryview)) else str(cached)
+        except Exception:
+            txt = str(cached)
+        return txt, True
+
+    # Build the summary prompt (no query involved — just the page content)
+    window = (content or "")[:8000]
+    safe_meta = {k: (v if v is not None else "") for k, v in (meta or {}).items()}
+    try:
+        prompt = template.format(content_window=window, **safe_meta)
+    except KeyError as e:
+        logger.warning("summary prompt missing key %s", e)
+        return None, False
+
+    try:
+        llm = _build_llm()
+    except Exception as e:
+        logger.warning("summary LLM init failed: %s", e)
+        return None, False
+
+    try:
+        from langchain_core.messages import HumanMessage
+        result = llm.invoke([HumanMessage(content=prompt)])
+        summary_text = result.content if hasattr(result, "content") else str(result)
+    except Exception as e:
+        logger.warning("summary LLM call failed: %s", e)
+        return None, False
+
+    try:
+        cache_set(key, summary_text, ttl=AI_SUMMARY_TTL)
+    except Exception:
+        pass
+    return summary_text, False
+
+
 def _pre_flight(content, query):
     """Return True if at least one significant query token appears in content."""
     toks = _tokens(query)
@@ -144,17 +201,39 @@ def explain(doc_type, doc_id, page_number, content, query, meta, prompt_template
     if not content:
         return {"error": "This page has no extracted text"}, 400
 
-    # 1) Pre-flight guard — zero LLM spend on known-negative queries
+    # 1) Pre-flight guard — if the query doesn't appear on this page, return
+    #    a cached page summary instead of a "not found" message. Summary is
+    #    keyed per-page (not per-query) so every miss on the same page shares
+    #    the same cached LLM response — bounded cost, better UX than a bare
+    #    rejection.
     if not _pre_flight(content, query):
-        msg = (
-            f"None of the terms in \"{query}\" appear on this page. "
-            f"Try the main search or rephrase."
+        summary, summary_cached = _get_or_make_summary(
+            doc_type, doc_id, page_number, content, meta
+        )
+        if summary is None:
+            # LLM/config failure — fall back to the old static message
+            return {
+                "explanation": (
+                    f"\"{query}\" doesn't appear on this page, and the "
+                    f"summary fallback is unavailable. Try the main search."
+                ),
+                "cached": True,
+                "skipped_llm": True,
+                "summary_fallback": False,
+                "provider": "preflight",
+            }, 200
+        preface = (
+            f"\"{query}\" doesn't appear on this page. "
+            f"Here's what this page covers:\n\n"
         )
         return {
-            "explanation": msg,
-            "cached": True,
-            "skipped_llm": True,
-            "provider": "preflight",
+            "explanation": preface + summary,
+            "cached": summary_cached,
+            "skipped_llm": summary_cached,
+            "summary_fallback": True,
+            "provider": "cache" if summary_cached else (
+                os.environ.get("AI_EXPLAIN_PROVIDER", "anthropic").lower()
+            ),
         }, 200
 
     # 2) Cache lookup
@@ -274,6 +353,65 @@ Based ONLY on what this page says, answer:
 2. What specific WEF positions, recommendations, or forecasts relate to it?
 3. Quote key sentences verbatim where relevant.
 4. If "{query}" doesn't appear or isn't relevant on this page, say so plainly.
+
+Be factual and concise. Only state what the page contains."""
+}
+
+
+# Query-less summary prompts — fired when pre-flight finds the user's search
+# term nowhere on the page. One summary per page, cached 24h, shared across
+# every query that misses. Result is a concise description of what the page
+# actually contains, so users get something useful even when their term
+# doesn't match.
+SUMMARY_PROMPTS = {
+    "epstein": """You are summarizing a court document from the Jeffrey Epstein case files (DOJ release).
+
+Document title: {title}
+Bates number: {bates}
+Custodian: {custodian}
+
+Document text:
+{content_window}
+
+In 3-5 sentences, describe what this document actually contains:
+- Type of document (email, pleading, deposition excerpt, exhibit, etc.)
+- Key people named and their apparent roles
+- Main subject or topic being discussed
+- Any notable dates, places, or events mentioned
+
+Be factual and concise. Only state what the document contains.""",
+
+    "climate": """You are summarizing a page from a public Oregon city planning document.
+
+Document: {document_name}
+City: {city}
+Page: {page_number}
+
+Page text:
+{content_window}
+
+In 3-5 sentences, describe what this page actually contains:
+- Section or topic of the page
+- Main commitments, rules, or goals it lays out
+- Any specific numbers, deadlines, or named programs
+- How it fits into the broader document
+
+Be factual and concise. Only state what the page contains.""",
+
+    "wef": """You are summarizing a page from a World Economic Forum publication.
+
+Document: {document_name}
+Year: {year}
+Page: {page_number}
+
+Page text:
+{content_window}
+
+In 3-5 sentences, describe what this page actually contains:
+- Section or topic
+- Main WEF positions, recommendations, or forecasts on the page
+- Any specific numbers, named initiatives, or quoted authorities
+- The page's role in the broader document
 
 Be factual and concise. Only state what the page contains."""
 }

@@ -1502,7 +1502,15 @@ def create_app(config_override=None):
         doc = search_engine.get_epstein_doc(bates_id)
         if not doc:
             return render_template("404.html"), 404
-        return render_template("epstein_doc.html", doc=doc)
+        from profoundd.search.related import find_related
+        related = find_related(
+            es=search_engine.es if search_engine.is_available() else None,
+            source_type="epstein",
+            source_id=bates_id,
+            title=doc.get("title", ""),
+            content=doc.get("content", ""),
+        )
+        return render_template("epstein_doc.html", doc=doc, related=related)
 
     @app.route("/article/<doc_id>")
     def article_detail(doc_id):
@@ -1652,10 +1660,20 @@ def create_app(config_override=None):
             query="", doc_id=doc_id, page=1, per_page=1,
         )
         total_pages = total_pages_result.get("total", 0)
+        # Cross-collection related docs (cached 24h per page)
+        from profoundd.search.related import find_related
+        related = find_related(
+            es=search_engine.es if search_engine.is_available() else None,
+            source_type="climate",
+            source_id=doc_id,
+            title=doc.get("document_name", ""),
+            content=doc.get("content", ""),
+        )
         return render_template(
             "climate_doc_viewer.html",
             doc=doc,
             total_pages=total_pages,
+            related=related,
             categories=CATEGORIES,
         )
 
@@ -1747,7 +1765,15 @@ def create_app(config_override=None):
                 return redirect(f"/wef-docs/{doc_id}/{hits[0]['page_number']}")
             return render_template("404.html"), 404
         total = search_engine.search_wef_docs(query="", doc_id=doc_id, page=1, per_page=1).get("total", 0)
-        return render_template("wef_doc_viewer.html", doc=doc, total_pages=total, categories=CATEGORIES)
+        from profoundd.search.related import find_related
+        related = find_related(
+            es=search_engine.es if search_engine.is_available() else None,
+            source_type="wef",
+            source_id=doc_id,
+            title=doc.get("document_name", ""),
+            content=doc.get("content", ""),
+        )
+        return render_template("wef_doc_viewer.html", doc=doc, total_pages=total, related=related, categories=CATEGORIES)
 
     @app.route("/wef-docs/<doc_id>/download")
     def wef_doc_download(doc_id):
