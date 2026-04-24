@@ -31,7 +31,7 @@
     {% if query %}
     <nav class="search-tabs">
         {% set current_tab = request.args.get('tab', 'all') %}
-        {% set tabs = [('all', 'All'), ('news', 'News'), ('videos', 'Videos'), ('images', 'Images'), ('shopping', 'Shopping'), ('markets', 'Markets'), ('maps', 'Maps'), ('epstein', 'Epstein Files')] %}
+        {% set tabs = [('all', 'All'), ('news', 'News'), ('videos', 'Videos'), ('images', 'Images'), ('shopping', 'Shopping'), ('markets', 'Markets'), ('maps', 'Maps'), ('epstein', 'Epstein Files'), ('climate', 'Climate Docs')] %}
         {% for tab_key, tab_label in tabs %}
         <a href="/search?q={{ query | urlencode }}&tab={{ tab_key }}{% if category != 'all' %}&category={{ category }}{% endif %}"
            class="search-tab {% if current_tab == tab_key %}active{% endif %}">{{ tab_label }}</a>
@@ -340,8 +340,33 @@
     <div class="search-layout {% if business_results %}has-business-panel{% endif %}">
     <div class="search-results">
         {% for article in results.articles %}
+        {# Climate doc page card — one ES doc per PDF page #}
+        {% if article.result_type == 'climate-doc' %}
+        <article class="result-card document-card">
+            <div class="result-body">
+            <div class="result-header">
+                <span class="doc-badge">Climate Doc</span>
+                <span class="result-source">{{ article.city }}</span>
+                <span class="bates-badge">Page {{ article.page_number }}</span>
+            </div>
+            <h3 class="result-title">
+                <a href="/climate-docs/{{ article.doc_id }}/{{ article.page_number }}?q={{ query | urlencode }}">{{ article.document_name }} — Page {{ article.page_number }}</a>
+            </h3>
+            {% if article._highlights and article._highlights.get('content') %}
+            {% for fragment in article._highlights.content %}
+            <p class="result-summary highlight-snippet">...{{ fragment | safe }}...</p>
+            {% endfor %}
+            {% elif article.content %}
+            <p class="result-summary">{{ article.content[:300] }}{% if article.content|length > 300 %}...{% endif %}</p>
+            {% endif %}
+            <div class="result-footer">
+                {% if article.adopted_date %}<span class="doc-meta-item">Adopted {{ article.adopted_date[:10] }}</span>{% endif %}
+                <a href="/climate-docs/{{ article.doc_id }}/download" class="download-pdf-link" download>Download PDF</a>
+            </div>
+            </div>
+        </article>
+        {% elif article.result_type == 'document' %}
         {# Court document card (Epstein Files) — with highlights + AI explain #}
-        {% if article.result_type == 'document' %}
         <article class="result-card document-card">
             <div class="result-body">
             <div class="result-header">

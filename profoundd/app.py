@@ -58,6 +58,16 @@ def _get_client_ip():
     return request.remote_addr or ""
 
 
+def _stream_file(path, chunk_size=65536):
+    """Generator that streams a local file in chunks."""
+    with open(path, "rb") as f:
+        while True:
+            chunk = f.read(chunk_size)
+            if not chunk:
+                break
+            yield chunk
+
+
 def _check_download_rate_limit(ip_hash, max_per_hour=20):
     now = time.time()
     cutoff = now - 3600
@@ -786,6 +796,25 @@ def create_app(config_override=None):
                                    business_results=business_results, user_location=user_loc,
                                    tab_images=None)
 
+        if tab == "climate" and query:
+            climate_city = request.args.get("city", "").strip() or None
+            climate_doc = request.args.get("doc_id", "").strip() or None
+            climate_results = search_engine.search_climate_docs(
+                query, page=page, per_page=20,
+                city=climate_city, doc_id=climate_doc, sort_by=sort_by,
+            )
+            all_articles = climate_results.get("articles", [])
+            for a in all_articles:
+                a["result_type"] = "climate-doc"
+            total = climate_results.get("total", 0)
+            return render_template("search.html",
+                                   results={"articles": all_articles, "total": total, "pages": (total + 19) // 20, "page": page},
+                                   categories=CATEGORIES, query=query, category="climate",
+                                   sort_by=sort_by, enhanced_providers=set(),
+                                   web_fallback=False, web_promoted=False,
+                                   business_results=[], user_location=None,
+                                   tab_images=None, spelling_suggestion=None)
+
         if tab == "epstein" and query:
             # Search ONLY the Epstein court documents index
             doc_results = search_engine.search_epstein_docs(
@@ -850,6 +879,23 @@ def create_app(config_override=None):
                     results["total"] = results.get("total", 0) + epstein_results.get("total", 0)
             except Exception as e:
                 logger.debug("Epstein blend failed: %s", e)
+
+        # Blend in climate doc results on "all" tab
+        if tab == "all" and query:
+            try:
+                climate_blend = search_engine.search_climate_docs(query, page=1, per_page=3)
+                climate_hits = climate_blend.get("articles", [])
+                if climate_hits:
+                    for doc in climate_hits:
+                        doc["result_type"] = "climate-doc"
+                    articles = results.get("articles", [])
+                    insert_pos = min(5, len(articles))
+                    for i, doc in enumerate(climate_hits):
+                        articles.insert(insert_pos + i, doc)
+                    results["articles"] = articles
+                    results["total"] = results.get("total", 0) + climate_blend.get("total", 0)
+            except Exception as e:
+                logger.debug("Climate blend failed: %s", e)
 
         # Fetch enhanced results from external providers (page 1 only)
         enhanced_providers = set()
@@ -1573,6 +1619,117 @@ Be factual and concise. Only state what the document contains. If the search ter
             mimetype="application/pdf",
             headers=headers,
         )
+
+    @app.route("/climate-docs")
+    def climate_docs_index():
+        """Browse Oregon climate / planning docs grouped by city."""
+        docs = search_engine.list_climate_docs() if search_engine.is_available() else []
+        by_city = {}
+        for d in docs:
+            by_city.setdefault(d.get("city", "Other"), []).append(d)
+        return render_template("climate_docs_index.html", by_city=by_city,
+                               total_pages=sum(d.get("page_count", 0) for d in docs),
+                               categories=CATEGORIES)
+
+    @app.route("/climate-docs/<doc_id>/<int:page_number>")
+    def climate_doc_viewer(doc_id, page_number):
+        """View a single page of a climate document."""
+        doc = search_engine.get_climate_page(doc_id, page_number)
+        if not doc:
+            return render_template("404.html"), 404
+        # neighbor pages for prev/next
+        total_pages_result = search_engine.search_climate_docs(
+            query="", doc_id=doc_id, page=1, per_page=1,
+        )
+        total_pages = total_pages_result.get("total", 0)
+        return render_template(
+            "climate_doc_viewer.html",
+            doc=doc,
+            total_pages=total_pages,
+            categories=CATEGORIES,
+        )
+
+    @app.route("/climate-docs/<doc_id>/download")
+    def climate_doc_download(doc_id):
+        """Download the full original PDF for a climate document."""
+        ip_hash = _hash_ip(_get_client_ip())
+        if not _check_download_rate_limit(ip_hash):
+            return jsonify(error="Rate limit exceeded, try again later"), 429
+
+        # Find one page to get file_path + document_name
+        page = search_engine.get_climate_page(doc_id, 1)
+        if not page:
+            return render_template("404.html"), 404
+        file_path = page.get("file_path", "")
+        base = "/app/data/climate-docs/"
+        if not file_path.startswith(base) or ".." in file_path:
+            return jsonify(error="File path invalid"), 500
+        if not os.path.isfile(file_path):
+            logger.warning("climate pdf missing: %s", file_path)
+            return jsonify(error="File not found on disk"), 404
+        return Response(
+            _stream_file(file_path),
+            mimetype="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{doc_id}.pdf"'},
+        )
+
+    @app.route("/api/climate-explain", methods=["POST"])
+    def api_climate_explain():
+        """AI-powered explanation of a topic's treatment in a climate document page."""
+        data = request.get_json(silent=True) or {}
+        doc_id = data.get("doc_id", "").strip()
+        page_number = data.get("page_number")
+        query = data.get("query", "").strip()
+
+        if not doc_id or page_number is None or not query:
+            return jsonify(error="Missing doc_id, page_number, or query"), 400
+
+        page = search_engine.get_climate_page(doc_id, page_number)
+        if not page:
+            return jsonify(error="Page not found"), 404
+        content = page.get("content", "")
+        if not content:
+            return jsonify(error="This page has no extracted text"), 400
+        if len(content) > 8000:
+            content = content[:8000]
+
+        from profoundd.admin.routes import get_anthropic_key
+        api_key = get_anthropic_key()
+        if not api_key:
+            return jsonify(error="Anthropic API key not configured"), 500
+
+        prompt = f"""You are analyzing a page from a public Oregon city planning document.
+
+User's question / search term: "{query}"
+Document: {page.get('document_name', '')}
+City: {page.get('city', '')}
+Page: {page_number}
+Adopted: {page.get('adopted_date', 'unknown')}
+
+Page text:
+{content}
+
+Based ONLY on what this page says, answer:
+1. How does this page treat "{query}"?
+2. What specific commitments, rules, goals, or recommendations relate to it?
+3. Quote the exact key sentence(s) if present.
+4. If "{query}" does not appear or is not relevant on this page, say so plainly.
+
+Be factual and concise. Only state what the page contains."""
+
+        try:
+            import anthropic
+            model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+            client = anthropic.Anthropic(api_key=api_key)
+            message = client.messages.create(
+                model=model,
+                max_tokens=1200,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return jsonify(explanation=message.content[0].text)
+        except Exception as e:
+            logger.warning("Climate explain failed: %s", e)
+            return jsonify(error=f"AI analysis failed: {e}"), 500
 
     @app.route("/api/spelling")
     def api_spelling():

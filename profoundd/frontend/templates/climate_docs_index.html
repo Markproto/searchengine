@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Oregon Climate Docs - Profoundd{% endblock %}
+{% block description %}Searchable Oregon city climate, sustainability, and transportation planning documents from Ashland, Grants Pass, and Medford.{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:960px;margin:2rem auto;padding:0 1rem;">
+    <nav style="margin-bottom:1rem;font-size:0.85rem;">
+        <a href="/" style="color:var(--accent);">&larr; Home</a>
+    </nav>
+
+    <h1 style="font-size:1.75rem;margin-bottom:0.25rem;">Oregon Climate & Planning Documents</h1>
+    <p style="color:var(--text-secondary);margin-bottom:1.5rem;">
+        {{ total_pages }} searchable pages across {{ by_city|length }} cities. Use the site search to query
+        any term ("agenda 2030", "15-minute", "parking", "greenhouse gas", etc.).
+    </p>
+
+    <form action="/search" method="get" style="margin-bottom:2rem;">
+        <input type="hidden" name="tab" value="climate">
+        <div style="display:flex;gap:8px;">
+            <input type="text" name="q" placeholder="Search climate docs..."
+                   style="flex:1;padding:10px 14px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:1rem;">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </div>
+    </form>
+
+    {% for city, docs in by_city.items()|sort %}
+    <section style="margin-bottom:2rem;">
+        <h2 style="font-size:1.25rem;margin-bottom:0.75rem;border-bottom:1px solid var(--border);padding-bottom:6px;">{{ city }}</h2>
+        {% for d in docs %}
+        <div class="result-card" style="padding:14px;margin-bottom:10px;">
+            <h3 style="margin:0 0 6px 0;font-size:1.05rem;">
+                <a href="/climate-docs/{{ d.doc_id }}/1" style="color:var(--accent);text-decoration:none;">{{ d.document_name }}</a>
+            </h3>
+            <div style="font-size:0.85rem;color:var(--text-secondary);">
+                {% if d.adopted_date %}Adopted {{ d.adopted_date[:10] }} · {% endif %}
+                {{ d.page_count }} pages
+            </div>
+            <div style="margin-top:8px;font-size:0.85rem;">
+                <a href="/climate-docs/{{ d.doc_id }}/1">Read</a> ·
+                <a href="/climate-docs/{{ d.doc_id }}/download" class="download-pdf-link" download>Download PDF</a> ·
+                <a href="/search?q=&tab=climate&doc_id={{ d.doc_id }}">Search within</a>
+            </div>
+        </div>
+        {% endfor %}
+    </section>
+    {% endfor %}
+</div>
+{% endblock %}

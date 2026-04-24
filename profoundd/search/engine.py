@@ -53,6 +53,7 @@ ARTICLE_MAPPING = {
 
 # Separate index for Epstein court documents (100K+ PDFs from DOJ release)
 EPSTEIN_DOC_INDEX_NAME = "profoundd_epstein_docs"
+CLIMATE_DOC_INDEX_NAME = "profoundd_climate_docs"
 
 EPSTEIN_DOC_MAPPING = {
     "mappings": {
@@ -289,6 +290,113 @@ class SearchEngine:
         except Exception as e:
             logger.error("Epstein doc search failed: %s", e)
             return {"articles": [], "total": 0, "page": page, "per_page": per_page}
+
+    def search_climate_docs(self, query, page=1, per_page=20, city=None, doc_id=None, sort_by="relevance"):
+        """Search Oregon climate/planning docs (Ashland CEAP, Grants Pass SEAP, Medford CFA/TSP).
+
+        Each ES doc is one PDF page, so results are page-level hits with highlights.
+        """
+        from_offset = (page - 1) * per_page
+        if query:
+            main_query = {
+                "simple_query_string": {
+                    "query": query,
+                    "fields": ["content", "title^2", "document_name^2", "city^2", "tags"],
+                    "default_operator": "AND",
+                }
+            }
+        else:
+            main_query = {"match_all": {}}
+
+        filter_clauses = []
+        if city:
+            filter_clauses.append({"term": {"city": city}})
+        if doc_id:
+            filter_clauses.append({"term": {"doc_id": doc_id}})
+
+        if filter_clauses:
+            es_query = {"bool": {"must": [main_query], "filter": filter_clauses}}
+        else:
+            es_query = main_query
+
+        body = {
+            "query": es_query,
+            "from": from_offset,
+            "size": per_page,
+            "highlight": {
+                "fields": {
+                    "content": {"fragment_size": 220, "number_of_fragments": 3},
+                },
+                "pre_tags": ["<mark>"],
+                "post_tags": ["</mark>"],
+            },
+        }
+        if sort_by == "date":
+            body["sort"] = [{"adopted_date": {"order": "desc", "missing": "_last"}}, "_score"]
+
+        try:
+            result = self.es.search(index=CLIMATE_DOC_INDEX_NAME, body=body)
+            docs = []
+            for hit in result["hits"]["hits"]:
+                doc = hit["_source"]
+                doc["_score"] = hit["_score"]
+                doc["_highlights"] = hit.get("highlight", {})
+                doc["url"] = f"/climate-docs/{doc.get('doc_id')}/{doc.get('page_number')}"
+                docs.append(doc)
+            return {
+                "articles": docs,
+                "total": result["hits"]["total"]["value"],
+                "page": page,
+                "per_page": per_page,
+            }
+        except Exception as e:
+            logger.error("Climate doc search failed: %s", e)
+            return {"articles": [], "total": 0, "page": page, "per_page": per_page}
+
+    def get_climate_page(self, doc_id, page_number):
+        """Fetch a single climate-doc page by doc_id + page_number."""
+        es_id = f"{doc_id}-p{int(page_number):04d}"
+        try:
+            result = self.es.get(index=CLIMATE_DOC_INDEX_NAME, id=es_id)
+            return result["_source"]
+        except NotFoundError:
+            return None
+        except Exception as e:
+            logger.error("Climate page fetch failed for %s p%s: %s", doc_id, page_number, e)
+            return None
+
+    def count_climate_docs(self):
+        """Return the total number of climate-doc pages indexed."""
+        try:
+            result = self.es.count(index=CLIMATE_DOC_INDEX_NAME)
+            return int(result.get("count", 0))
+        except Exception as e:
+            logger.debug("Climate count failed: %s", e)
+            return 0
+
+    def list_climate_docs(self):
+        """Return one summary row per unique doc_id (for browse pages)."""
+        body = {
+            "size": 0,
+            "aggs": {
+                "docs": {
+                    "terms": {"field": "doc_id", "size": 50},
+                    "aggs": {"sample": {"top_hits": {"size": 1, "_source": ["city", "document_name", "adopted_date", "source_url", "doc_id"]}}},
+                }
+            },
+        }
+        try:
+            r = self.es.search(index=CLIMATE_DOC_INDEX_NAME, body=body)
+            out = []
+            for b in r["aggregations"]["docs"]["buckets"]:
+                src = b["sample"]["hits"]["hits"][0]["_source"]
+                src["page_count"] = b["doc_count"]
+                out.append(src)
+            out.sort(key=lambda r: (r.get("city", ""), r.get("document_name", "")))
+            return out
+        except Exception as e:
+            logger.error("list_climate_docs failed: %s", e)
+            return []
 
     def get_epstein_doc(self, bates_number):
         """Fetch a single Epstein document by Bates number."""

@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}{{ doc.document_name }} — Page {{ doc.page_number }} | {{ doc.city }}{% endblock %}
+{% block description %}{{ (doc.content or '')[:160] }}{% endblock %}
+{% block og_title %}{{ doc.document_name }} — Page {{ doc.page_number }}{% endblock %}
+{% block og_description %}{{ (doc.content or '')[:160] }}{% endblock %}
+{% block og_type %}article{% endblock %}
+
+{% block structured_data %}
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "DigitalDocument",
+    "name": {{ doc.document_name | tojson }},
+    "description": {{ (doc.content or '')[:300] | tojson }},
+    "datePublished": {{ (doc.adopted_date or '') | tojson }},
+    "publisher": {
+        "@type": "GovernmentOrganization",
+        "name": "City of " ~ (doc.city or "")
+    },
+    "isPartOf": {
+        "@type": "Collection",
+        "name": "Oregon Climate & Planning Documents",
+        "url": "https://profoundd.com/climate-docs"
+    },
+    "url": "https://profoundd.com/climate-docs/{{ doc.doc_id }}/{{ doc.page_number }}",
+    "inLanguage": "en"
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:900px;margin:2rem auto;padding:0 1rem;">
+    <nav style="margin-bottom:1rem;font-size:0.85rem;">
+        <a href="/climate-docs" style="color:var(--accent);">&larr; Climate Docs</a>
+        <span style="color:var(--text-secondary);"> / {{ doc.city }}</span>
+    </nav>
+
+    <h1 style="font-size:1.4rem;margin-bottom:0.25rem;">{{ doc.document_name }}</h1>
+    <p style="color:var(--text-secondary);margin:0 0 1rem 0;font-size:0.9rem;">
+        {{ doc.city }} · Page {{ doc.page_number }} of {{ total_pages }}
+        {% if doc.adopted_date %}· Adopted {{ doc.adopted_date[:10] }}{% endif %}
+    </p>
+
+    <div class="doc-viewer-meta" style="margin-bottom:1rem;">
+        {% if doc.page_number > 1 %}
+        <a href="/climate-docs/{{ doc.doc_id }}/{{ doc.page_number - 1 }}" class="doj-link">&larr; Prev page</a>
+        {% endif %}
+        {% if doc.page_number < total_pages %}
+        <a href="/climate-docs/{{ doc.doc_id }}/{{ doc.page_number + 1 }}" class="doj-link">Next page &rarr;</a>
+        {% endif %}
+        <a href="/climate-docs/{{ doc.doc_id }}/download" class="doj-link download-pdf-btn" download>Download original PDF</a>
+    </div>
+
+    {% if doc.content %}
+    <div class="doc-viewer-content" id="doc-content">{{ doc.content }}</div>
+
+    <div style="margin-top:1.5rem;text-align:center;">
+        <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;">
+            Ask AI what this page says about a topic:
+        </div>
+        <form id="climate-explain-form" style="display:inline-flex;gap:8px;align-items:center;">
+            <input type="text" id="climate-explain-query" placeholder="e.g. agenda 2030, parking, bike lanes"
+                   style="padding:8px 12px;width:320px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.9rem;">
+            <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Explain</button>
+        </form>
+        <div id="climate-explain-result" style="display:none;margin-top:16px;text-align:left;"></div>
+    </div>
+    <script>
+    document.getElementById('climate-explain-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var query = document.getElementById('climate-explain-query').value.trim();
+        if (!query) return;
+        var panel = document.getElementById('climate-explain-result');
+        panel.innerHTML = '<div style="padding:12px;color:var(--text-secondary);"><em>Analyzing page for "' + query + '"...</em></div>';
+        panel.style.display = 'block';
+        fetch('/api/climate-explain', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                doc_id: {{ doc.doc_id | tojson }},
+                page_number: {{ doc.page_number | tojson }},
+                query: query
+            })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d.error) {
+                panel.innerHTML = '<div class="ai-epstein-result"><div class="ai-epstein-header">Error</div><div class="ai-epstein-body">' + d.error + '</div></div>';
+            } else {
+                panel.innerHTML = '<div class="ai-epstein-result"><div class="ai-epstein-header">AI Analysis: "' + query + '"</div><div class="ai-epstein-body">' + (d.explanation || '').replace(/\n/g, '<br>') + '</div></div>';
+            }
+        })
+        .catch(function(err) {
+            panel.innerHTML = '<div style="padding:12px;color:var(--danger);">Failed: ' + err + '</div>';
+        });
+    });
+    </script>
+    {% else %}
+    <div style="padding:2rem;text-align:center;color:var(--text-secondary);background:var(--bg-secondary);border-radius:8px;">
+        <p>This page has no extractable text (likely a scanned image or chart). <a href="/climate-docs/{{ doc.doc_id }}/download" class="doj-link" download>Download the original PDF</a> to view it.</p>
+    </div>
+    {% endif %}
+
+    <script>
+    (function() {
+        var q = new URLSearchParams(location.search).get('q');
+        if (!q) return;
+        var el = document.getElementById('doc-content');
+        if (!el) return;
+        var input = document.getElementById('climate-explain-query');
+        if (input && !input.value) input.value = q;
+        var escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        var re = new RegExp('(' + escaped + ')', 'gi');
+        var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+        var nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+        nodes.forEach(function(node) {
+            if (re.test(node.nodeValue)) {
+                var span = document.createElement('span');
+                span.innerHTML = node.nodeValue.replace(re, '<mark>$1</mark>');
+                node.parentNode.replaceChild(span, node);
+            }
+        });
+    })();
+    </script>
+</div>
+{% endblock %}
