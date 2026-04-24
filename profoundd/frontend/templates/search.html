@@ -337,6 +337,13 @@
         </div>
     </div>
 
+    {% if results.expansion %}
+    <div class="expansion-note" style="margin:8px 0 12px;padding:10px 14px;background:var(--bg-secondary);border-left:3px solid var(--accent);border-radius:6px;font-size:0.88rem;color:var(--text-secondary);">
+        <strong>"{{ results.expansion.phrase }}"</strong> doesn't appear literally in these planning docs, so we searched for the terms the documents actually use:
+        <em>{{ results.expansion.synonyms | join(', ') | replace('"', '') }}</em>.
+    </div>
+    {% endif %}
+
     <div class="search-layout {% if business_results %}has-business-panel{% endif %}">
     <div class="search-results">
         {% for article in results.articles %}

@@ -808,7 +808,9 @@ def create_app(config_override=None):
                 a["result_type"] = "climate-doc"
             total = climate_results.get("total", 0)
             return render_template("search.html",
-                                   results={"articles": all_articles, "total": total, "pages": (total + 19) // 20, "page": page},
+                                   results={"articles": all_articles, "total": total,
+                                            "pages": (total + 19) // 20, "page": page,
+                                            "expansion": climate_results.get("expansion")},
                                    categories=CATEGORIES, query=query, category="climate",
                                    sort_by=sort_by, enhanced_providers=set(),
                                    web_fallback=False, web_promoted=False,

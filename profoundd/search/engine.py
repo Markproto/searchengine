@@ -295,12 +295,18 @@ class SearchEngine:
         """Search Oregon climate/planning docs (Ashland CEAP, Grants Pass SEAP, Medford CFA/TSP).
 
         Each ES doc is one PDF page, so results are page-level hits with highlights.
+        Queries containing known labels like "agenda 2030" or "15-minute city" are
+        transparently expanded to the corpus's actual terminology.
         """
+        from profoundd.search.synonyms import expand_query
         from_offset = (page - 1) * per_page
+        expansion_note = None
+        effective_query = query
         if query:
+            effective_query, expansion_note = expand_query(query)
             main_query = {
                 "simple_query_string": {
-                    "query": query,
+                    "query": effective_query,
                     "fields": ["content", "title^2", "document_name^2", "city^2", "tags"],
                     "default_operator": "AND",
                 }
@@ -348,10 +354,11 @@ class SearchEngine:
                 "total": result["hits"]["total"]["value"],
                 "page": page,
                 "per_page": per_page,
+                "expansion": expansion_note,
             }
         except Exception as e:
             logger.error("Climate doc search failed: %s", e)
-            return {"articles": [], "total": 0, "page": page, "per_page": per_page}
+            return {"articles": [], "total": 0, "page": page, "per_page": per_page, "expansion": expansion_note}
 
     def get_climate_page(self, doc_id, page_number):
         """Fetch a single climate-doc page by doc_id + page_number."""
