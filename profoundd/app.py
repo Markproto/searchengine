@@ -2256,6 +2256,8 @@ Allow: /search
 Allow: /category/
 Allow: /article/
 Allow: /epstein-docs/
+Allow: /climate-docs/
+Allow: /wef-docs/
 Allow: /about
 Allow: /submit
 Allow: /newsroom
@@ -2267,13 +2269,89 @@ Sitemap: https://{domain}/sitemap-index.xml
 Sitemap: https://{domain}/sitemap.xml
 Sitemap: https://{domain}/news-sitemap.xml
 
-# Throttle Facebook/Meta crawler (was 333K hits/week, aggressive)
+# =========================================================================
+# Answer engines and AI assistants — explicitly welcome.
+# Profoundd exists to be cited in AI answers about Epstein files, WEF docs,
+# Oregon climate policy, etc. These crawlers drive referrals when users ask
+# chatbots questions we can answer.
+# =========================================================================
+
+# OpenAI (ChatGPT / SearchGPT)
+User-agent: GPTBot
+Allow: /
+Crawl-delay: 2
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+# Anthropic (Claude)
+User-agent: ClaudeBot
+Allow: /
+Crawl-delay: 2
+
+User-agent: claude-web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+# Perplexity
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+# Google (AI Overviews, Gemini, Search)
+User-agent: Google-Extended
+Allow: /
+Crawl-delay: 2
+
+User-agent: GoogleOther
+Allow: /
+
+# Apple (Siri, Apple Intelligence)
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+Crawl-delay: 2
+
+# DuckDuckGo (DuckAssist)
+User-agent: DuckAssistBot
+Allow: /
+
+# Microsoft (Bing, Copilot)
+User-agent: Bingbot
+Allow: /
+
+# Meta's AI crawler (NOT the link-preview webindexer below)
+User-agent: Meta-ExternalAgent
+Allow: /
+Crawl-delay: 2
+
+# You.com
+User-agent: YouBot
+Allow: /
+
+# Amazon (Alexa, product search)
+User-agent: Amazonbot
+Allow: /
+
+# Throttle Facebook/Meta link-preview crawler (was 250K hits/day, aggressive)
+# Still allowed — just delayed. Users sharing profoundd.com links on FB still get previews.
 User-agent: meta-webindexer
 Crawl-delay: 10
 Disallow: /search
 Disallow: /api/
 
-# Block SEO analysis bots (provide zero value, just scrape for their paid tools)
+# =========================================================================
+# Block SEO analysis bots — zero value, just scrape for their paid tools.
+# =========================================================================
 User-agent: SemrushBot
 Disallow: /
 
