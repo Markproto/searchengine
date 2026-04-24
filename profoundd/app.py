@@ -1545,7 +1545,6 @@ def create_app(config_override=None):
     @app.route("/api/epstein-explain", methods=["POST"])
     def api_epstein_explain():
         """AI-powered explanation of a person's connection to an Epstein document."""
-        # Auth check: must be logged in or admin
         if not session.get("user_logged_in") and not session.get("admin_logged_in"):
             return jsonify(error="Log in to use AI analysis"), 401
 
@@ -1553,61 +1552,28 @@ def create_app(config_override=None):
         bates = data.get("bates_number", "").strip()
         query = data.get("query", "").strip()
         title = data.get("title", "").strip()
-
         if not bates or not query:
             return jsonify(error="Missing bates_number or query"), 400
 
-        # Fetch the document
         doc = search_engine.get_epstein_doc(bates)
         if not doc:
             return jsonify(error=f"Document {bates} not found"), 404
 
-        content = doc.get("content", "")
-        if not content:
-            return jsonify(error="This document has no extracted text"), 400
-
-        # Truncate for API call
-        if len(content) > 8000:
-            content = content[:8000] + "\n\n[Document truncated...]"
-
-        # Get API key
-        from profoundd.admin.routes import get_anthropic_key
-        api_key = get_anthropic_key()
-        if not api_key:
-            return jsonify(error="Anthropic API key not configured"), 500
-
-        prompt = f"""You are analyzing a court document from the Jeffrey Epstein case files (DOJ release).
-
-The user searched for: "{query}"
-Document title: {title}
-Bates number: {bates}
-Custodian: {doc.get('custodian', 'Unknown')}
-
-Full document text:
-{content}
-
-Based ONLY on what this document says, explain:
-1. Who or what is "{query}" in relation to this document?
-2. Why are they mentioned? What is the context?
-3. What role do they appear to play — victim, witness, associate, attorney, judge, reporter, or other?
-4. Any other relevant details from this specific document.
-
-Be factual and concise. Only state what the document contains. If the search term doesn't clearly appear in the document, say so. Do not speculate beyond the text."""
-
-        try:
-            import anthropic
-            model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
-            client = anthropic.Anthropic(api_key=api_key)
-            message = client.messages.create(
-                model=model,
-                max_tokens=1500,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            explanation = message.content[0].text
-            return jsonify(explanation=explanation)
-        except Exception as e:
-            logger.warning("Epstein explain failed: %s", e)
-            return jsonify(error=f"AI analysis failed: {e}"), 500
+        from profoundd.search.ai_explain import explain, PROMPTS
+        body, status = explain(
+            doc_type="epstein",
+            doc_id=bates,
+            page_number=0,
+            content=doc.get("content", ""),
+            query=query,
+            meta={
+                "title": title or doc.get("title", ""),
+                "bates": bates,
+                "custodian": doc.get("custodian", "Unknown"),
+            },
+            prompt_template=PROMPTS["epstein"],
+        )
+        return jsonify(**body), status
 
     @app.route("/epstein-docs/<bates_id>/download")
     def epstein_doc_download(bates_id):
@@ -1720,56 +1686,29 @@ Be factual and concise. Only state what the document contains. If the search ter
         doc_id = data.get("doc_id", "").strip()
         page_number = data.get("page_number")
         query = data.get("query", "").strip()
-
         if not doc_id or page_number is None or not query:
             return jsonify(error="Missing doc_id, page_number, or query"), 400
 
         page = search_engine.get_climate_page(doc_id, page_number)
         if not page:
             return jsonify(error="Page not found"), 404
-        content = page.get("content", "")
-        if not content:
-            return jsonify(error="This page has no extracted text"), 400
-        if len(content) > 8000:
-            content = content[:8000]
 
-        from profoundd.admin.routes import get_anthropic_key
-        api_key = get_anthropic_key()
-        if not api_key:
-            return jsonify(error="Anthropic API key not configured"), 500
-
-        prompt = f"""You are analyzing a page from a public Oregon city planning document.
-
-User's question / search term: "{query}"
-Document: {page.get('document_name', '')}
-City: {page.get('city', '')}
-Page: {page_number}
-Adopted: {page.get('adopted_date', 'unknown')}
-
-Page text:
-{content}
-
-Based ONLY on what this page says, answer:
-1. How does this page treat "{query}"?
-2. What specific commitments, rules, goals, or recommendations relate to it?
-3. Quote the exact key sentence(s) if present.
-4. If "{query}" does not appear or is not relevant on this page, say so plainly.
-
-Be factual and concise. Only state what the page contains."""
-
-        try:
-            import anthropic
-            model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
-            client = anthropic.Anthropic(api_key=api_key)
-            message = client.messages.create(
-                model=model,
-                max_tokens=1200,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            return jsonify(explanation=message.content[0].text)
-        except Exception as e:
-            logger.warning("Climate explain failed: %s", e)
-            return jsonify(error=f"AI analysis failed: {e}"), 500
+        from profoundd.search.ai_explain import explain, PROMPTS
+        body, status = explain(
+            doc_type="climate",
+            doc_id=doc_id,
+            page_number=page_number,
+            content=page.get("content", ""),
+            query=query,
+            meta={
+                "document_name": page.get("document_name", ""),
+                "city": page.get("city", ""),
+                "page_number": page_number,
+                "adopted_date": page.get("adopted_date", "unknown"),
+            },
+            prompt_template=PROMPTS["climate"],
+        )
+        return jsonify(**body), status
 
     @app.route("/wef-docs")
     def wef_docs_index():
@@ -1842,47 +1781,22 @@ Be factual and concise. Only state what the page contains."""
         page = search_engine.get_wef_page(doc_id, page_number)
         if not page:
             return jsonify(error="Page not found"), 404
-        content = page.get("content", "")
-        if not content:
-            return jsonify(error="This page has no extracted text"), 400
-        if len(content) > 8000:
-            content = content[:8000]
 
-        from profoundd.admin.routes import get_anthropic_key
-        api_key = get_anthropic_key()
-        if not api_key:
-            return jsonify(error="Anthropic API key not configured"), 500
-
-        prompt = f"""You are analyzing a page from a World Economic Forum publication.
-
-User's question / search term: "{query}"
-Document: {page.get('document_name', '')}
-Year: {page.get('year', 'unknown')}
-Page: {page_number}
-
-Page text:
-{content}
-
-Based ONLY on what this page says, answer:
-1. How does this page treat "{query}"?
-2. What specific WEF positions, recommendations, or forecasts relate to it?
-3. Quote key sentences verbatim where relevant.
-4. If "{query}" doesn't appear or isn't relevant on this page, say so plainly.
-
-Be factual and concise. Only state what the page contains."""
-
-        try:
-            import anthropic
-            model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
-            client = anthropic.Anthropic(api_key=api_key)
-            message = client.messages.create(
-                model=model, max_tokens=1200,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            return jsonify(explanation=message.content[0].text)
-        except Exception as e:
-            logger.warning("WEF explain failed: %s", e)
-            return jsonify(error=f"AI analysis failed: {e}"), 500
+        from profoundd.search.ai_explain import explain, PROMPTS
+        body, status = explain(
+            doc_type="wef",
+            doc_id=doc_id,
+            page_number=page_number,
+            content=page.get("content", ""),
+            query=query,
+            meta={
+                "document_name": page.get("document_name", ""),
+                "year": page.get("year", "unknown"),
+                "page_number": page_number,
+            },
+            prompt_template=PROMPTS["wef"],
+        )
+        return jsonify(**body), status
 
     @app.route("/api/spelling")
     def api_spelling():

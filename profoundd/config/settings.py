@@ -44,6 +44,12 @@ class Config:
     EPSTEIN_FILE_SERVER_URL = os.getenv("EPSTEIN_FILE_SERVER_URL", "http://100.71.230.11:8090")
     EPSTEIN_FILE_SERVER_TOKEN = os.getenv("EPSTEIN_FILE_SERVER_TOKEN", "")
 
+    # AI Explain provider (anthropic | ollama). Ollama target is Apollo9's
+    # local Mistral 7B today, Tark1 RTX 5070 Ti once that host is 24/7.
+    AI_EXPLAIN_PROVIDER = os.getenv("AI_EXPLAIN_PROVIDER", "anthropic")
+    OLLAMA_URL = os.getenv("OLLAMA_URL", "http://10.0.6.1:11434")
+    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "mistral:latest")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
