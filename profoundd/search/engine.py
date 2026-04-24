@@ -54,6 +54,7 @@ ARTICLE_MAPPING = {
 # Separate index for Epstein court documents (100K+ PDFs from DOJ release)
 EPSTEIN_DOC_INDEX_NAME = "profoundd_epstein_docs"
 CLIMATE_DOC_INDEX_NAME = "profoundd_climate_docs"
+WEF_DOC_INDEX_NAME = "profoundd_wef_docs"
 
 EPSTEIN_DOC_MAPPING = {
     "mappings": {
@@ -403,6 +404,108 @@ class SearchEngine:
             return out
         except Exception as e:
             logger.error("list_climate_docs failed: %s", e)
+            return []
+
+    def search_wef_docs(self, query, page=1, per_page=20, doc_id=None, year=None, sort_by="relevance"):
+        """Search WEF publications, one ES doc per PDF page."""
+        from profoundd.search.synonyms import expand_query
+        from_offset = (page - 1) * per_page
+        expansion_note = None
+        if query:
+            effective_query, expansion_note = expand_query(query)
+            main_query = {
+                "simple_query_string": {
+                    "query": effective_query,
+                    "fields": ["content", "title^2", "document_name^3", "tags"],
+                    "default_operator": "AND",
+                }
+            }
+        else:
+            main_query = {"match_all": {}}
+
+        filter_clauses = []
+        if doc_id:
+            filter_clauses.append({"term": {"doc_id": doc_id}})
+        if year:
+            filter_clauses.append({"term": {"year": int(year)}})
+
+        es_query = (
+            {"bool": {"must": [main_query], "filter": filter_clauses}}
+            if filter_clauses else main_query
+        )
+
+        body = {
+            "query": es_query,
+            "from": from_offset,
+            "size": per_page,
+            "highlight": {
+                "fields": {"content": {"fragment_size": 220, "number_of_fragments": 3}},
+                "pre_tags": ["<mark>"],
+                "post_tags": ["</mark>"],
+            },
+        }
+        if sort_by == "date":
+            body["sort"] = [{"year": {"order": "desc", "missing": "_last"}}, "_score"]
+
+        try:
+            result = self.es.search(index=WEF_DOC_INDEX_NAME, body=body)
+            docs = []
+            for hit in result["hits"]["hits"]:
+                doc = hit["_source"]
+                doc["_score"] = hit["_score"]
+                doc["_highlights"] = hit.get("highlight", {})
+                doc["url"] = f"/wef-docs/{doc.get('doc_id')}/{doc.get('page_number')}"
+                docs.append(doc)
+            return {
+                "articles": docs,
+                "total": result["hits"]["total"]["value"],
+                "page": page,
+                "per_page": per_page,
+                "expansion": expansion_note,
+            }
+        except Exception as e:
+            logger.error("WEF doc search failed: %s", e)
+            return {"articles": [], "total": 0, "page": page, "per_page": per_page, "expansion": expansion_note}
+
+    def get_wef_page(self, doc_id, page_number):
+        es_id = f"{doc_id}-p{int(page_number):04d}"
+        try:
+            result = self.es.get(index=WEF_DOC_INDEX_NAME, id=es_id)
+            return result["_source"]
+        except NotFoundError:
+            return None
+        except Exception as e:
+            logger.error("WEF page fetch failed for %s p%s: %s", doc_id, page_number, e)
+            return None
+
+    def count_wef_docs(self):
+        try:
+            return int(self.es.count(index=WEF_DOC_INDEX_NAME).get("count", 0))
+        except Exception as e:
+            logger.debug("WEF count failed: %s", e)
+            return 0
+
+    def list_wef_docs(self, limit=500):
+        body = {
+            "size": 0,
+            "aggs": {
+                "docs": {
+                    "terms": {"field": "doc_id", "size": limit},
+                    "aggs": {"sample": {"top_hits": {"size": 1, "_source": ["doc_id", "document_name", "year", "source_url", "filename", "tags"]}}},
+                }
+            },
+        }
+        try:
+            r = self.es.search(index=WEF_DOC_INDEX_NAME, body=body)
+            out = []
+            for b in r["aggregations"]["docs"]["buckets"]:
+                src = b["sample"]["hits"]["hits"][0]["_source"]
+                src["page_count"] = b["doc_count"]
+                out.append(src)
+            out.sort(key=lambda r: (-(r.get("year") or 0), r.get("document_name", "")))
+            return out
+        except Exception as e:
+            logger.error("list_wef_docs failed: %s", e)
             return []
 
     def get_epstein_doc(self, bates_number):

@@ -796,6 +796,27 @@ def create_app(config_override=None):
                                    business_results=business_results, user_location=user_loc,
                                    tab_images=None)
 
+        if tab == "wef" and query:
+            wef_year = request.args.get("year", "").strip() or None
+            wef_doc = request.args.get("doc_id", "").strip() or None
+            wef_results = search_engine.search_wef_docs(
+                query, page=page, per_page=20,
+                doc_id=wef_doc, year=wef_year, sort_by=sort_by,
+            )
+            all_articles = wef_results.get("articles", [])
+            for a in all_articles:
+                a["result_type"] = "wef-doc"
+            total = wef_results.get("total", 0)
+            return render_template("search.html",
+                                   results={"articles": all_articles, "total": total,
+                                            "pages": (total + 19) // 20, "page": page,
+                                            "expansion": wef_results.get("expansion")},
+                                   categories=CATEGORIES, query=query, category="wef",
+                                   sort_by=sort_by, enhanced_providers=set(),
+                                   web_fallback=False, web_promoted=False,
+                                   business_results=[], user_location=None,
+                                   tab_images=None, spelling_suggestion=None)
+
         if tab == "climate" and query:
             climate_city = request.args.get("city", "").strip() or None
             climate_doc = request.args.get("doc_id", "").strip() or None
@@ -881,6 +902,23 @@ def create_app(config_override=None):
                     results["total"] = results.get("total", 0) + epstein_results.get("total", 0)
             except Exception as e:
                 logger.debug("Epstein blend failed: %s", e)
+
+        # Blend in WEF docs on "all" tab
+        if tab == "all" and query:
+            try:
+                wef_blend = search_engine.search_wef_docs(query, page=1, per_page=3)
+                wef_hits = wef_blend.get("articles", [])
+                if wef_hits:
+                    for doc in wef_hits:
+                        doc["result_type"] = "wef-doc"
+                    articles = results.get("articles", [])
+                    insert_pos = min(8, len(articles))
+                    for i, doc in enumerate(wef_hits):
+                        articles.insert(insert_pos + i, doc)
+                    results["articles"] = articles
+                    results["total"] = results.get("total", 0) + wef_blend.get("total", 0)
+            except Exception as e:
+                logger.debug("WEF blend failed: %s", e)
 
         # Blend in climate doc results on "all" tab
         if tab == "all" and query:
@@ -1731,6 +1769,110 @@ Be factual and concise. Only state what the page contains."""
             return jsonify(explanation=message.content[0].text)
         except Exception as e:
             logger.warning("Climate explain failed: %s", e)
+            return jsonify(error=f"AI analysis failed: {e}"), 500
+
+    @app.route("/wef-docs")
+    def wef_docs_index():
+        """Browse WEF publications, optionally filtered by year or tag."""
+        docs = search_engine.list_wef_docs() if search_engine.is_available() else []
+        filter_tag = request.args.get("tag", "").strip() or None
+        if filter_tag:
+            docs = [d for d in docs if filter_tag in (d.get("tags") or [])]
+        by_year = {}
+        for d in docs:
+            y = d.get("year") or "Undated"
+            by_year.setdefault(y, []).append(d)
+        # Year sort desc, "Undated" last
+        sorted_years = sorted([k for k in by_year if k != "Undated"], reverse=True)
+        if "Undated" in by_year:
+            sorted_years.append("Undated")
+        return render_template("wef_docs_index.html",
+                               by_year=by_year, sorted_years=sorted_years,
+                               total_pages=sum(d.get("page_count", 0) for d in docs),
+                               total_docs=len(docs),
+                               filter_tag=filter_tag,
+                               categories=CATEGORIES)
+
+    @app.route("/wef-docs/<doc_id>/<int:page_number>")
+    def wef_doc_viewer(doc_id, page_number):
+        doc = search_engine.get_wef_page(doc_id, page_number)
+        if not doc:
+            return render_template("404.html"), 404
+        # Use aggregation on doc_id to know total pages for prev/next
+        total = search_engine.search_wef_docs(query="", doc_id=doc_id, page=1, per_page=1).get("total", 0)
+        return render_template("wef_doc_viewer.html", doc=doc, total_pages=total, categories=CATEGORIES)
+
+    @app.route("/wef-docs/<doc_id>/download")
+    def wef_doc_download(doc_id):
+        ip_hash = _hash_ip(_get_client_ip())
+        if not _check_download_rate_limit(ip_hash):
+            return jsonify(error="Rate limit exceeded, try again later"), 429
+        page = search_engine.get_wef_page(doc_id, 1)
+        if not page:
+            return render_template("404.html"), 404
+        file_path = page.get("file_path", "")
+        base = "/app/data/wef-docs/"
+        if not file_path.startswith(base) or ".." in file_path:
+            return jsonify(error="File path invalid"), 500
+        if not os.path.isfile(file_path):
+            return jsonify(error="File not found on disk"), 404
+        return Response(
+            _stream_file(file_path),
+            mimetype="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{page.get("filename", doc_id+".pdf")}"'},
+        )
+
+    @app.route("/api/wef-explain", methods=["POST"])
+    def api_wef_explain():
+        data = request.get_json(silent=True) or {}
+        doc_id = data.get("doc_id", "").strip()
+        page_number = data.get("page_number")
+        query = data.get("query", "").strip()
+        if not doc_id or page_number is None or not query:
+            return jsonify(error="Missing doc_id, page_number, or query"), 400
+        page = search_engine.get_wef_page(doc_id, page_number)
+        if not page:
+            return jsonify(error="Page not found"), 404
+        content = page.get("content", "")
+        if not content:
+            return jsonify(error="This page has no extracted text"), 400
+        if len(content) > 8000:
+            content = content[:8000]
+
+        from profoundd.admin.routes import get_anthropic_key
+        api_key = get_anthropic_key()
+        if not api_key:
+            return jsonify(error="Anthropic API key not configured"), 500
+
+        prompt = f"""You are analyzing a page from a World Economic Forum publication.
+
+User's question / search term: "{query}"
+Document: {page.get('document_name', '')}
+Year: {page.get('year', 'unknown')}
+Page: {page_number}
+
+Page text:
+{content}
+
+Based ONLY on what this page says, answer:
+1. How does this page treat "{query}"?
+2. What specific WEF positions, recommendations, or forecasts relate to it?
+3. Quote key sentences verbatim where relevant.
+4. If "{query}" doesn't appear or isn't relevant on this page, say so plainly.
+
+Be factual and concise. Only state what the page contains."""
+
+        try:
+            import anthropic
+            model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+            client = anthropic.Anthropic(api_key=api_key)
+            message = client.messages.create(
+                model=model, max_tokens=1200,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return jsonify(explanation=message.content[0].text)
+        except Exception as e:
+            logger.warning("WEF explain failed: %s", e)
             return jsonify(error=f"AI analysis failed: {e}"), 500
 
     @app.route("/api/spelling")

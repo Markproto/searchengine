@@ -31,7 +31,7 @@
     {% if query %}
     <nav class="search-tabs">
         {% set current_tab = request.args.get('tab', 'all') %}
-        {% set tabs = [('all', 'All'), ('news', 'News'), ('videos', 'Videos'), ('images', 'Images'), ('shopping', 'Shopping'), ('markets', 'Markets'), ('maps', 'Maps'), ('epstein', 'Epstein Files'), ('climate', 'Climate Docs')] %}
+        {% set tabs = [('all', 'All'), ('news', 'News'), ('videos', 'Videos'), ('images', 'Images'), ('shopping', 'Shopping'), ('markets', 'Markets'), ('maps', 'Maps'), ('epstein', 'Epstein Files'), ('climate', 'Climate Docs'), ('wef', 'WEF Docs')] %}
         {% for tab_key, tab_label in tabs %}
         <a href="/search?q={{ query | urlencode }}&tab={{ tab_key }}{% if category != 'all' %}&category={{ category }}{% endif %}"
            class="search-tab {% if current_tab == tab_key %}active{% endif %}">{{ tab_label }}</a>
@@ -347,8 +347,32 @@
     <div class="search-layout {% if business_results %}has-business-panel{% endif %}">
     <div class="search-results">
         {% for article in results.articles %}
+        {# WEF publication page card — one ES doc per PDF page #}
+        {% if article.result_type == 'wef-doc' %}
+        <article class="result-card document-card">
+            <div class="result-body">
+            <div class="result-header">
+                <span class="doc-badge" style="background:#7c3aed;">WEF</span>
+                {% if article.year %}<span class="result-source">{{ article.year }}</span>{% endif %}
+                <span class="bates-badge">Page {{ article.page_number }}</span>
+            </div>
+            <h3 class="result-title">
+                <a href="/wef-docs/{{ article.doc_id }}/{{ article.page_number }}?q={{ query | urlencode }}">{{ article.document_name }} — Page {{ article.page_number }}</a>
+            </h3>
+            {% if article._highlights and article._highlights.get('content') %}
+            {% for fragment in article._highlights.content %}
+            <p class="result-summary highlight-snippet">...{{ fragment | safe }}...</p>
+            {% endfor %}
+            {% elif article.content %}
+            <p class="result-summary">{{ article.content[:300] }}{% if article.content|length > 300 %}...{% endif %}</p>
+            {% endif %}
+            <div class="result-footer">
+                <a href="/wef-docs/{{ article.doc_id }}/download" class="download-pdf-link" download>Download PDF</a>
+            </div>
+            </div>
+        </article>
+        {% elif article.result_type == 'climate-doc' %}
         {# Climate doc page card — one ES doc per PDF page #}
-        {% if article.result_type == 'climate-doc' %}
         <article class="result-card document-card">
             <div class="result-body">
             <div class="result-header">

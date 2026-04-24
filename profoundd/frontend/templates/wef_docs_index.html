@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}World Economic Forum Publications - Profoundd{% endblock %}
+{% block description %}Searchable archive of World Economic Forum publications — Global Risks, Future of Jobs, Davos agendas, stakeholder capitalism white papers and more.{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:1000px;margin:2rem auto;padding:0 1rem;">
+    <nav style="margin-bottom:1rem;font-size:0.85rem;">
+        <a href="/" style="color:var(--accent);">&larr; Home</a>
+    </nav>
+
+    <h1 style="font-size:1.75rem;margin-bottom:0.25rem;">World Economic Forum Publications</h1>
+    <p style="color:var(--text-secondary);margin-bottom:1rem;">
+        {{ total_docs }} publications · {{ total_pages }} searchable pages. Mirrored locally — every file is served from Profoundd infrastructure, not WEF's servers, so they remain accessible even if taken down.
+    </p>
+
+    <form action="/search" method="get" style="margin-bottom:2rem;">
+        <input type="hidden" name="tab" value="wef">
+        <div style="display:flex;gap:8px;">
+            <input type="text" name="q" placeholder="Search WEF publications..."
+                   style="flex:1;padding:10px 14px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:1rem;">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </div>
+    </form>
+
+    {% if filter_tag %}
+    <p style="font-size:0.9rem;"><em>Showing only publications tagged <strong>{{ filter_tag }}</strong>.</em>
+    <a href="/wef-docs" style="margin-left:8px;">Clear filter</a></p>
+    {% endif %}
+
+    {% for year in sorted_years %}
+    <section style="margin-bottom:2rem;">
+        <h2 style="font-size:1.25rem;margin-bottom:0.75rem;border-bottom:1px solid var(--border);padding-bottom:6px;">{{ year }}</h2>
+        {% for d in by_year[year] %}
+        <div class="result-card" style="padding:12px;margin-bottom:8px;">
+            <h3 style="margin:0 0 4px 0;font-size:1rem;">
+                <a href="/wef-docs/{{ d.doc_id }}/1" style="color:var(--accent);text-decoration:none;">{{ d.document_name }}</a>
+            </h3>
+            <div style="font-size:0.8rem;color:var(--text-secondary);">
+                {{ d.page_count }} pages
+                {% if d.tags %}
+                    {% for t in d.tags %}{% if t not in ('wef', 'world-economic-forum') and not t.startswith('year-') %}<a href="/wef-docs?tag={{ t }}" style="margin-left:6px;color:var(--accent);">#{{ t }}</a>{% endif %}{% endfor %}
+                {% endif %}
+            </div>
+            <div style="margin-top:6px;font-size:0.8rem;">
+                <a href="/wef-docs/{{ d.doc_id }}/1">Read</a> ·
+                <a href="/wef-docs/{{ d.doc_id }}/download" class="download-pdf-link" download>Download PDF</a> ·
+                <a href="/search?q=&tab=wef&doc_id={{ d.doc_id }}">Search within</a>
+            </div>
+        </div>
+        {% endfor %}
+    </section>
+    {% endfor %}
+</div>
+{% endblock %}
