@@ -118,7 +118,8 @@ def expand_query(query):
         if idx < 0:
             continue
         syns = SYNONYMS[phrase]
-        or_group = "(" + " OR ".join(syns) + ")"
+        # simple_query_string uses `|` as OR (the word OR is treated as a term)
+        or_group = "(" + " | ".join(syns) + ")"
         # Rebuild query preserving non-matched portions (case-insensitive)
         before = query[:idx].strip()
         after = query[idx + len(phrase):].strip()
