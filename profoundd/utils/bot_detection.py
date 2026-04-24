@@ -3,17 +3,36 @@
 import re
 from urllib.parse import urlparse, parse_qs
 
-# Compiled bot patterns (case-insensitive)
+# Compiled bot patterns (case-insensitive).
+#
+# Structured so the common short patterns come first. The `indexer|webindexer`
+# and explicit LLM-bot names below were added 2026-04-24 after discovering
+# that meta-webindexer was only matching the regex via the URL embedded in
+# its UA string (`/crawler`), which is fragile — same was true of ChatGPT-User
+# which matched via `/gptbot` in its embedded URL. HTTP-client UAs (okhttp,
+# Java/, Dalvik, Apache-HttpClient, axios) commonly used by non-browser
+# scrapers are now explicit too, since previously they were sliding through
+# detection and inflating the DailyStats "human" count.
 BOT_PATTERNS = re.compile(
-    r"bot|crawl|spider|slurp|mediapartners|googlebot|bingbot|yandexbot|baidubot|"
-    r"duckduckbot|facebookexternalhit|twitterbot|linkedinbot|applebot|"
+    r"bot|crawl|spider|slurp|indexer|webindexer|mediapartners|"
+    r"googlebot|bingbot|yandexbot|baidubot|duckduckbot|duckassistbot|"
+    r"facebookexternalhit|twitterbot|linkedinbot|applebot|"
     r"whatsapp|telegram|discord|slackbot|"
-    r"semrush|ahrefs|mj12bot|petalbot|bytespider|gptbot|claudebot|"
+    # LLM / AI answer-engine crawlers (some don't contain "bot" substring)
+    r"gptbot|chatgpt|claudebot|claude-web|anthropic-ai|perplexity|"
+    r"google-extended|googleother|applebot-extended|meta-externalagent|"
+    r"amazonbot|youbot|ccbot|searchgpt|copilot|gemini|"
+    # SEO scrapers
+    r"semrush|ahrefs|mj12bot|petalbot|bytespider|dotbot|rogerbot|"
+    r"dataforseo|serpstat|majestic|screaming frog|"
+    # HTTP clients / scripting (no-JS, almost always bots)
     r"curl|wget|httpx|python-requests|go-http-client|scrapy|"
-    r"phantomjs|headlesschrome|lighthouse|"
-    r"pingdom|uptimerobot|statuscake|"
-    r"ahrefsbot|dotbot|rogerbot|screaming frog|"
-    r"dataforseo|serpstat|majestic|"
+    r"okhttp|apache-httpclient|java/|dalvik|node-fetch|axios|"
+    # Headless browsers
+    r"phantomjs|headlesschrome|lighthouse|puppeteer|playwright|"
+    # Monitoring / health checks
+    r"pingdom|uptimerobot|statuscake|monitor|healthcheck|"
+    # Generic action-ish keywords often in non-browser fetchers
     r"preview|embed|fetch|archive",
     re.IGNORECASE,
 )
