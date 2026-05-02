@@ -799,30 +799,31 @@ def create_app(config_override=None):
             except Exception:
                 business_results = []
 
-            # Event/class queries — OSM has no event metadata, so fall back to web search.
-            # Use SearXNG (real engines) over Brave suggest (autocomplete), which returned
-            # unrelated results for queries like "escrima class Santos Community Center".
+            # Always run a location-augmented web search on the maps tab:
+            # - Event/class queries return event/class pages (OSM has no events).
+            # - Plain business queries return reviews, hours, articles about local places.
+            # SearXNG (real engines) is preferred over Brave's suggest API (autocomplete),
+            # which returned unrelated results for queries like "escrima class Santos Community Center".
             web_articles = []
-            if intent.get("is_event"):
-                web_q = build_event_web_query(query, intent, user_loc)
-                searxng_url = SiteSetting.get("searxng_url", "")
-                try:
-                    if searxng_url:
-                        web_articles = fetch_searxng(web_q, searxng_url, max_results=15)
-                    if not web_articles:
-                        web_articles = fetch_brave_web(web_q, max_results=15)
-                except Exception as e:
-                    logger.debug("Event web fallback failed: %s", e)
-                    web_articles = []
-                if web_articles:
-                    web_articles = boost_known_domains(web_articles)
-                    blocked_raw = SiteSetting.get("blocked_domains", "")
-                    if blocked_raw:
-                        blocked = [d.strip().lower() for d in blocked_raw.split("\n") if d.strip()]
-                        web_articles = [
-                            a for a in web_articles
-                            if not any(bd in a.get("url", "").lower() for bd in blocked)
-                        ]
+            web_q = build_event_web_query(query, intent, user_loc)
+            searxng_url = SiteSetting.get("searxng_url", "")
+            try:
+                if searxng_url:
+                    web_articles = fetch_searxng(web_q, searxng_url, max_results=15)
+                if not web_articles:
+                    web_articles = fetch_brave_web(web_q, max_results=15)
+            except Exception as e:
+                logger.debug("Maps tab web fetch failed: %s", e)
+                web_articles = []
+            if web_articles:
+                web_articles = boost_known_domains(web_articles)
+                blocked_raw = SiteSetting.get("blocked_domains", "")
+                if blocked_raw:
+                    blocked = [d.strip().lower() for d in blocked_raw.split("\n") if d.strip()]
+                    web_articles = [
+                        a for a in web_articles
+                        if not any(bd in a.get("url", "").lower() for bd in blocked)
+                    ]
 
             total = len(web_articles) + len(business_results)
             return render_template("search.html",
