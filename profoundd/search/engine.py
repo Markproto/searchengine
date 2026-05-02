@@ -1789,6 +1789,8 @@ class SearchEngine:
                     }
                 }
             }
+            # ES omits _source when script_fields is set unless requested explicitly.
+            body["_source"] = True
 
         try:
             result = self.es.search(index=BUSINESS_INDEX_NAME, body=body)
