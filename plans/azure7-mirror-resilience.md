@@ -44,13 +44,15 @@
 3. **Switch restart policy on Azure7 from `unless-stopped` to `always`** — for a hot-standby mirror, the operator never wants a "stay down after manual stop" semantic. `always` brings it back on reboot regardless.
 
 ### Medium-term (this month)
-1. **systemd unit** wrapping `docker compose up` for profoundd on Azure7. Activate it on boot. This adds a higher layer that auto-recovers if Docker itself ever goes weird.
-2. **Healthcheck-driven watchdog cron** on Azure7 (e.g. every 5 min): if `curl -sf http://127.0.0.1:9201/_cluster/health` fails for 3 consecutive runs, run `docker compose -f docker-compose.azure7.yml up -d` and notify via Pushover.
-3. **Notification on container exit.** Hook `docker events` (or use `wud` / a small script) to send a Pushover when any tracked container transitions to `die` or stays out of `running` for >2 min. So an outage is visible inside minutes, not 15 hours.
+1. ~~**systemd unit** wrapping `docker compose up`~~ — Skipped. With `restart: always` on the containers and `docker.service` enabled, boot recovery is already handled. The systemd unit added no coverage that the existing setup doesn't already give.
+2. **Watchdog cron — DONE 2026-05-02.** `scripts/profoundd-watchdog.sh` installed on both hosts at `/home/mark/profoundd-watchdog.sh`, cron `*/5 * * * *`. Auto-recovers `profoundd` + `profoundd-es` when either is missing, picks the right `docker-compose.<host>.yml` based on `hostname -s`, includes a thrash guard (max 3 restarts per 30 min before paging a human), and routes through `~/notify.sh` when present (Azure7) — log-only otherwise (Apollo9, see follow-up below).
+3. **Notification on container exit.** Skipped for now. The watchdog catches outages within 5 min, which is acceptable for a hot-standby. If we ever want real-time, drop a `docker events --filter event=die --filter name=profoundd` listener as a systemd unit that pipes into `~/notify.sh`. Worth adding only if 5-min latency proves too slow.
 
 ### Longer-term
 1. **Apollo9 ↔ Azure7 mesh stability** is already a tracked project (per memory). Once stable, the failover should auto-promote Azure7 and notify on Apollo9 outage.
 2. **Per-host compose-file linting in CI**: pre-commit hook that fails if a compose file's host bindings reference IPs not present on the host the file is named for.
+3. **Apollo9 lacks `~/notify.sh`** (Azure7 has the SendGrid + BigfootChat + webhook one). The profoundd-watchdog falls back to log-only on Apollo9. Port `notify.sh` over so Apollo9 outages are also paged out, not just logged.
+4. **Azure7's `health-monitor.sh` already alerts on profoundd stop** but does NOT auto-recover — only alerts. The new watchdog is the recovery half. They're complementary; no need to merge.
 
 ## Existing watchdog (worth knowing)
 
