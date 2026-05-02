@@ -44,7 +44,7 @@ Both servers connected via Tailscale VPN. Azure7 runs as a hot standby with auto
 ### Local Development (Docker)
 
 ```bash
-docker-compose up
+make up-dev    # docker compose -f docker-compose.dev.yml up -d --build
 # App at http://localhost:5000
 # Elasticsearch at http://localhost:9200
 ```
@@ -74,10 +74,15 @@ python -m profoundd.app
 # From local Mac — push to Apollo9
 git push apollo9 claude/custom-news-search-engine-YWN94:master
 
-# SSH in and rebuild
+# SSH in and rebuild — pick the file matching the host
 ssh mark@192.168.1.99
 cd /home/mark/profoundd-build && git pull
-sudo docker compose -f docker-compose.prod.yml up -d --build
+make up-apollo9    # docker compose -f docker-compose.apollo9.yml up -d --build
+
+# Mirror (Azure7):
+ssh mark@192.168.1.146
+cd /home/mark/profoundd-build && git pull
+make up-azure7     # docker compose -f docker-compose.azure7.yml up -d --build
 ```
 
 ## Project Structure

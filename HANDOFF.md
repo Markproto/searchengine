@@ -19,7 +19,7 @@
 | **Git Repo (bare)** | `/home/mark/profoundd.git` on Apollo9 |
 | **Git Repo (working)** | `/home/mark/profoundd-build` on Apollo9 |
 | **Env File** | `/home/mark/profoundd-build/.env.prod` (chmod 600) |
-| **Compose File** | `/home/mark/profoundd-build/docker-compose.prod.yml` |
+| **Compose File** | `/home/mark/profoundd-build/docker-compose.apollo9.yml` |
 | **Crawler Log** | `/home/mark/profoundd-crawler.log` |
 | **Local Dev** | `/Users/markhutto/Projects/profoundd` |
 | **GitHub** | https://github.com/Markproto/searchengine |
@@ -137,7 +137,7 @@ git push apollo9 claude/custom-news-search-engine-YWN94:master
 # SSH in and rebuild
 ssh mark@192.168.1.99
 cd /home/mark/profoundd-build && git pull
-sudo docker compose -f docker-compose.prod.yml up -d --build
+sudo docker compose -f docker-compose.apollo9.yml up -d --build
 ```
 
 ### Useful commands
@@ -157,11 +157,11 @@ curl http://127.0.0.1:9201/profoundd_articles/_count
 sudo docker exec profoundd python -m profoundd.crawler.feed_crawler
 
 # Restart
-sudo docker compose -f /home/mark/profoundd-build/docker-compose.prod.yml restart web
+sudo docker compose -f /home/mark/profoundd-build/docker-compose.apollo9.yml restart web
 
 # Full rebuild (after code changes)
 cd /home/mark/profoundd-build && git pull
-sudo docker compose -f docker-compose.prod.yml up -d --build
+sudo docker compose -f docker-compose.apollo9.yml up -d --build
 
 # Health check
 curl http://localhost:3004/health

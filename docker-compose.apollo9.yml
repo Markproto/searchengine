@@ -1,5 +1,5 @@
 # Profoundd Search Engine - Production (Apollo9)
-# Usage: docker compose -f docker-compose.prod.yml up -d --build
+# Usage: docker compose -f docker-compose.apollo9.yml up -d --build (or: make up-apollo9)
 
 services:
   web:
@@ -26,6 +26,7 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
     container_name: profoundd-es
+    hostname: profoundd-es
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false

@@ -1,0 +1,55 @@
+# Profoundd Search Engine - Azure7 hot-standby mirror
+# Usage: docker compose -f docker-compose.azure7.yml up -d (or: make up-azure7)
+#
+# Azure7-specific:
+#  - Binds ES to 127.0.0.1 only (no Tailscale/WG IP — those belong to Apollo9).
+#  - Uses external volumes (profoundd-data, profoundd-es-data) that the operator
+#    owns directly on the host, decoupled from this repo's project name.
+#  - 'always' restart policy (vs. unless-stopped on Apollo9): a manual stop
+#    on the mirror is almost always a mistake, so come back automatically.
+
+services:
+  web:
+    build: .
+    container_name: profoundd
+    ports:
+      - "3004:5000"
+    env_file:
+      - .env.prod
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    volumes:
+      - profoundd-data:/app/data
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: always
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    container_name: profoundd-es
+    hostname: profoundd-es
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      - path.repo=/usr/share/elasticsearch/snapshots
+    ports:
+      - "127.0.0.1:9201:9200"
+    volumes:
+      - profoundd-es-data:/usr/share/elasticsearch/data
+      - profoundd-es-snapshots:/usr/share/elasticsearch/snapshots
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health | grep -qE 'green|yellow'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: always
+
+volumes:
+  profoundd-data:
+    external: true
+  profoundd-es-data:
+    external: true
+  profoundd-es-snapshots:

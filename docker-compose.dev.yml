@@ -1,0 +1,33 @@
+# Profoundd Search Engine - Local development
+# Usage: make up-dev (or: docker compose -f docker-compose.dev.yml up -d --build)
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - DATABASE_URL=sqlite:///data/profoundd.db
+      - SECRET_KEY=dev-secret-change-in-production
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    restart: unless-stopped
+
+volumes:
+  es_data:

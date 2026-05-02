@@ -1,35 +1,26 @@
-# Profoundd Search Engine - Docker Compose
-# For local development: docker-compose up
-
-version: '3.8'
+# Profoundd uses host-specific compose files.
+#
+# Running `docker compose up` against this file is intentionally a no-op
+# that prints an error — it exists to prevent the failure mode where a
+# stale `docker compose -f docker-compose.prod.yml` (Apollo9-bound IPs)
+# is run on Azure7 and silently fails to bind ports, leaving the mirror
+# down for hours.
+#
+# Use the Makefile (`make help`) or pick a host file directly:
+#   - docker-compose.apollo9.yml — production server (apollo9)
+#   - docker-compose.azure7.yml  — hot-standby mirror (azure7)
+#   - docker-compose.dev.yml     — local development
 
 services:
-  web:
-    build: .
-    ports:
-      - "5000:5000"
-    environment:
-      - FLASK_ENV=development
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
-      - DATABASE_URL=sqlite:///data/profoundd.db
-      - SECRET_KEY=dev-secret-change-in-production
-    volumes:
-      - ./data:/app/data
-    depends_on:
-      - elasticsearch
-    restart: unless-stopped
-
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
-    ports:
-      - "9200:9200"
-    volumes:
-      - es_data:/usr/share/elasticsearch/data
-    restart: unless-stopped
-
-volumes:
-  es_data:
+  _do-not-use:
+    image: alpine:3.19
+    command:
+      - sh
+      - -c
+      - >-
+        echo "ERROR: docker-compose.yml is a stub. Use one of:" >&2;
+        echo "  docker compose -f docker-compose.apollo9.yml up -d" >&2;
+        echo "  docker compose -f docker-compose.azure7.yml up -d" >&2;
+        echo "  docker compose -f docker-compose.dev.yml up -d" >&2;
+        echo "Or run: make help" >&2;
+        exit 1
