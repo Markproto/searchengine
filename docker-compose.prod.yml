@@ -12,6 +12,10 @@ services:
     environment:
       - ELASTICSEARCH_URL=http://elasticsearch:9200
       - OLLAMA_URL=http://10.0.6.1:11434
+    # SearXNG lives in another compose stack on the host. host.docker.internal
+    # gives the maps-tab web fallback a stable hostname that survives restarts.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - profoundd-data:/app/data
     depends_on:
