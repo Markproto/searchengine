@@ -785,20 +785,55 @@ def create_app(config_override=None):
                                    business_results=[], user_location=None, tab_images=None)
 
         if tab == "maps" and query:
-            from profoundd.search.local_intent import detect_local_intent
+            from profoundd.search.local_intent import detect_local_intent, build_event_web_query
+            from profoundd.search.external_providers import (
+                fetch_brave_web, fetch_searxng, boost_known_domains,
+            )
             user_loc = _get_user_location()
+            intent = detect_local_intent(query)
             biz_location = {"lat": user_loc["lat"], "lon": user_loc["lon"]} if user_loc else None
+            biz_query = intent["clean_query"] if intent.get("clean_query") else query
             try:
                 business_results = search_engine.search_businesses(
-                    query=query, location=biz_location, radius_km=80, per_page=20)
+                    query=biz_query, location=biz_location, radius_km=80, per_page=20)
             except Exception:
                 business_results = []
-            return render_template("search.html", results={"articles": [], "total": len(business_results), "pages": 1, "page": 1},
+
+            # Event/class queries — OSM has no event metadata, so fall back to web search.
+            # Use SearXNG (real engines) over Brave suggest (autocomplete), which returned
+            # unrelated results for queries like "escrima class Santos Community Center".
+            web_articles = []
+            if intent.get("is_event"):
+                web_q = build_event_web_query(query, intent, user_loc)
+                searxng_url = SiteSetting.get("searxng_url", "")
+                try:
+                    if searxng_url:
+                        web_articles = fetch_searxng(web_q, searxng_url, max_results=15)
+                    if not web_articles:
+                        web_articles = fetch_brave_web(web_q, max_results=15)
+                except Exception as e:
+                    logger.debug("Event web fallback failed: %s", e)
+                    web_articles = []
+                if web_articles:
+                    web_articles = boost_known_domains(web_articles)
+                    blocked_raw = SiteSetting.get("blocked_domains", "")
+                    if blocked_raw:
+                        blocked = [d.strip().lower() for d in blocked_raw.split("\n") if d.strip()]
+                        web_articles = [
+                            a for a in web_articles
+                            if not any(bd in a.get("url", "").lower() for bd in blocked)
+                        ]
+
+            total = len(web_articles) + len(business_results)
+            return render_template("search.html",
+                                   results={"articles": web_articles, "total": total,
+                                            "pages": 1, "page": 1},
                                    categories=CATEGORIES, query=query, category=category,
                                    sort_by=sort_by, enhanced_providers=set(),
-                                   web_fallback=False, web_promoted=False,
+                                   web_fallback=bool(web_articles),
+                                   web_promoted=bool(web_articles),
                                    business_results=business_results, user_location=user_loc,
-                                   tab_images=None)
+                                   tab_images=None, spelling_suggestion=None)
 
         if tab == "wef" and query:
             wef_year = request.args.get("year", "").strip() or None
@@ -949,18 +984,32 @@ def create_app(config_override=None):
             # --- Fire all external fetches in parallel ---
             # Pre-read DB settings in main thread (Flask app context)
             searxng_url = SiteSetting.get("searxng_url", "")
-            from profoundd.search.local_intent import detect_local_intent
+            from profoundd.search.local_intent import detect_local_intent, build_event_web_query
             local_intent = detect_local_intent(query)
+            user_loc_main = _get_user_location()
 
             with ThreadPoolExecutor(max_workers=4) as pool:
                 fut_enhanced = pool.submit(fetch_all_enhanced, query, category)
                 fut_grok = pool.submit(fetch_grokipedia, query, max_results=3)
 
-                # Web results: Brave primary, SearXNG fallback
+                # Web results — use SearXNG (real search) for event/local queries since
+                # Brave's suggest API only returns autocomplete, not page results.
+                # For everything else, Brave is fine and faster.
+                is_event_query = local_intent.get("is_event", False)
+                web_query = (
+                    build_event_web_query(query, local_intent, user_loc_main)
+                    if is_event_query else query
+                )
+
                 def _fetch_web():
-                    web = fetch_brave_web(query, max_results=10)
+                    if is_event_query and searxng_url:
+                        web = fetch_searxng(web_query, searxng_url, max_results=10)
+                        if web:
+                            return web
+                        return fetch_brave_web(web_query, max_results=10)
+                    web = fetch_brave_web(web_query, max_results=10)
                     if not web and searxng_url:
-                        web = fetch_searxng(query, searxng_url, max_results=10)
+                        web = fetch_searxng(web_query, searxng_url, max_results=10)
                     return web
                 fut_web = pool.submit(_fetch_web)
 
@@ -969,8 +1018,7 @@ def create_app(config_override=None):
                 def _fetch_biz():
                     if not local_intent["is_local"]:
                         return []
-                    user_loc = _get_user_location()
-                    biz_location = {"lat": user_loc["lat"], "lon": user_loc["lon"]} if user_loc else None
+                    biz_location = {"lat": user_loc_main["lat"], "lon": user_loc_main["lon"]} if user_loc_main else None
                     return search_engine.search_businesses(
                         query=local_intent["clean_query"],
                         location=biz_location,
@@ -1091,13 +1139,18 @@ def create_app(config_override=None):
         _search_ip = _hash_ip(request.remote_addr)
 
         def _bg_log_search():
-            try:
-                log = SearchLog(query=_search_q, category=_search_cat,
-                                results_count=_search_count, ip_address=_search_ip)
-                db.session.add(log)
-                db.session.commit()
-            except Exception:
-                db.session.rollback()
+            with app.app_context():
+                try:
+                    log = SearchLog(query=_search_q, category=_search_cat,
+                                    results_count=_search_count, ip_address=_search_ip)
+                    db.session.add(log)
+                    db.session.commit()
+                except Exception as e:
+                    logger.debug("SearchLog write failed: %s", e)
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
 
         threading.Thread(target=_bg_log_search, daemon=True).start()
 

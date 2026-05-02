@@ -98,6 +98,47 @@ IN_CITY_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# Words that signal the user is looking for an event/class/workshop, not a business listing.
+# OSM has venues but no event metadata, so these queries need a web fallback.
+EVENT_KEYWORDS = {
+    "class", "classes", "lesson", "lessons", "workshop", "workshops",
+    "seminar", "seminars", "course", "courses", "camp", "camps",
+    "meetup", "meetups", "event", "events", "training", "coaching",
+    "tutorial", "tutorials", "bootcamp", "clinic", "lecture", "lectures",
+    "session", "sessions", "practice", "schedule", "calendar",
+}
+
+# Activity nouns that imply instruction/training even without a "class" keyword.
+# When one of these appears alongside a city, treat as an event/local query.
+ACTIVITY_KEYWORDS = {
+    # Martial arts
+    "escrima", "eskrima", "arnis", "kali", "karate", "kung fu", "kungfu",
+    "judo", "aikido", "taekwondo", "tae kwon do", "bjj", "jiu jitsu", "jiujitsu",
+    "jiu-jitsu", "muay thai", "muaythai", "mma", "krav maga", "kickboxing",
+    "capoeira", "hapkido", "sambo", "wing chun", "savate", "tang soo do",
+    # Movement / fitness
+    "pilates", "zumba", "barre", "tai chi", "qigong", "qi gong",
+    # Dance
+    "ballet", "tap", "salsa dance", "swing dance", "contra dance",
+    "line dancing", "ballroom",
+    # Crafts / arts
+    "pottery", "ceramics", "calligraphy", "watercolor",
+    # Music
+    "guitar lessons", "piano lessons", "voice lessons", "drum lessons",
+}
+
+
+def _has_event_or_activity_signal(query_lower):
+    """Return (has_event, matched_term) — True if query contains event keyword or activity noun."""
+    for kw in EVENT_KEYWORDS:
+        if re.search(r'\b' + re.escape(kw) + r'\b', query_lower):
+            return True, kw
+    # Sort by length so multi-word activities match before substrings
+    for act in sorted(ACTIVITY_KEYWORDS, key=len, reverse=True):
+        if re.search(r'\b' + re.escape(act) + r'\b', query_lower):
+            return True, act
+    return False, None
+
 
 def detect_local_intent(query):
     """Analyze a search query for local business intent.
@@ -105,15 +146,19 @@ def detect_local_intent(query):
     Returns:
         dict with keys:
             is_local (bool): Whether the query has local intent
+            is_event (bool): Whether the query is looking for a class/workshop/event
             city (str|None): Detected city name, or None
             business_type (str|None): Matched business keyword, or None
+            event_term (str|None): Matched event/activity keyword, or None
             clean_query (str): Query with city name stripped for better ES matching
     """
     query_lower = query.lower().strip()
     result = {
         "is_local": False,
+        "is_event": False,
         "city": None,
         "business_type": None,
+        "event_term": None,
         "clean_query": query,
     }
 
@@ -148,6 +193,9 @@ def detect_local_intent(query):
             detected_type = keyword
             break
 
+    # Check for event/class/activity keywords (escrima, yoga class, pottery workshop, etc.)
+    has_event, event_term = _has_event_or_activity_signal(query_lower)
+
     # Determine if this is a local query
     if detected_type and (detected_city or has_near_me):
         result["is_local"] = True
@@ -159,7 +207,36 @@ def detect_local_intent(query):
     elif has_near_me:
         result["is_local"] = True
 
+    # Event queries — local if we have any locality anchor (city or near-me)
+    if has_event and (detected_city or has_near_me):
+        result["is_local"] = True
+        result["is_event"] = True
+    elif has_event and detected_type:
+        # e.g. "yoga class" — fitness keyword + class keyword, still event
+        result["is_event"] = True
+        result["is_local"] = True
+
     result["city"] = detected_city
     result["business_type"] = detected_type
+    result["event_term"] = event_term
 
     return result
+
+
+def build_event_web_query(query, intent, user_location=None):
+    """Build a refined web search query for event/class lookups.
+
+    Combines the original query with city context. Falls back to user_location
+    city when the query doesn't name one.
+    """
+    parts = [query.strip()]
+    has_city_in_query = bool(intent.get("city"))
+    if not has_city_in_query and user_location:
+        loc_city = user_location.get("city") or ""
+        loc_state = user_location.get("state") or ""
+        if loc_city:
+            tail = f"{loc_city}"
+            if loc_state:
+                tail = f"{loc_city}, {loc_state}"
+            parts.append(tail)
+    return " ".join(p for p in parts if p).strip()
