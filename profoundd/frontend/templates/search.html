@@ -206,12 +206,28 @@
             btn.disabled = false;
             if (d.error) {
                 panel.innerHTML = '<div style="padding:12px;color:var(--danger);font-size:0.9rem;">' + d.error + '</div>';
-            } else {
-                panel.innerHTML = '<div class="ai-epstein-result">' +
-                    '<div class="ai-epstein-header">AI Analysis: "' + query + '" in ' + bates + '</div>' +
-                    '<div class="ai-epstein-body">' + (d.explanation || '').replace(/\n/g, '<br>') + '</div>' +
-                    '</div>';
+                return;
             }
+            var provider = (d.provider || '').toLowerCase();
+            var providerBadge = '';
+            var fallbackNotice = '';
+            if (provider === 'grok') {
+                providerBadge = '<span class="ai-provider-badge ai-provider-grok" title="Powered by xAI Grok">Grok (xAI)</span>';
+                if (d.fallback_reason) {
+                    fallbackNotice = '<div class="ai-fallback-notice">⚠️ Claude was unavailable, so this answer came from Grok. Grok is generally less accurate at document analysis — verify any specific claims against the source PDF.</div>';
+                }
+            } else if (provider === 'anthropic' || provider === 'claude') {
+                providerBadge = '<span class="ai-provider-badge ai-provider-claude" title="Powered by Anthropic Claude">Claude</span>';
+            } else if (provider === 'cache') {
+                providerBadge = '<span class="ai-provider-badge ai-provider-cache" title="Cached response">Cached</span>';
+            } else if (provider) {
+                providerBadge = '<span class="ai-provider-badge">' + provider + '</span>';
+            }
+            panel.innerHTML = '<div class="ai-epstein-result">'
+                + '<div class="ai-epstein-header">AI Analysis: "' + query + '" in ' + bates + providerBadge + '</div>'
+                + fallbackNotice
+                + '<div class="ai-epstein-body">' + (d.explanation || '').replace(/\n/g, '<br>') + '</div>'
+                + '</div>';
         })
         .catch(function(err) {
             btn.disabled = false;

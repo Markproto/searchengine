@@ -191,6 +191,40 @@ def _build_llm():
     return llm
 
 
+def _try_grok_fallback(prompt):
+    """Best-effort xAI Grok fallback for when Claude is overloaded/unavailable.
+
+    Returns (explanation_text, None) on success, (None, error_message) on
+    failure. Returns (None, None) when xAI is simply not configured (no key).
+    """
+    try:
+        from profoundd.utils.models import SiteSetting
+        xai_key = SiteSetting.get("ai_xai_key", "") or os.environ.get("XAI_API_KEY", "")
+        if not xai_key:
+            return None, None
+        model = SiteSetting.get("ai_xai_model", "grok-2-latest")
+    except Exception as e:
+        logger.debug("grok fallback config lookup failed: %s", e)
+        return None, str(e)
+
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=xai_key, base_url="https://api.x.ai/v1", timeout=60)
+        response = client.chat.completions.create(
+            model=model,
+            max_tokens=1200,
+            temperature=0.2,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = response.choices[0].message.content if response.choices else ""
+        if not text:
+            return None, "Grok returned empty response"
+        return text, None
+    except Exception as e:
+        logger.warning("grok fallback failed: %s", e)
+        return None, str(e)
+
+
 def explain(doc_type, doc_id, page_number, content, query, meta, prompt_template):
     """
     Execute an AI Explain call with pre-flight guard + cache + LangChain.
@@ -278,26 +312,44 @@ def explain(doc_type, doc_id, page_number, content, query, meta, prompt_template
         logger.warning("explain LLM init failed: %s", e)
         return {"error": f"AI provider unavailable: {e}"}, 500
 
+    primary_provider = os.environ.get("AI_EXPLAIN_PROVIDER", "anthropic").lower()
+    explanation = None
+    used_provider = primary_provider
+    fallback_reason = None
+
     try:
         from langchain_core.messages import HumanMessage
         result = llm.invoke([HumanMessage(content=prompt)])
         explanation = result.content if hasattr(result, "content") else str(result)
     except Exception as e:
         msg = str(e)
-        logger.warning("explain LLM call failed: %s", msg)
-        # Detect Anthropic overload (HTTP 529) and surface a friendly message
-        # instead of leaking raw provider errors. SDK already retried 4 times.
-        if "529" in msg or "overloaded" in msg.lower():
-            return {
-                "error": (
-                    "Claude is temporarily overloaded — the AI provider "
-                    "couldn't take the request right now. Try again in "
-                    "a minute or two."
-                )
-            }, 503
-        if "rate" in msg.lower() and "limit" in msg.lower():
-            return {"error": "Rate limit hit — try again in a moment."}, 429
-        return {"error": f"AI analysis failed: {msg}"}, 500
+        logger.warning("explain primary (%s) failed: %s", primary_provider, msg)
+        is_overload = "529" in msg or "overloaded" in msg.lower()
+        is_ratelimit = "rate" in msg.lower() and "limit" in msg.lower()
+
+        # Try Grok as automatic fallback when Claude is unavailable.
+        grok_explanation, grok_err = _try_grok_fallback(prompt)
+        if grok_explanation is not None:
+            explanation = grok_explanation
+            used_provider = "grok"
+            fallback_reason = (
+                "claude_overloaded" if is_overload
+                else ("claude_ratelimit" if is_ratelimit else "claude_error")
+            )
+            logger.info("explain fell back to Grok after %s", fallback_reason)
+        else:
+            # Both providers failed — return a friendly message
+            if is_overload:
+                return {
+                    "error": (
+                        "Both Claude and Grok are unavailable right now. "
+                        "Try again in a minute or two."
+                    ),
+                    "fallback_attempted": grok_err is not None,
+                }, 503
+            if is_ratelimit:
+                return {"error": "Rate limit hit — try again in a moment."}, 429
+            return {"error": f"AI analysis failed: {msg}"}, 500
 
     # 5) Cache write (24h TTL — same as existing ai-summary cache)
     try:
@@ -305,12 +357,12 @@ def explain(doc_type, doc_id, page_number, content, query, meta, prompt_template
     except Exception as e:
         logger.debug("explain cache write failed: %s", e)
 
-    provider = os.environ.get("AI_EXPLAIN_PROVIDER", "anthropic").lower()
     return {
         "explanation": explanation,
         "cached": False,
         "skipped_llm": False,
-        "provider": provider,
+        "provider": used_provider,
+        "fallback_reason": fallback_reason,
     }, 200
 
 

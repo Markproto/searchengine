@@ -638,6 +638,47 @@ main { flex: 1; }
     line-height: 1.7;
     color: var(--text);
 }
+.ai-provider-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    border-radius: 999px;
+    vertical-align: middle;
+    letter-spacing: 0.02em;
+}
+.ai-provider-claude {
+    background: rgba(204, 120, 92, 0.12);
+    color: #c97a4f;
+    border: 1px solid rgba(204, 120, 92, 0.3);
+}
+.ai-provider-grok {
+    background: rgba(0, 0, 0, 0.08);
+    color: #444;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+[data-theme="dark"] .ai-provider-grok {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ddd;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+.ai-provider-cache {
+    background: rgba(99, 102, 241, 0.12);
+    color: #6366f1;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+.ai-fallback-notice {
+    margin: 0 0 10px 0;
+    padding: 8px 12px;
+    background: rgba(234, 179, 8, 0.10);
+    border: 1px solid rgba(234, 179, 8, 0.35);
+    border-left: 3px solid #ca8a04;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    color: var(--text);
+    line-height: 1.5;
+}
 
 .pfizer-exclude-bar {
     margin-bottom: 10px;
