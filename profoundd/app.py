@@ -891,7 +891,13 @@ def create_app(config_override=None):
             total = doc_results.get("total", 0)
             epstein_facets = search_engine.get_epstein_facets() if search_engine.is_available() else {}
             return render_template("search.html",
-                                   results={"articles": all_articles, "total": total, "pages": (total + 19) // 20, "page": page},
+                                   results={
+                                       "articles": all_articles,
+                                       "total": total,
+                                       "pages": (total + 19) // 20,
+                                       "page": page,
+                                       "alias_expansions": doc_results.get("alias_expansions", []),
+                                   },
                                    categories=CATEGORIES, query=query, category="epstein-files",
                                    sort_by=sort_by, enhanced_providers=set(),
                                    web_fallback=False, web_promoted=False,

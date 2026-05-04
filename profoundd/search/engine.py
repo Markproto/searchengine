@@ -217,16 +217,62 @@ class SearchEngine:
     def search_epstein_docs(self, query, page=1, per_page=20,
                             date_from=None, date_to=None,
                             custodian=None, dataset=None, sort_by="relevance"):
-        """Search the Epstein documents index with optional filters."""
+        """Search the Epstein documents index with optional filters.
+
+        Two enhancements over a vanilla DOJ-style search:
+          1. Principal alias expansion — "Maxwell" also matches "GM",
+             "Ghislaine", "Ms. Maxwell"; "Trump" → "DJT"; etc. See
+             profoundd/search/epstein_aliases.py.
+          2. OCR-tolerant fuzzy fallback — bates docs are scanned PDFs,
+             so OCR errors are common ("Ghislaine" → "Ghisla1ne"). We
+             add a parallel multi_match with fuzziness=AUTO so single-
+             character OCR errors still score.
+        """
         from_offset = (page - 1) * per_page
+        alias_expansions = []
 
         # Build query: simple_query_string supports AND/OR/NOT/"phrases" natively
         if query:
-            main_query = {
+            from profoundd.search.epstein_aliases import expand_aliases
+            expanded_query, alias_expansions = expand_aliases(query)
+
+            # Exact + alias-expanded match (boolean operators preserved)
+            exact_clause = {
                 "simple_query_string": {
-                    "query": query,
+                    "query": expanded_query,
                     "fields": ["title^3", "summary^2", "content", "bates_number^5", "custodian^2"],
                     "default_operator": "AND",
+                }
+            }
+
+            # Strip operators for the fuzzy fallback — multi_match doesn't
+            # parse boolean syntax, so we feed it the cleaned terms only.
+            fuzzy_q = query
+            for op in (" AND ", " OR ", " NOT "):
+                fuzzy_q = fuzzy_q.replace(op, " ")
+            for ch in "+-|()":
+                fuzzy_q = fuzzy_q.replace(ch, " ")
+            fuzzy_q = " ".join(fuzzy_q.split())
+
+            should_clauses = [exact_clause]
+            if fuzzy_q and '"' not in query:
+                # Fuzziness AUTO = 1 edit for short terms, 2 for longer ones.
+                # Lower boost so exact matches still win on the leaderboard.
+                should_clauses.append({
+                    "multi_match": {
+                        "query": fuzzy_q,
+                        "fields": ["title^3", "summary^2", "content", "custodian^2"],
+                        "fuzziness": "AUTO",
+                        "prefix_length": 1,
+                        "operator": "and",
+                        "boost": 0.4,
+                    }
+                })
+
+            main_query = {
+                "bool": {
+                    "should": should_clauses,
+                    "minimum_should_match": 1,
                 }
             }
         else:
@@ -287,10 +333,12 @@ class SearchEngine:
                 "total": result["hits"]["total"]["value"],
                 "page": page,
                 "per_page": per_page,
+                "alias_expansions": alias_expansions,
             }
         except Exception as e:
             logger.error("Epstein doc search failed: %s", e)
-            return {"articles": [], "total": 0, "page": page, "per_page": per_page}
+            return {"articles": [], "total": 0, "page": page, "per_page": per_page,
+                    "alias_expansions": []}
 
     def search_climate_docs(self, query, page=1, per_page=20, city=None, doc_id=None, sort_by="relevance"):
         """Search Oregon climate/planning docs (Ashland CEAP, Grants Pass SEAP, Medford CFA/TSP).
