@@ -95,7 +95,7 @@ def _extract_pdf_text(pdf_bytes, max_chars=12000):
     return "[PDF content could not be extracted — install PyPDF2 on server]"
 
 
-def extract_search_queries(claim_text, api_key, model="claude-sonnet-4-5-20250929"):
+def extract_search_queries(claim_text, api_key, model="claude-sonnet-4-6"):
     """Use AI to extract the key claims and generate targeted search queries."""
     try:
         import anthropic
@@ -275,7 +275,7 @@ def search_for_evidence(queries, search_engine, congress_api_key=None,
 
 
 def generate_verification_story(claim_text, claims_data, evidence, api_key,
-                                model="claude-sonnet-4-5-20250929"):
+                                model="claude-sonnet-4-6"):
     """
     Generate a balanced verification story with both conservative and
     progressive perspectives, highlighting nuances of each position.

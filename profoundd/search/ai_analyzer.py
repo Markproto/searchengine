@@ -93,7 +93,7 @@ DATE_PUBLISHED: [Publication date if found in content, in YYYY-MM-DD format, oth
 BIAS_NOTES: [Brief note on any detectable bias or perspective. Example: "Article presents primarily the plaintiff's perspective" or "Balanced coverage with quotes from both sides" or "None detected"]"""
 
 
-def analyze_with_anthropic(content_data, api_key, model="claude-sonnet-4-5-20250929"):
+def analyze_with_anthropic(content_data, api_key, model="claude-sonnet-4-6"):
     """Use Anthropic's Claude to analyze extracted content."""
     try:
         import anthropic

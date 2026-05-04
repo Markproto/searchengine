@@ -31,7 +31,7 @@ SEO_DESCRIPTION: [A 150-160 character meta description for search engines]
 IMAGE_SEARCH: [A short phrase to describe what image would accompany this story, e.g. "capitol building washington dc"]"""
 
 
-def generate_bob_story(article_data, api_key, model="claude-sonnet-4-5-20250929"):
+def generate_bob_story(article_data, api_key, model="claude-sonnet-4-6"):
     """Generate a Bob story from an article using Claude.
 
     article_data should have: title, url, source_name, category, summary/content

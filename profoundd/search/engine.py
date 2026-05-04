@@ -840,16 +840,20 @@ class SearchEngine:
         # Main text query — simple_query_string supports boolean operators
         # (AND, OR, NOT, -term, "exact phrase", parentheses) natively.
         phrase_boosts = []
+        name_expansions = []
         if query:
+            from profoundd.search.name_synonyms import expand_names
+            effective_query, name_expansions = expand_names(query)
             must_clauses.append({
                 "simple_query_string": {
-                    "query": query,
+                    "query": effective_query,
                     "fields": ["title^3", "summary^2", "content"],
                     "default_operator": "AND",
                 }
             })
 
-            # Strip boolean operators for phrase boost evaluation
+            # Phrase boost still uses the ORIGINAL query so the user's exact
+            # spelling stays the strongest signal.
             clean_query = query.replace(" AND ", " ").replace(" OR ", " ").replace(" NOT ", " ")
             clean_query = clean_query.replace("+", "").replace("-", "").replace("|", "")
             clean_query = clean_query.replace("(", "").replace(")", "").strip()
@@ -999,6 +1003,7 @@ class SearchEngine:
                 "query": query,
                 "category": category,
                 "top_score": top_score,
+                "name_expansions": name_expansions,
             }
         except Exception as e:
             logger.error("Search failed: %s", e)

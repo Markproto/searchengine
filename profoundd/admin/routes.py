@@ -1162,7 +1162,7 @@ def ai_settings():
     """Configure AI provider API keys."""
     if request.method == "POST":
         SiteSetting.set("ai_anthropic_key", request.form.get("anthropic_api_key", "").strip())
-        SiteSetting.set("ai_anthropic_model", request.form.get("anthropic_model", "claude-sonnet-4-5-20250929"))
+        SiteSetting.set("ai_anthropic_model", request.form.get("anthropic_model", "claude-sonnet-4-6"))
         SiteSetting.set("ai_xai_key", request.form.get("xai_api_key", "").strip())
         SiteSetting.set("ai_xai_model", request.form.get("xai_model", "grok-2-latest"))
         SiteSetting.set("ai_default_provider", request.form.get("default_ai_provider", "anthropic"))
@@ -1176,7 +1176,7 @@ def ai_settings():
 
     return render_template("admin/ai_settings.html",
                            anthropic_key=get_anthropic_key(),
-                           anthropic_model=SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929"),
+                           anthropic_model=SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-6"),
                            xai_key=SiteSetting.get("ai_xai_key", ""),
                            xai_model=SiteSetting.get("ai_xai_model", "grok-2-latest"),
                            default_provider=SiteSetting.get("ai_default_provider", "anthropic"),
@@ -1240,7 +1240,7 @@ def analyze_url():
                 model = SiteSetting.get("ai_xai_model", "grok-2-latest")
                 analysis, error = analyze_with_xai(content_data, xai_key, model)
             elif anthropic_key:
-                model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+                model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-6")
                 analysis, error = analyze_with_anthropic(content_data, anthropic_key, model)
             else:
                 flash("No API key configured for the selected provider.", "error")
@@ -1602,7 +1602,7 @@ def enhance_newsroom_note():
         return jsonify({"error": "Note text is required"}), 400
 
     api_key = get_anthropic_key()
-    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-6")
     if not api_key:
         return jsonify({"error": "No AI API key configured."}), 400
 
@@ -1700,7 +1700,7 @@ def research_source_note():
         return jsonify({"error": "Source name is required"}), 400
 
     api_key = get_anthropic_key()
-    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-6")
     if not api_key:
         return jsonify({"error": "No AI API key configured."}), 400
 
@@ -1864,7 +1864,7 @@ def the_man():
             auto_apply = request.form.get("auto_apply") == "1"
             guidelines = SiteSetting.get("the_man_guidelines", "")
             api_key = get_anthropic_key()
-            model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+            model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-6")
 
             engine = SearchEngine(config.ELASTICSEARCH_URL)
             past_actions = (db.session.query(AdminRankingAction)
@@ -1959,7 +1959,7 @@ def bob_write():
 
     # Get API key
     api_key = get_anthropic_key()
-    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-6")
     if not api_key:
         return jsonify({"error": "No AI API key configured. Go to Admin > AI Settings."}), 400
 
@@ -2309,7 +2309,7 @@ def verify_claim():
     from profoundd.search.newsroom_bob import make_slug
 
     api_key = get_anthropic_key()
-    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-6")
     congress_key = SiteSetting.get("congress_gov_api_key", "")
     has_ai_key = bool(api_key)
 
@@ -2984,7 +2984,7 @@ def bob_audio_generate(transcript_id):
         "summary": tr.transcript[:500],
     }
 
-    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+    model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-6")
     bob_result, err = generate_bob_story(article_data, api_key=api_key, model=model)
     if err or not bob_result:
         flash(f"Bob couldn't write this: {err or 'no result'}", "error")

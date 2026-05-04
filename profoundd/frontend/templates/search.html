@@ -344,6 +344,16 @@
     </div>
     {% endif %}
 
+    {% if results.name_expansions %}
+    <div class="expansion-note" style="margin:8px 0 12px;padding:10px 14px;background:var(--bg-secondary);border-left:3px solid var(--accent);border-radius:6px;font-size:0.88rem;color:var(--text-secondary);">
+        Also matched on common variants:
+        {% for ex in results.name_expansions %}
+            <strong>{{ ex.original }}</strong> →
+            <em>{{ ex.forms | reject('equalto', ex.original | lower) | join(', ') }}</em>{% if not loop.last %}; {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="search-layout {% if business_results %}has-business-panel{% endif %}">
     <div class="search-results">
         {% for article in results.articles %}

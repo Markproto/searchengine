@@ -171,7 +171,7 @@ def _build_llm():
         from langchain_anthropic import ChatAnthropic
         from profoundd.admin.routes import get_anthropic_key
         from profoundd.utils.models import SiteSetting
-        model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-5-20250929")
+        model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-6")
         api_key = get_anthropic_key()
         if not api_key:
             raise RuntimeError("Anthropic API key not configured")

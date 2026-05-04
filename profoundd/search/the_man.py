@@ -83,7 +83,7 @@ def parse_the_man_response(response_text):
     return decisions
 
 
-def run_the_man(engine, guidelines, past_actions, api_key, model="claude-sonnet-4-5-20250929", auto_apply=False):
+def run_the_man(engine, guidelines, past_actions, api_key, model="claude-sonnet-4-6", auto_apply=False):
     """
     Run The Man: fetch recent articles, analyze with Claude, return decisions.
 
