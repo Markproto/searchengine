@@ -180,6 +180,10 @@ def _build_llm():
             api_key=api_key,
             max_tokens=1200,
             temperature=0.2,
+            # Retry on transient overload (HTTP 529) + rate limits with
+            # exponential backoff. Anthropic SDK handles 429/529/5xx natively.
+            max_retries=4,
+            timeout=60,
         )
 
     _llm_cache["provider"] = provider
@@ -279,8 +283,21 @@ def explain(doc_type, doc_id, page_number, content, query, meta, prompt_template
         result = llm.invoke([HumanMessage(content=prompt)])
         explanation = result.content if hasattr(result, "content") else str(result)
     except Exception as e:
-        logger.warning("explain LLM call failed: %s", e)
-        return {"error": f"AI analysis failed: {e}"}, 500
+        msg = str(e)
+        logger.warning("explain LLM call failed: %s", msg)
+        # Detect Anthropic overload (HTTP 529) and surface a friendly message
+        # instead of leaking raw provider errors. SDK already retried 4 times.
+        if "529" in msg or "overloaded" in msg.lower():
+            return {
+                "error": (
+                    "Claude is temporarily overloaded — the AI provider "
+                    "couldn't take the request right now. Try again in "
+                    "a minute or two."
+                )
+            }, 503
+        if "rate" in msg.lower() and "limit" in msg.lower():
+            return {"error": "Rate limit hit — try again in a moment."}, 429
+        return {"error": f"AI analysis failed: {msg}"}, 500
 
     # 5) Cache write (24h TTL — same as existing ai-summary cache)
     try:
