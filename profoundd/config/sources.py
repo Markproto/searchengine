@@ -168,7 +168,6 @@ POLITICS_SOURCES = [
     {"name": "Nick Shirley", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC2Uioh1tYQkNuHLSBpzdfCg", "category": "politics", "credibility": 8, "feed_type": "atom"},
     {"name": "Ian Miles Cheong", "url": "https://stillgray.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
     {"name": "Ian Miles Cheong (Midnight Directive)", "url": "https://midnightdirective.substack.com/feed", "category": "politics", "credibility": 8, "feed_type": "rss"},
-    {"name": "Ian Carroll", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCXN75hqjDGF0sKsCRoAZ6fz", "category": "politics", "credibility": 8, "feed_type": "atom"},
 
     # --- YouTube Channels (RSS feeds) ---
     {"name": "Tim Pool (YouTube)", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCG749Dj4V2fKa143f8sE60Q", "category": "politics", "credibility": 8, "feed_type": "atom"},
