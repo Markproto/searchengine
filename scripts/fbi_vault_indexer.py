@@ -300,6 +300,14 @@ def main():
                 if urlparse(u).path.lstrip("/").startswith(args.filter_prefix)]
         logger.info("after filter: %d URLs", len(urls))
 
+    # Sort URLs by path depth descending so leaf PDF URLs are tried before
+    # case folder index pages (which return text/html and waste a request).
+    # Within the same depth, longer URLs first as a tiebreaker (more specific).
+    def _depth_key(u):
+        p = urlparse(u).path
+        return (-p.count("/"), -len(p))
+    urls.sort(key=_depth_key)
+
     indexed = skipped = errors = nopdf = 0
     batch = []
     start = time.time()
