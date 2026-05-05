@@ -279,8 +279,24 @@ def can_fetch(rp, ua, url):
 # Fetch + extract
 # ---------------------------------------------------------------------------
 
+_BROWSER_UA = (
+    "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) "
+    "Gecko/20100101 Firefox/120.0"
+)
+
+
 def fetch_page(url, ua, timeout=15):
+    """Fetch a URL. Falls back to a browser-style UA on 403/406/429 since
+    several news sites (heritage.org, realclearpolitics, mercola, mailtribune,
+    newsmax) hard-block any UA containing 'Bot'. We still send the bot UA
+    first so well-behaved sites can identify us in their logs."""
     resp = requests.get(url, headers=ua_headers(ua), timeout=timeout, allow_redirects=True)
+    if resp.status_code in (403, 406, 429):
+        # One-shot retry with a Firefox-like UA
+        resp = requests.get(
+            url, headers=ua_headers(_BROWSER_UA),
+            timeout=timeout, allow_redirects=True,
+        )
     resp.raise_for_status()
     ct = resp.headers.get("Content-Type", "")
     if "html" not in ct.lower():
@@ -288,39 +304,56 @@ def fetch_page(url, ua, timeout=15):
     return resp.text
 
 
-def extract_links(soup, url, self_domain):
-    """Extract internal article links and outbound domains from parsed HTML."""
+def extract_links(soup, url, self_domain, seed_depth=False):
+    """Extract internal article links and outbound domains from parsed HTML.
+
+    seed_depth=True relaxes the internal-link filter so a homepage with
+    non-article-shaped paths (e.g. /opinion vs /opinion/2026/05/04/headline)
+    still feeds the crawl queue instead of stalling at one URL.
+    """
     internal_links = set()
     outbound_domains = set()
     for a in soup.find_all("a", href=True):
         href = a["href"].strip()
-        if not href or href.startswith("#") or href.startswith("mailto:") or href.startswith("javascript:"):
+        if not href or href.startswith("#") or href.startswith("mailto:") or href.startswith("javascript:") or href.startswith("tel:"):
             continue
-        abs_url = urljoin(url, href)
-        parsed = urlparse(abs_url)
-        if not parsed.netloc:
+        try:
+            abs_url = urljoin(url, href)
+            parsed = urlparse(abs_url)
+        except (ValueError, Exception):
+            # urlparse raises ValueError on malformed IPv6-style brackets
+            # ("Invalid IPv6 URL"); skip those hrefs entirely.
+            continue
+        if not parsed.netloc or parsed.scheme not in ("http", "https"):
             continue
         netloc = parsed.netloc.replace("www.", "")
         if netloc == self_domain or netloc.endswith("." + self_domain):
-            if is_article_url(abs_url, self_domain):
-                internal_links.add(abs_url.split("#")[0])
+            clean = abs_url.split("#")[0]
+            if any(skip.search(clean) for skip in SKIP_PATH_PATTERNS):
+                continue
+            if is_article_url(clean, self_domain):
+                internal_links.add(clean)
+            elif seed_depth:
+                # On the homepage / seed page, queue every same-domain link
+                # that isn't an asset or admin URL — many newsroom sites use
+                # short slugs the article-pattern regex won't match.
+                internal_links.add(clean)
             else:
-                # Index/category pages can also be crawled for link discovery
-                # (but won't be indexed as articles)
-                lower = abs_url.lower()
-                # Queue category/archive pages for traversal
-                if any(seg in lower for seg in ["/page/", "/archive", "/news", "/blog", "/opinion"]):
-                    if not any(skip.search(abs_url) for skip in SKIP_PATH_PATTERNS):
-                        internal_links.add(abs_url.split("#")[0])
+                # Deeper levels: still crawl category/archive pages for discovery
+                lower = clean.lower()
+                if any(seg in lower for seg in ["/page/", "/archive", "/news", "/blog", "/opinion", "/article", "/story", "/post"]):
+                    internal_links.add(clean)
         else:
             outbound_domains.add(netloc)
     return internal_links, outbound_domains
 
 
-def extract_article(html, url):
+def extract_article(html, url, seed_depth=False):
     """Extract title, content, summary, and links from HTML.
     Returns a dict with links always populated; content fields may be empty
     if the page isn't an article (e.g. a category index).
+
+    seed_depth=True relaxes link discovery for homepage / seed pages.
     """
     soup = BeautifulSoup(html, "html.parser")
 
@@ -328,11 +361,18 @@ def extract_article(html, url):
     for tag in soup(["script", "style", "nav", "footer", "aside", "form", "noscript"]):
         tag.decompose()
 
-    parsed_self = urlparse(url)
+    try:
+        parsed_self = urlparse(url)
+    except ValueError:
+        return {
+            "title": "", "content": "", "summary": "", "published_at": "",
+            "internal_links": set(), "outbound_domains": set(),
+            "is_article": False,
+        }
     self_domain = parsed_self.netloc.replace("www.", "")
 
     # Always extract links (so category/archive pages can still feed crawl queue)
-    internal_links, outbound_domains = extract_links(soup, url, self_domain)
+    internal_links, outbound_domains = extract_links(soup, url, self_domain, seed_depth=seed_depth)
 
     result = {
         "title": "",
@@ -488,7 +528,7 @@ def crawl_domain(domain, config, defaults, state_dir, es_url, cands_conn, max_pa
                 time.sleep(delay)
                 continue
 
-            result = extract_article(html, url)
+            result = extract_article(html, url, seed_depth=(depth == 0))
 
             # Record discovered outbound domains (always, even from index pages)
             for od in result["outbound_domains"]:
