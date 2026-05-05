@@ -1698,6 +1698,97 @@ def create_app(config_override=None):
             headers=headers,
         )
 
+    # --- Federal Writers' Project (FWP) ---
+
+    @app.route("/fwp-docs")
+    def fwp_docs_index():
+        """Browse Federal Writers' Project items with filters + search."""
+        query = request.args.get("q", "").strip()
+        page = request.args.get("page", 1, type=int)
+        contributor = request.args.get("contributor", "").strip() or None
+        location = request.args.get("location", "").strip() or None
+        date_from = request.args.get("date_from", "").strip() or None
+        date_to = request.args.get("date_to", "").strip() or None
+        sort_by = request.args.get("sort", "relevance")
+
+        if not search_engine.is_available():
+            return render_template(
+                "fwp_docs_index.html",
+                results={"articles": [], "total": 0, "page": 1},
+                facets={"contributors": [], "locations": [], "subcollections": []},
+                query=query, contributor=contributor, location=location,
+                date_from=date_from, date_to=date_to, sort_by=sort_by,
+                categories=CATEGORIES,
+            )
+
+        results = search_engine.search_fwp_docs(
+            query=query, page=page, per_page=20,
+            date_from=date_from, date_to=date_to,
+            contributor=contributor, location=location,
+            sort_by=sort_by,
+        )
+        facets = search_engine.get_fwp_facets()
+        return render_template(
+            "fwp_docs_index.html",
+            results=results, facets=facets,
+            query=query, contributor=contributor, location=location,
+            date_from=date_from, date_to=date_to, sort_by=sort_by,
+            categories=CATEGORIES,
+        )
+
+    @app.route("/fwp-docs/<item_id>")
+    def fwp_doc_viewer(item_id):
+        """View a single FWP item — metadata, OCR text, embedded LOC PDF."""
+        doc = search_engine.get_fwp_doc(item_id)
+        if not doc:
+            return render_template("404.html"), 404
+        from profoundd.search.related import find_related
+        try:
+            related = find_related(
+                es=search_engine.es if search_engine.is_available() else None,
+                source_type="fwp",
+                source_id=item_id,
+                title=doc.get("title", ""),
+                content=doc.get("content", ""),
+            )
+        except Exception:
+            related = []
+        return render_template("fwp_doc.html", doc=doc, related=related,
+                               categories=CATEGORIES)
+
+    @app.route("/api/fwp-explain", methods=["POST"])
+    def api_fwp_explain():
+        """AI explain a topic in an FWP item."""
+        if not session.get("user_logged_in") and not session.get("admin_logged_in"):
+            return jsonify(error="Log in to use AI analysis"), 401
+
+        data = request.get_json(silent=True) or {}
+        item_id = data.get("item_id", "").strip()
+        query = data.get("query", "").strip()
+        if not item_id or not query:
+            return jsonify(error="Missing item_id or query"), 400
+
+        doc = search_engine.get_fwp_doc(item_id)
+        if not doc:
+            return jsonify(error=f"Item {item_id} not found"), 404
+
+        from profoundd.search.ai_explain import explain, PROMPTS
+        body, status = explain(
+            doc_type="fwp",
+            doc_id=item_id,
+            page_number=0,
+            content=doc.get("content", ""),
+            query=query,
+            meta={
+                "title": doc.get("title", ""),
+                "contributors": ", ".join(doc.get("contributors", []) or []),
+                "location": ", ".join(doc.get("location", []) or []),
+                "doc_date": doc.get("doc_date", ""),
+            },
+            prompt_template=PROMPTS.get("fwp", PROMPTS.get("epstein", "")),
+        )
+        return jsonify(**body), status
+
     @app.route("/climate-docs")
     def climate_docs_index():
         """Browse Oregon climate / planning docs grouped by city."""

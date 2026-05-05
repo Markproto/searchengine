@@ -423,7 +423,30 @@ Based ONLY on what this page says, answer:
 3. Quote key sentences verbatim where relevant.
 4. If "{query}" doesn't appear or isn't relevant on this page, say so plainly.
 
-Be factual and concise. Only state what the page contains."""
+Be factual and concise. Only state what the page contains.""",
+
+    "fwp": """You are analyzing a Federal Writers' Project document from the
+Library of Congress (1936-1940 WPA-era oral histories and life stories).
+
+User's question / search term: "{query}"
+Title: {title}
+Contributors / interviewers: {contributors}
+Location: {location}
+Date: {doc_date}
+
+Document text (centered on the search term):
+{content_window}
+
+Based ONLY on what this document says, answer:
+1. How does this narrative relate to "{query}"?
+2. Quote the key sentences verbatim where relevant.
+3. Note who is speaking (the interviewer or the narrator) and the historical
+   context if it is clear from the text.
+4. If "{query}" doesn't appear, say so plainly and describe what the
+   document is actually about.
+
+This is a historical document — preserve original phrasing in quotes even
+where the language reflects the era. Be factual and concise.""",
 }
 
 
@@ -482,5 +505,24 @@ In 3-5 sentences, describe what this page actually contains:
 - Any specific numbers, named initiatives, or quoted authorities
 - The page's role in the broader document
 
-Be factual and concise. Only state what the page contains."""
+Be factual and concise. Only state what the page contains.""",
+
+    "fwp": """You are summarizing a Federal Writers' Project document from
+the Library of Congress (1936-1940 WPA-era oral histories).
+
+Title: {title}
+Contributors / interviewers: {contributors}
+Location: {location}
+Date: {doc_date}
+
+Document text:
+{content_window}
+
+In 3-5 sentences, describe what this document actually contains:
+- Whose life story or topic it covers
+- The narrator's apparent background (occupation, era of life recounted)
+- Main events, places, or themes mentioned
+- Any historically notable details or named people
+
+Preserve original phrasing in quotes where useful. Be factual and concise.""",
 }

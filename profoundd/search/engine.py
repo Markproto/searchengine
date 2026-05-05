@@ -55,6 +55,9 @@ ARTICLE_MAPPING = {
 EPSTEIN_DOC_INDEX_NAME = "profoundd_epstein_docs"
 CLIMATE_DOC_INDEX_NAME = "profoundd_climate_docs"
 WEF_DOC_INDEX_NAME = "profoundd_wef_docs"
+# Federal Writers' Project — Library of Congress collection (~2,000 American
+# Life Histories; deferred phases will add Slave Narratives + State Guides).
+FWP_DOC_INDEX_NAME = "profoundd_fwp_docs"
 
 EPSTEIN_DOC_MAPPING = {
     "mappings": {
@@ -681,6 +684,165 @@ class SearchEngine:
         except Exception as e:
             logger.debug("get_epstein_facets failed: %s", e)
             return self._epstein_facets_cache["data"] or {"custodians": [], "datasets": []}
+
+    # ------------------------------------------------------------------
+    # Federal Writers' Project (FWP) — American Life Histories etc.
+    # Same shape as the Epstein doc search: full-text + filters + AI explain.
+    # ------------------------------------------------------------------
+
+    def search_fwp_docs(self, query, page=1, per_page=20,
+                        date_from=None, date_to=None,
+                        contributor=None, location=None,
+                        subcollection=None, sort_by="relevance"):
+        """Search FWP documents with filters. OCR-tolerant fuzzy fallback
+        is enabled because LOC's OCR has the same scanning artefacts as the
+        Epstein bates docs."""
+        from_offset = (page - 1) * per_page
+
+        if query:
+            exact_clause = {
+                "simple_query_string": {
+                    "query": query,
+                    "fields": ["title^3", "summary^2", "content",
+                               "contributors^2", "subjects^2", "location"],
+                    "default_operator": "AND",
+                }
+            }
+
+            fuzzy_q = query
+            for op in (" AND ", " OR ", " NOT "):
+                fuzzy_q = fuzzy_q.replace(op, " ")
+            for ch in "+-|()":
+                fuzzy_q = fuzzy_q.replace(ch, " ")
+            fuzzy_q = " ".join(fuzzy_q.split())
+
+            should_clauses = [exact_clause]
+            if fuzzy_q and '"' not in query:
+                should_clauses.append({
+                    "multi_match": {
+                        "query": fuzzy_q,
+                        "fields": ["title^3", "summary^2", "content",
+                                   "contributors^2", "subjects^2"],
+                        "fuzziness": "AUTO",
+                        "prefix_length": 1,
+                        "operator": "and",
+                        "boost": 0.4,
+                    }
+                })
+
+            main_query = {
+                "bool": {"should": should_clauses, "minimum_should_match": 1}
+            }
+        else:
+            main_query = {"match_all": {}}
+
+        filter_clauses = []
+        if date_from or date_to:
+            r = {}
+            if date_from:
+                r["gte"] = date_from
+            if date_to:
+                r["lte"] = date_to
+            filter_clauses.append({"range": {"doc_date": r}})
+        if contributor:
+            filter_clauses.append({"term": {"contributors": contributor}})
+        if location:
+            filter_clauses.append({"term": {"location": location}})
+        if subcollection:
+            filter_clauses.append({"term": {"subcollection": subcollection}})
+
+        if filter_clauses:
+            es_query = {"bool": {"must": [main_query], "filter": filter_clauses}}
+        else:
+            es_query = main_query
+
+        body = {
+            "query": es_query,
+            "from": from_offset,
+            "size": per_page,
+            "highlight": {
+                "fields": {
+                    "content": {"fragment_size": 200, "number_of_fragments": 2},
+                    "title": {},
+                    "summary": {"fragment_size": 200, "number_of_fragments": 1},
+                },
+                "pre_tags": ["<mark>"],
+                "post_tags": ["</mark>"],
+            },
+        }
+        if sort_by == "date":
+            body["sort"] = [{"doc_date": {"order": "desc", "missing": "_last"}}, "_score"]
+
+        try:
+            result = self.es.search(index=FWP_DOC_INDEX_NAME, body=body)
+            docs = []
+            for hit in result["hits"]["hits"]:
+                doc = hit["_source"]
+                doc["_score"] = hit["_score"]
+                doc["_highlights"] = hit.get("highlight", {})
+                if not doc.get("url"):
+                    item_id = doc.get("item_id", "")
+                    doc["url"] = f"/fwp-docs/{item_id}" if item_id else doc.get("source_url", "#")
+                docs.append(doc)
+            return {
+                "articles": docs,
+                "total": result["hits"]["total"]["value"],
+                "page": page,
+                "per_page": per_page,
+            }
+        except Exception as e:
+            logger.error("FWP doc search failed: %s", e)
+            return {"articles": [], "total": 0, "page": page, "per_page": per_page}
+
+    def get_fwp_doc(self, item_id):
+        """Fetch a single FWP doc by item_id."""
+        try:
+            result = self.es.get(
+                index=FWP_DOC_INDEX_NAME,
+                id=hashlib.md5(item_id.encode()).hexdigest(),
+            )
+            return result["_source"]
+        except Exception:
+            return None
+
+    def get_fwp_facets(self):
+        """Return contributor + location lists for filter dropdowns. Cached 1h."""
+        import time
+        now = time.time()
+        if not hasattr(self, "_fwp_facets_cache"):
+            self._fwp_facets_cache = {"data": None, "expires": 0}
+        if self._fwp_facets_cache["data"] is not None and now < self._fwp_facets_cache["expires"]:
+            return self._fwp_facets_cache["data"]
+        try:
+            result = self.es.search(
+                index=FWP_DOC_INDEX_NAME,
+                body={
+                    "size": 0,
+                    "aggs": {
+                        "contributors": {"terms": {"field": "contributors", "size": 200}},
+                        "locations": {"terms": {"field": "location", "size": 100}},
+                        "subcollections": {"terms": {"field": "subcollection", "size": 10}},
+                    },
+                },
+            )
+            data = {
+                "contributors": sorted(
+                    b["key"] for b in result["aggregations"]["contributors"]["buckets"] if b["key"]
+                ),
+                "locations": sorted(
+                    b["key"] for b in result["aggregations"]["locations"]["buckets"] if b["key"]
+                ),
+                "subcollections": sorted(
+                    b["key"] for b in result["aggregations"]["subcollections"]["buckets"] if b["key"]
+                ),
+            }
+            self._fwp_facets_cache["data"] = data
+            self._fwp_facets_cache["expires"] = now + 3600
+            return data
+        except Exception as e:
+            logger.debug("get_fwp_facets failed: %s", e)
+            return (self._fwp_facets_cache["data"] or
+                    {"contributors": [], "locations": [], "subcollections": []})
 
     def index_article(self, article_data):
         """Index a single article."""

@@ -34,6 +34,7 @@ _TARGETS = {
     "climate":  ("profoundd_climate_docs", "doc_id",      "/climate-docs/{doc_id}/{page_number}"),
     "wef":      ("profoundd_wef_docs",     "doc_id",      "/wef-docs/{doc_id}/{page_number}"),
     "epstein":  ("profoundd_epstein_docs", "bates_number","/epstein-docs/{bates_number}"),
+    "fwp":      ("profoundd_fwp_docs",     "item_id",     "/fwp-docs/{item_id}"),
     "articles": ("profoundd_articles",     "url",         "{url}"),
 }
 
@@ -70,6 +71,7 @@ def _format_hit(target_type, src):
             "doc_id": src.get("doc_id", ""),
             "page_number": src.get("page_number", 1) or 1,
             "bates_number": src.get("bates_number", ""),
+            "item_id": src.get("item_id", ""),
             "url": src.get("url", "#"),
         })
     except Exception:
@@ -89,6 +91,8 @@ def _format_hit(target_type, src):
         title = src.get("document_name", "WEF document")
         if src.get("page_number"):
             title = f"{title} p.{src['page_number']}"
+    elif target_type == "fwp":
+        title = src.get("title") or src.get("item_id") or "FWP document"
     else:
         title = src.get("title", "(untitled)")
 

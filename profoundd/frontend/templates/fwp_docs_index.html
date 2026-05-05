@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Federal Writers' Project — Profoundd{% endblock %}
+{% block description %}Search the Library of Congress Federal Writers' Project — 1936-1940 American Life Histories collected by WPA writers. Full-text searchable.{% endblock %}
+
+{% block content %}
+<div class="container fwp-page">
+    <div class="fwp-header">
+        <h1>Federal Writers' Project</h1>
+        <p class="fwp-intro">
+            American Life Histories collected by WPA writers, 1936–1940.
+            Mirrored from the Library of Congress and made fully searchable
+            with OCR-tolerant fuzzy matching and AI explain.
+        </p>
+    </div>
+
+    <form method="GET" action="/fwp-docs" class="fwp-search-form">
+        <div class="fwp-search-row">
+            <input type="text" name="q" value="{{ query|e }}"
+                   placeholder="Search 2,000+ life histories…"
+                   class="fwp-search-input" autofocus>
+            <button type="submit" class="btn btn-primary">Search</button>
+        </div>
+        <div class="fwp-filter-row">
+            <select name="contributor" class="fwp-filter">
+                <option value="">All contributors</option>
+                {% for c in facets.contributors[:200] %}
+                <option value="{{ c }}" {% if c == contributor %}selected{% endif %}>{{ c|title }}</option>
+                {% endfor %}
+            </select>
+            <select name="location" class="fwp-filter">
+                <option value="">All locations</option>
+                {% for l in facets.locations[:200] %}
+                <option value="{{ l }}" {% if l == location %}selected{% endif %}>{{ l|title }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" name="date_from" value="{{ date_from or '' }}"
+                   placeholder="From (YYYY)" class="fwp-filter fwp-date">
+            <input type="text" name="date_to" value="{{ date_to or '' }}"
+                   placeholder="To (YYYY)" class="fwp-filter fwp-date">
+            <select name="sort" class="fwp-filter">
+                <option value="relevance" {% if sort_by == 'relevance' %}selected{% endif %}>Relevance</option>
+                <option value="date" {% if sort_by == 'date' %}selected{% endif %}>Date (newest)</option>
+            </select>
+        </div>
+    </form>
+
+    {% if results.total %}
+    <div class="search-meta">
+        <p><strong>{{ results.total }}</strong> documents
+            {% if query %}matching "<strong>{{ query|e }}</strong>"{% endif %}
+            {% if contributor %} · contributor: <em>{{ contributor }}</em>{% endif %}
+            {% if location %} · location: <em>{{ location }}</em>{% endif %}
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="fwp-results">
+        {% for doc in results.articles %}
+        <article class="fwp-card">
+            <h3 class="fwp-card-title">
+                <a href="/fwp-docs/{{ doc.item_id }}">{{ doc.title or doc.item_id }}</a>
+            </h3>
+            <div class="fwp-card-meta">
+                {% if doc.location %}<span>{{ doc.location | join(', ') | title }}</span>{% endif %}
+                {% if doc.doc_date %}<span> · {{ doc.doc_date }}</span>{% endif %}
+                {% if doc.page_count %}<span> · {{ doc.page_count }} page{% if doc.page_count != 1 %}s{% endif %}</span>{% endif %}
+            </div>
+            {% if doc.contributors %}
+            <div class="fwp-card-contributors">
+                Recorded by: {{ doc.contributors[:3] | join(', ') | title }}
+            </div>
+            {% endif %}
+            <p class="fwp-card-summary">
+                {% if doc._highlights and doc._highlights.content %}
+                    {% for frag in doc._highlights.content[:1] %}{{ frag|safe }}…{% endfor %}
+                {% else %}
+                    {{ doc.summary|e }}
+                {% endif %}
+            </p>
+        </article>
+        {% else %}
+        {% if query %}
+        <p class="fwp-empty">No FWP documents match that search yet. Try a broader term, drop a filter, or browse by contributor / location.</p>
+        {% else %}
+        <p class="fwp-empty">FWP archive is being indexed. Check back shortly.</p>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    {% if results.total > results.per_page %}
+    <nav class="fwp-pagination">
+        {% set total_pages = (results.total // results.per_page) + (1 if results.total % results.per_page else 0) %}
+        {% if results.page > 1 %}
+        <a href="?q={{ query|urlencode }}&contributor={{ contributor or '' }}&location={{ location or '' }}&date_from={{ date_from or '' }}&date_to={{ date_to or '' }}&sort={{ sort_by }}&page={{ results.page - 1 }}">‹ Prev</a>
+        {% endif %}
+        <span>Page {{ results.page }} of {{ total_pages }}</span>
+        {% if results.page < total_pages %}
+        <a href="?q={{ query|urlencode }}&contributor={{ contributor or '' }}&location={{ location or '' }}&date_from={{ date_from or '' }}&date_to={{ date_to or '' }}&sort={{ sort_by }}&page={{ results.page + 1 }}">Next ›</a>
+        {% endif %}
+    </nav>
+    {% endif %}
+</div>
+
+<style>
+.fwp-page { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+.fwp-header { margin-bottom: 20px; }
+.fwp-header h1 { margin: 0 0 8px; font-size: 1.8rem; }
+.fwp-intro { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; max-width: 720px; }
+.fwp-search-form { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+.fwp-search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.fwp-search-input { flex: 1; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 0.95rem; }
+.fwp-filter-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.fwp-filter { padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 0.85rem; }
+.fwp-date { width: 110px; }
+.fwp-results { display: flex; flex-direction: column; gap: 14px; }
+.fwp-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.fwp-card-title { margin: 0 0 6px; font-size: 1.05rem; }
+.fwp-card-title a { color: var(--accent); text-decoration: none; }
+.fwp-card-title a:hover { text-decoration: underline; }
+.fwp-card-meta { color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 6px; }
+.fwp-card-contributors { color: var(--text-secondary); font-size: 0.82rem; font-style: italic; margin-bottom: 8px; }
+.fwp-card-summary { font-size: 0.9rem; line-height: 1.55; color: var(--text); margin: 0; }
+.fwp-card-summary mark { background: rgba(234, 179, 8, 0.25); padding: 0 2px; }
+.fwp-empty { padding: 30px; text-align: center; color: var(--text-secondary); }
+.fwp-pagination { margin-top: 24px; display: flex; gap: 16px; justify-content: center; align-items: center; font-size: 0.9rem; }
+.fwp-pagination a { color: var(--accent); text-decoration: none; }
+</style>
+{% endblock %}
