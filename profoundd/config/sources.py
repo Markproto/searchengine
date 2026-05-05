@@ -90,7 +90,10 @@ LEGAL_SOURCES = [
 
     # --- Independent Legal / Transparency (no pharma advertising) ---
     {"name": "Judicial Watch", "url": "https://www.judicialwatch.org/feed/", "category": "legal", "credibility": 7, "feed_type": "rss"},
-    {"name": "Empower Oversight", "url": "https://empoweroversite.org/feed/", "category": "legal", "credibility": 7, "feed_type": "rss"},
+    # Empower Oversight removed 2026-05-04 — domain NXDOMAIN
+
+    # --- Right-of-center commentary (RSS replaces stalled domain crawl seeds) ---
+    {"name": "National Review", "url": "https://www.nationalreview.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
 ]
 
 TECH_SOURCES = [
