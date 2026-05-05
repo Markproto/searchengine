@@ -1039,6 +1039,10 @@ class SearchEngine:
             # Diversify: group by credibility tier, interleave 3 high then 1 lower
             articles = self._diversify_results(raw_articles, per_page)
 
+            # Source diversification: cap each source to at most 2-3 articles
+            # per page (round-robin) so one outlet can't dominate the results.
+            articles = self._diversify_by_source(articles, per_page)
+
             # Final pass: admin boost shifts articles up/down in the list
             articles = self._apply_admin_boost_reorder(articles)
 

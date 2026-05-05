@@ -37,7 +37,6 @@ NEWS_SOURCES = [
     {"name": "Straight Arrow News", "url": "https://san.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
 
     # --- New Independent Sources (no Pfizer advertising) ---
-    {"name": "Revolver News", "url": "https://www.revolver.news/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
     {"name": "National File", "url": "https://nationalfile.com/feed/", "category": "news", "credibility": 6, "feed_type": "rss"},
     {"name": "The Federalist", "url": "https://thefederalist.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
     {"name": "American Greatness", "url": "https://amgreatness.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},

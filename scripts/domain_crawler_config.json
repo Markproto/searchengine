@@ -19,7 +19,6 @@
     "thefederalist.com": {"category": "news", "credibility": 7, "seeds": ["https://thefederalist.com/"]},
     "amgreatness.com": {"category": "news", "credibility": 7, "seeds": ["https://amgreatness.com/"]},
     "justthenews.com": {"category": "news", "credibility": 7, "seeds": ["https://justthenews.com/"]},
-    "revolver.news": {"category": "news", "credibility": 7, "seeds": ["https://www.revolver.news/"]},
     "thepostmillennial.com": {"category": "news", "credibility": 7, "seeds": ["https://thepostmillennial.com/"]},
     "gatewaypundit.com": {"category": "news", "credibility": 7, "seeds": ["https://www.thegatewaypundit.com/"]},
     "theepochtimes.com": {"category": "news", "credibility": 8, "seeds": ["https://www.theepochtimes.com/"]},
