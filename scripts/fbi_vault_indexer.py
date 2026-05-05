@@ -145,32 +145,67 @@ def extract_pdf_text(pdf_bytes, max_chars=MAX_TEXT_CHARS):
         return "", 0
 
 
+def _pdf_candidates(url):
+    """Plone sitemap URLs end in `/view` (HTML viewer); the actual PDF
+    lives at the parent path. Some entries also need /at_download/file.
+    Yield candidate URLs in priority order."""
+    candidates = []
+    if url.endswith("/view"):
+        candidates.append(url[:-len("/view")])
+    candidates.append(url)
+    candidates.append(url.rstrip("/") + "/at_download/file")
+    # Dedupe preserving order
+    seen = set()
+    out = []
+    for u in candidates:
+        if u not in seen:
+            out.append(u)
+            seen.add(u)
+    return out
+
+
 def fetch_and_extract(url, rate=1.0):
-    """Returns (text, page_count, content_type, byte_len) or (None, ...) on fail."""
-    try:
-        r = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=90)
-        if r.status_code != 200:
-            return None, 0, r.headers.get("Content-Type", ""), 0
-        ctype = r.headers.get("Content-Type", "")
-        if "pdf" not in ctype.lower():
-            # Not all vault URLs are PDFs (some are folder index pages)
-            return "", 0, ctype, len(r.content)
-        text, pages = extract_pdf_text(r.content)
-        return text, pages, ctype, len(r.content)
-    except Exception as e:
-        logger.warning("fetch %s: %s", url, e)
+    """Returns (text, page_count, content_type, byte_len) or (None, ...) on fail.
+
+    Tries multiple URL forms — Plone sitemap entries end in /view (HTML
+    viewer); the binary PDF lives at the same path without /view, or at
+    /at_download/file. We attempt these in order and return the first PDF.
+    """
+    last_status = None
+    last_ctype = ""
+    for candidate in _pdf_candidates(url):
+        try:
+            r = requests.get(candidate, headers={"User-Agent": USER_AGENT}, timeout=90)
+            last_status = r.status_code
+            last_ctype = r.headers.get("Content-Type", "")
+            if r.status_code != 200:
+                continue
+            if "pdf" in last_ctype.lower():
+                text, pages = extract_pdf_text(r.content)
+                return text, pages, last_ctype, len(r.content)
+            # else: keep trying other candidates
+        except Exception as e:
+            logger.debug("fetch %s candidate %s: %s", url, candidate, e)
+            continue
+    if last_status is None:
         return None, 0, "", 0
+    # Got 200s but never PDF
+    return "", 0, last_ctype, 0
 
 
 def build_es_doc(url, text, page_count):
-    meta = parse_url_metadata(url)
+    # Sitemap entries end in /view — the PDF lives at the parent path.
+    pdf_url = url[:-len("/view")] if url.endswith("/view") else url
+    # Strip /view from the metadata-parse path too so titles are clean.
+    meta_path_url = pdf_url
+    meta = parse_url_metadata(meta_path_url)
     title = meta["title"] or "FBI Vault document"
     summary = (text[:500].replace("\n", " ") if text else "").strip()
     if len(text) > 500:
         summary = summary.rsplit(" ", 1)[0] + "…"
 
     # doc_id is collection-prefixed so multiple collections share one index
-    raw_id = f"{COLLECTION}::{url}"
+    raw_id = f"{COLLECTION}::{pdf_url}"
     doc_id = hashlib.md5(raw_id.encode()).hexdigest()
 
     return {
@@ -183,8 +218,8 @@ def build_es_doc(url, text, page_count):
         "sub_case": meta["sub_case"],
         "part_number": meta["part_number"],
         "page_count": page_count,
-        "pdf_url": url,
-        "source_url": url,
+        "pdf_url": pdf_url,
+        "source_url": url,  # the /view URL is what users browse to
         "tags": [t for t in [meta["case"], meta["sub_case"]] if t],
         "indexed_at": datetime.now(timezone.utc).isoformat(),
         "category": "archive",
