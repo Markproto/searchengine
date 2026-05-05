@@ -179,10 +179,25 @@ class FeedCrawler:
             return ""
 
     def fetch_feed(self, source):
-        """Fetch and parse an RSS/Atom feed with retry."""
+        """Fetch and parse an RSS/Atom feed with retry.
+
+        After 2 direct attempts, the third attempt is routed through
+        IPRoyal residential proxy (if IPROYAL_PROXY_URL env var is set)
+        to bypass datacenter-IP blocks that affect feeds like
+        off-guardian.org, heritage.org, newsmax.com, openthebooks.com.
+        """
+        import os as _os
+        proxy_url = _os.environ.get("IPROYAL_PROXY_URL", "").strip()
+        proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
+
         for attempt in range(3):
             try:
-                response = self.session.get(source["url"], timeout=30)
+                use_proxy = (attempt == 2 and proxies)
+                response = self.session.get(
+                    source["url"],
+                    timeout=30,
+                    proxies=proxies if use_proxy else None,
+                )
                 response.raise_for_status()
                 feed = feedparser.parse(response.content)
 
@@ -190,6 +205,8 @@ class FeedCrawler:
                     logger.warning("Failed to parse feed: %s (%s)", source["name"], feed.bozo_exception)
                     return []
 
+                if use_proxy:
+                    logger.info("Fetched %s via IPRoyal proxy (direct attempts failed)", source["name"])
                 return feed.entries[:self.max_per_feed]
             except requests.RequestException as e:
                 if attempt < 2:

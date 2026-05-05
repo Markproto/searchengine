@@ -285,18 +285,45 @@ _BROWSER_UA = (
 )
 
 
+def _proxy_dict():
+    """Return a requests `proxies=` dict if IPROYAL_PROXY_URL is set, else None.
+    URL form: http://user:pass@geo.iproyal.com:12321"""
+    import os as _os
+    url = _os.environ.get("IPROYAL_PROXY_URL", "").strip()
+    if not url:
+        return None
+    return {"http": url, "https": url}
+
+
 def fetch_page(url, ua, timeout=15):
-    """Fetch a URL. Falls back to a browser-style UA on 403/406/429 since
-    several news sites (heritage.org, realclearpolitics, mercola, mailtribune,
-    newsmax) hard-block any UA containing 'Bot'. We still send the bot UA
-    first so well-behaved sites can identify us in their logs."""
+    """Fetch a URL with three escalating attempts:
+
+      1. ProfounddBot UA, direct connection — well-behaved sites accept this
+         and can identify the crawler in their logs.
+      2. Firefox UA, direct connection — sites that hard-block any "Bot" UA
+         (heritage.org, realclearpolitics, mercola, mailtribune, newsmax,
+         courthousenews, lawfaremedia) typically accept this.
+      3. Firefox UA + IPRoyal residential proxy — for sites that geoblock
+         our datacenter IP outright (off-guardian, reduxx, sometimes
+         heritage). Only attempted when IPROYAL_PROXY_URL env var is set.
+    """
+    # Attempt 1: bot UA, no proxy
     resp = requests.get(url, headers=ua_headers(ua), timeout=timeout, allow_redirects=True)
     if resp.status_code in (403, 406, 429):
-        # One-shot retry with a Firefox-like UA
+        # Attempt 2: browser UA, no proxy
         resp = requests.get(
             url, headers=ua_headers(_BROWSER_UA),
             timeout=timeout, allow_redirects=True,
         )
+        if resp.status_code in (403, 406, 429):
+            # Attempt 3: browser UA + residential proxy (if configured)
+            proxies = _proxy_dict()
+            if proxies:
+                resp = requests.get(
+                    url, headers=ua_headers(_BROWSER_UA),
+                    timeout=max(timeout, 30),
+                    allow_redirects=True, proxies=proxies,
+                )
     resp.raise_for_status()
     ct = resp.headers.get("Content-Type", "")
     if "html" not in ct.lower():

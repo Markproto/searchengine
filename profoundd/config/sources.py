@@ -176,6 +176,7 @@ POLITICS_SOURCES = [
     {"name": "Eagle Forum", "url": "https://eagleforum.org/feed", "category": "politics", "credibility": 7, "feed_type": "rss"},
 
     # --- Agenda 2030 / Lockdown / Smart-City critics ---
+    {"name": "OffGuardian", "url": "https://off-guardian.org/feed/", "category": "politics", "credibility": 6, "feed_type": "rss"},
     {"name": "Brownstone Institute", "url": "https://brownstone.org/feed/", "category": "politics", "credibility": 7, "feed_type": "rss"},
     {"name": "Reclaim The Net", "url": "https://reclaimthenet.org/feed", "category": "politics", "credibility": 7, "feed_type": "rss"},
     {"name": "The Counter Signal", "url": "https://thecountersignal.com/feed", "category": "politics", "credibility": 6, "feed_type": "rss"},
