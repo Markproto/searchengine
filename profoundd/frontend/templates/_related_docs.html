@@ -2,7 +2,7 @@
    "climate", "wef", "epstein", "articles" — each a list of
    {title, url, snippet}. Gracefully hides empty sections. #}
 {% if related %}
-{% set _labels = {"climate": "Oregon Climate Docs", "wef": "WEF Publications", "epstein": "Epstein Files", "fwp": "Federal Writers' Project", "articles": "Recent News"} %}
+{% set _labels = {"climate": "Oregon Climate Docs", "wef": "WEF Publications", "epstein": "Epstein Files", "fwp": "Federal Writers' Project", "archive": "Archive Collections", "articles": "Recent News"} %}
 {% set ns = namespace(any=false) %}
 {% for k, items in related.items() %}{% if items %}{% set ns.any = true %}{% endif %}{% endfor %}
 {% if ns.any %}

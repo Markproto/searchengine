@@ -58,6 +58,9 @@ WEF_DOC_INDEX_NAME = "profoundd_wef_docs"
 # Federal Writers' Project — Library of Congress collection (~2,000 American
 # Life Histories; deferred phases will add Slave Narratives + State Guides).
 FWP_DOC_INDEX_NAME = "profoundd_fwp_docs"
+# Multi-source archive index — FBI Vault, SPLC Wayback, future CIA CREST,
+# JFK Records, GovInfo. Discriminator: `collection` field.
+ARCHIVE_DOC_INDEX_NAME = "profoundd_archive_docs"
 
 EPSTEIN_DOC_MAPPING = {
     "mappings": {
@@ -843,6 +846,142 @@ class SearchEngine:
             logger.debug("get_fwp_facets failed: %s", e)
             return (self._fwp_facets_cache["data"] or
                     {"contributors": [], "locations": [], "subcollections": []})
+
+    # ------------------------------------------------------------------
+    # Archive collections (FBI Vault, SPLC Wayback, future CIA/JFK/GovInfo).
+    # All share `profoundd_archive_docs` with `collection` as discriminator.
+    # ------------------------------------------------------------------
+
+    def search_archive_docs(self, query, collection=None, page=1, per_page=20,
+                            case=None, date_from=None, date_to=None,
+                            sort_by="relevance"):
+        """Search the multi-collection archive index. `collection` filters to
+        one source (e.g. "fbi-vault", "splc"); leave None for cross-archive."""
+        from_offset = (page - 1) * per_page
+
+        if query:
+            exact_clause = {
+                "simple_query_string": {
+                    "query": query,
+                    "fields": ["title^3", "summary^2", "content",
+                               "case^2", "sub_case", "tags^2"],
+                    "default_operator": "AND",
+                }
+            }
+            fuzzy_q = query
+            for op in (" AND ", " OR ", " NOT "):
+                fuzzy_q = fuzzy_q.replace(op, " ")
+            for ch in "+-|()":
+                fuzzy_q = fuzzy_q.replace(ch, " ")
+            fuzzy_q = " ".join(fuzzy_q.split())
+
+            should_clauses = [exact_clause]
+            if fuzzy_q and '"' not in query:
+                should_clauses.append({
+                    "multi_match": {
+                        "query": fuzzy_q,
+                        "fields": ["title^3", "summary^2", "content"],
+                        "fuzziness": "AUTO",
+                        "prefix_length": 1,
+                        "operator": "and",
+                        "boost": 0.4,
+                    }
+                })
+            main_query = {"bool": {"should": should_clauses, "minimum_should_match": 1}}
+        else:
+            main_query = {"match_all": {}}
+
+        filter_clauses = []
+        if collection:
+            filter_clauses.append({"term": {"collection": collection}})
+        if case:
+            filter_clauses.append({"term": {"case": case}})
+        if date_from or date_to:
+            r = {}
+            if date_from:
+                r["gte"] = date_from
+            if date_to:
+                r["lte"] = date_to
+            filter_clauses.append({"range": {"snapshot_date": r}})
+
+        es_query = ({"bool": {"must": [main_query], "filter": filter_clauses}}
+                    if filter_clauses else main_query)
+
+        body = {
+            "query": es_query,
+            "from": from_offset,
+            "size": per_page,
+            "highlight": {
+                "fields": {
+                    "content": {"fragment_size": 200, "number_of_fragments": 2},
+                    "title": {},
+                    "summary": {"fragment_size": 200, "number_of_fragments": 1},
+                },
+                "pre_tags": ["<mark>"],
+                "post_tags": ["</mark>"],
+            },
+        }
+        if sort_by == "date":
+            body["sort"] = [
+                {"snapshot_date": {"order": "desc", "missing": "_last"}},
+                "_score",
+            ]
+
+        try:
+            result = self.es.search(index=ARCHIVE_DOC_INDEX_NAME, body=body)
+            docs = []
+            for hit in result["hits"]["hits"]:
+                doc = hit["_source"]
+                doc["_score"] = hit["_score"]
+                doc["_highlights"] = hit.get("highlight", {})
+                col = doc.get("collection") or "archive"
+                if not doc.get("url"):
+                    doc["url"] = f"/archive-docs/{col}/{doc.get('doc_id', '')}"
+                docs.append(doc)
+            return {
+                "articles": docs,
+                "total": result["hits"]["total"]["value"],
+                "page": page,
+                "per_page": per_page,
+            }
+        except Exception as e:
+            logger.error("archive search failed: %s", e)
+            return {"articles": [], "total": 0, "page": page, "per_page": per_page}
+
+    def get_archive_doc(self, doc_id):
+        """Fetch a single archive doc by doc_id."""
+        try:
+            r = self.es.get(index=ARCHIVE_DOC_INDEX_NAME, id=doc_id)
+            return r["_source"]
+        except Exception:
+            return None
+
+    def get_archive_facets(self, collection=None):
+        """Return cases + sub_cases + collections present, optionally scoped."""
+        body = {
+            "size": 0,
+            "aggs": {
+                "collections": {"terms": {"field": "collection", "size": 20}},
+                "cases": {"terms": {"field": "case", "size": 200}},
+                "sub_cases": {"terms": {"field": "sub_case", "size": 300}},
+            },
+        }
+        if collection:
+            body["query"] = {"term": {"collection": collection}}
+        try:
+            r = self.es.search(index=ARCHIVE_DOC_INDEX_NAME, body=body)
+            return {
+                "collections": [b["key"] for b in r["aggregations"]["collections"]["buckets"]],
+                "cases": sorted(
+                    b["key"] for b in r["aggregations"]["cases"]["buckets"] if b["key"]
+                ),
+                "sub_cases": sorted(
+                    b["key"] for b in r["aggregations"]["sub_cases"]["buckets"] if b["key"]
+                ),
+            }
+        except Exception as e:
+            logger.debug("archive facets: %s", e)
+            return {"collections": [], "cases": [], "sub_cases": []}
 
     def index_article(self, article_data):
         """Index a single article."""

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}{{ doc.title }} — {{ collection_label }} — Profoundd{% endblock %}
+{% block description %}{{ doc.summary[:160] }}{% endblock %}
+
+{% block content %}
+<div class="container fwp-doc-page">
+    <nav class="fwp-breadcrumb">
+        <a href="/archive-docs/{{ doc.collection }}">← {{ collection_label }}</a>
+    </nav>
+
+    <header class="fwp-doc-header">
+        <h1>{{ doc.title }}</h1>
+        <div class="fwp-doc-meta-grid">
+            <div><label>Collection</label><p>{{ collection_label }}</p></div>
+            {% if doc.case %}<div><label>Case</label><p>{{ doc.case|replace('-',' ')|title }}</p></div>{% endif %}
+            {% if doc.sub_case %}<div><label>Sub-case</label><p>{{ doc.sub_case|replace('-',' ')|title }}</p></div>{% endif %}
+            {% if doc.page_count %}<div><label>Pages</label><p>{{ doc.page_count }}</p></div>{% endif %}
+            {% if doc.part_number %}<div><label>Part</label><p>{{ doc.part_number }}</p></div>{% endif %}
+            {% if doc.snapshot_date %}<div><label>Wayback Snapshot</label><p>{{ doc.snapshot_date }}</p></div>{% endif %}
+        </div>
+        <div class="fwp-doc-actions">
+            {% if doc.pdf_url %}
+            <a href="{{ doc.pdf_url }}" target="_blank" rel="noopener" class="btn btn-primary">Download PDF</a>
+            {% endif %}
+            {% if doc.source_url %}
+            <a href="{{ doc.source_url }}" target="_blank" rel="noopener" class="btn btn-secondary">View original</a>
+            {% endif %}
+        </div>
+    </header>
+
+    {% if session.get('user_logged_in') or session.get('admin_logged_in') %}
+    <section class="fwp-explain">
+        <h2>Ask AI about this document</h2>
+        <form id="archive-explain-form" class="fwp-explain-form">
+            <input type="text" id="archive-explain-query" placeholder="e.g. surveillance, informant, named individuals…" required>
+            <button type="submit" class="btn btn-primary">Explain</button>
+        </form>
+        <div id="archive-explain-result" style="display:none;"></div>
+    </section>
+    <script>
+    document.getElementById('archive-explain-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var q = document.getElementById('archive-explain-query').value.trim();
+        if (!q) return;
+        var p = document.getElementById('archive-explain-result');
+        p.innerHTML = '<div style="padding:12px;color:var(--text-secondary);"><em>Analyzing for "' + q + '"…</em></div>';
+        p.style.display = 'block';
+        fetch('/api/archive-explain', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({doc_id: {{ doc.doc_id | tojson }}, query: q})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d.error) { p.innerHTML = '<div class="ai-epstein-result"><div class="ai-epstein-header">Error</div><div class="ai-epstein-body">' + d.error + '</div></div>'; return; }
+            var prov = (d.provider || '').toLowerCase();
+            var badge = '';
+            var notice = '';
+            if (prov === 'grok') {
+                badge = '<span class="ai-provider-badge ai-provider-grok">Grok (xAI)</span>';
+                if (d.fallback_reason) notice = '<div class="ai-fallback-notice">⚠️ Claude was unavailable, so this came from Grok. Verify any specific claims against the source.</div>';
+            } else if (prov === 'anthropic' || prov === 'claude') {
+                badge = '<span class="ai-provider-badge ai-provider-claude">Claude</span>';
+            } else if (prov === 'cache') {
+                badge = '<span class="ai-provider-badge ai-provider-cache">Cached</span>';
+            }
+            p.innerHTML = '<div class="ai-epstein-result">'
+                + '<div class="ai-epstein-header">AI Analysis: "' + q + '"' + badge + '</div>'
+                + notice
+                + '<div class="ai-epstein-body">' + (d.explanation || '').replace(/\n/g, '<br>') + '</div>'
+                + '</div>';
+        })
+        .catch(function(err) { p.innerHTML = '<div style="padding:12px;color:var(--danger);">Failed: ' + err + '</div>'; });
+    });
+    </script>
+    {% endif %}
+
+    <section class="fwp-content">
+        <h2>Document text</h2>
+        {% if doc.content %}
+        <pre class="fwp-text">{{ doc.content }}</pre>
+        {% else %}
+        <p class="fwp-empty">No text was extracted. Use the Download / View original button above.</p>
+        {% endif %}
+    </section>
+
+    {% include "_related_docs.html" %}
+</div>
+
+<style>
+.fwp-doc-page { max-width: 920px; margin: 0 auto; padding: 24px 16px; }
+.fwp-breadcrumb { margin-bottom: 12px; font-size: 0.88rem; }
+.fwp-breadcrumb a { color: var(--accent); text-decoration: none; }
+.fwp-doc-header h1 { margin: 0 0 14px; font-size: 1.6rem; line-height: 1.3; }
+.fwp-doc-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; padding: 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; }
+.fwp-doc-meta-grid label { display: block; font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+.fwp-doc-meta-grid p { margin: 0; font-size: 0.9rem; }
+.fwp-doc-actions { display: flex; gap: 8px; margin-bottom: 18px; }
+.fwp-explain { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+.fwp-explain h2 { margin: 0 0 10px; font-size: 1.05rem; }
+.fwp-explain-form { display: flex; gap: 8px; }
+.fwp-explain-form input { flex: 1; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); }
+.fwp-content h2 { font-size: 1.1rem; margin-bottom: 10px; }
+.fwp-text { white-space: pre-wrap; word-wrap: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; line-height: 1.6; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; max-height: 70vh; overflow-y: auto; }
+.fwp-empty { padding: 30px; text-align: center; color: var(--text-secondary); }
+</style>
+{% endblock %}

@@ -425,6 +425,27 @@ Based ONLY on what this page says, answer:
 
 Be factual and concise. Only state what the page contains.""",
 
+    "archive": """You are analyzing a document from a historical archive
+(FBI Vault, SPLC Wayback, CIA CREST, etc.).
+
+User's question / search term: "{query}"
+Title: {title}
+Collection: {collection}
+Case: {case}{sub_case}
+Snapshot date: {snapshot_date}
+
+Document text (centered on the search term):
+{content_window}
+
+Based ONLY on what this document says, answer:
+1. How does this document relate to "{query}"?
+2. Quote key sentences verbatim where relevant.
+3. Identify named people, dates, places, or events present in the text.
+4. If "{query}" doesn't appear, say so plainly and describe what the
+   document is actually about.
+
+Be factual and concise. Preserve original phrasing in quotes.""",
+
     "fwp": """You are analyzing a Federal Writers' Project document from the
 Library of Congress (1936-1940 WPA-era oral histories and life stories).
 
@@ -506,6 +527,25 @@ In 3-5 sentences, describe what this page actually contains:
 - The page's role in the broader document
 
 Be factual and concise. Only state what the page contains.""",
+
+    "archive": """You are summarizing a document from a historical archive
+(FBI Vault, SPLC Wayback, CIA CREST, etc.).
+
+Title: {title}
+Collection: {collection}
+Case: {case}{sub_case}
+Snapshot date: {snapshot_date}
+
+Document text:
+{content_window}
+
+In 3-5 sentences, describe what this document actually contains:
+- Type of document (memo, transcript, report, etc.)
+- Named people and their roles
+- Main subject or finding
+- Notable dates, places, or events
+
+Be factual and concise.""",
 
     "fwp": """You are summarizing a Federal Writers' Project document from
 the Library of Congress (1936-1940 WPA-era oral histories).

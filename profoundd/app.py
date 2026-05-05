@@ -1698,6 +1698,119 @@ def create_app(config_override=None):
             headers=headers,
         )
 
+    # --- Archive collections (FBI Vault, SPLC Wayback, future CIA/JFK) ---
+
+    ARCHIVE_LABELS = {
+        "fbi-vault": "FBI Vault",
+        "splc": "Southern Poverty Law Center (Wayback)",
+        "cia-crest": "CIA CREST",
+        "jfk-records": "JFK Records",
+    }
+
+    @app.route("/archive-docs")
+    def archive_docs_index():
+        """Browse / search across all archive collections."""
+        return _archive_browse(collection=None)
+
+    @app.route("/archive-docs/<collection>")
+    def archive_docs_by_collection(collection):
+        """Browse / search one archive collection."""
+        if collection not in ARCHIVE_LABELS:
+            return render_template("404.html"), 404
+        return _archive_browse(collection=collection)
+
+    def _archive_browse(collection):
+        query = request.args.get("q", "").strip()
+        page = request.args.get("page", 1, type=int)
+        case = request.args.get("case", "").strip() or None
+        date_from = request.args.get("date_from", "").strip() or None
+        date_to = request.args.get("date_to", "").strip() or None
+        sort_by = request.args.get("sort", "relevance")
+
+        if not search_engine.is_available():
+            return render_template(
+                "archive_docs_index.html",
+                results={"articles": [], "total": 0, "page": 1},
+                facets={"collections": [], "cases": [], "sub_cases": []},
+                query=query, case=case, date_from=date_from, date_to=date_to,
+                sort_by=sort_by, collection=collection,
+                collection_label=ARCHIVE_LABELS.get(collection) if collection else "All Archives",
+                archive_labels=ARCHIVE_LABELS,
+                categories=CATEGORIES,
+            )
+
+        results = search_engine.search_archive_docs(
+            query=query, collection=collection, page=page, per_page=20,
+            case=case, date_from=date_from, date_to=date_to, sort_by=sort_by,
+        )
+        facets = search_engine.get_archive_facets(collection=collection)
+        return render_template(
+            "archive_docs_index.html",
+            results=results, facets=facets,
+            query=query, case=case, date_from=date_from, date_to=date_to,
+            sort_by=sort_by, collection=collection,
+            collection_label=ARCHIVE_LABELS.get(collection) if collection else "All Archives",
+            archive_labels=ARCHIVE_LABELS,
+            categories=CATEGORIES,
+        )
+
+    @app.route("/archive-docs/<collection>/<doc_id>")
+    def archive_doc_viewer(collection, doc_id):
+        """View a single archive doc."""
+        if collection not in ARCHIVE_LABELS:
+            return render_template("404.html"), 404
+        doc = search_engine.get_archive_doc(doc_id)
+        if not doc or doc.get("collection") != collection:
+            return render_template("404.html"), 404
+        from profoundd.search.related import find_related
+        try:
+            related = find_related(
+                es=search_engine.es if search_engine.is_available() else None,
+                source_type="archive",
+                source_id=doc_id,
+                title=doc.get("title", ""),
+                content=doc.get("content", ""),
+            )
+        except Exception:
+            related = {}
+        return render_template(
+            "archive_doc.html", doc=doc, related=related,
+            collection_label=ARCHIVE_LABELS.get(collection, collection),
+            categories=CATEGORIES,
+        )
+
+    @app.route("/api/archive-explain", methods=["POST"])
+    def api_archive_explain():
+        """AI explain a query against an archive doc."""
+        if not session.get("user_logged_in") and not session.get("admin_logged_in"):
+            return jsonify(error="Log in to use AI analysis"), 401
+        data = request.get_json(silent=True) or {}
+        doc_id = data.get("doc_id", "").strip()
+        query = data.get("query", "").strip()
+        if not doc_id or not query:
+            return jsonify(error="Missing doc_id or query"), 400
+        doc = search_engine.get_archive_doc(doc_id)
+        if not doc:
+            return jsonify(error=f"Doc {doc_id} not found"), 404
+
+        from profoundd.search.ai_explain import explain, PROMPTS
+        body, status = explain(
+            doc_type="archive",
+            doc_id=doc_id,
+            page_number=0,
+            content=doc.get("content", ""),
+            query=query,
+            meta={
+                "title": doc.get("title", ""),
+                "collection": doc.get("collection", ""),
+                "case": doc.get("case", "") or "",
+                "sub_case": doc.get("sub_case", "") or "",
+                "snapshot_date": doc.get("snapshot_date", "") or "",
+            },
+            prompt_template=PROMPTS.get("archive", PROMPTS.get("epstein", "")),
+        )
+        return jsonify(**body), status
+
     # --- Federal Writers' Project (FWP) ---
 
     @app.route("/fwp-docs")

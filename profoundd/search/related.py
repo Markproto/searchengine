@@ -35,6 +35,7 @@ _TARGETS = {
     "wef":      ("profoundd_wef_docs",     "doc_id",      "/wef-docs/{doc_id}/{page_number}"),
     "epstein":  ("profoundd_epstein_docs", "bates_number","/epstein-docs/{bates_number}"),
     "fwp":      ("profoundd_fwp_docs",     "item_id",     "/fwp-docs/{item_id}"),
+    "archive":  ("profoundd_archive_docs", "doc_id",      "/archive-docs/{collection}/{doc_id}"),
     "articles": ("profoundd_articles",     "url",         "{url}"),
 }
 
@@ -72,6 +73,7 @@ def _format_hit(target_type, src):
             "page_number": src.get("page_number", 1) or 1,
             "bates_number": src.get("bates_number", ""),
             "item_id": src.get("item_id", ""),
+            "collection": src.get("collection", "fbi-vault"),
             "url": src.get("url", "#"),
         })
     except Exception:
@@ -93,6 +95,11 @@ def _format_hit(target_type, src):
             title = f"{title} p.{src['page_number']}"
     elif target_type == "fwp":
         title = src.get("title") or src.get("item_id") or "FWP document"
+    elif target_type == "archive":
+        col = src.get("collection", "")
+        title = src.get("title") or "Archive document"
+        if col:
+            title = f"{title} — {col}"
     else:
         title = src.get("title", "(untitled)")
 
