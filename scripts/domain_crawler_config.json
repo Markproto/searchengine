@@ -66,6 +66,8 @@
     "opb.org": {"category": "news", "credibility": 7, "seeds": ["https://www.opb.org/"]},
     "willametteweek.com": {"category": "news", "credibility": 7, "seeds": ["https://www.wweek.com/"]},
     "kobi5.com": {"category": "news", "credibility": 7, "seeds": ["https://kobi5.com/"]},
-    "kdrv.com": {"category": "news", "credibility": 7, "seeds": ["https://kdrv.com/"]}
+    "kdrv.com": {"category": "news", "credibility": 7, "seeds": ["https://kdrv.com/"]},
+    "defendinged.org": {"category": "education", "credibility": 7, "seeds": ["https://defendinged.org/news/", "https://defendinged.org/research/"]},
+    "co2coalition.org": {"category": "environment", "credibility": 7, "seeds": ["https://co2coalition.org/news/", "https://co2coalition.org/publications/"]}
   }
 }

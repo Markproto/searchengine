@@ -130,20 +130,38 @@ SCIENCE_SOURCES = [
 ]
 
 EDUCATION_SOURCES = [
-    # --- Education ---
+    # --- Education (mainstream) ---
     {"name": "Inside Higher Ed", "url": "https://www.insidehighered.com/rss/feed", "category": "education", "credibility": 7, "feed_type": "rss"},
     {"name": "Chronicle of Higher Ed", "url": "https://www.chronicle.com/feed", "category": "education", "credibility": 7, "feed_type": "rss"},
     {"name": "Education Week", "url": "https://www.edweek.org/feed", "category": "education", "credibility": 7, "feed_type": "rss"},
     {"name": "Times Higher Education", "url": "https://www.timeshighereducation.com/rss", "category": "education", "credibility": 7, "feed_type": "rss"},
     {"name": "EdSurge", "url": "https://www.edsurge.com/articles_rss", "category": "education", "credibility": 7, "feed_type": "rss"},
+    # --- Education (critical of unions / DOE) ---
+    {"name": "The Free Press", "url": "https://www.thefp.com/feed", "category": "education", "credibility": 8, "feed_type": "rss"},
+    {"name": "City Journal", "url": "https://www.city-journal.org/rss", "category": "education", "credibility": 8, "feed_type": "rss"},
+    {"name": "Christopher Rufo", "url": "https://christopherrufo.com/feed", "category": "education", "credibility": 7, "feed_type": "rss"},
+    {"name": "The American Mind (Claremont)", "url": "https://americanmind.org/feed/", "category": "education", "credibility": 7, "feed_type": "rss"},
+    {"name": "The 74", "url": "https://www.the74million.org/feed/", "category": "education", "credibility": 7, "feed_type": "rss"},
+    {"name": "Education Next (Hoover)", "url": "https://www.educationnext.org/feed/", "category": "education", "credibility": 8, "feed_type": "rss"},
+    {"name": "Reason — Education", "url": "https://reason.com/latest/feed/", "category": "education", "credibility": 7, "feed_type": "rss"},
 ]
 
 ENVIRONMENT_SOURCES = [
-    # --- Environment & Climate ---
+    # --- Environment & Climate (mainstream) ---
     {"name": "Climate.gov", "url": "https://www.climate.gov/feeds/all", "category": "environment", "credibility": 7, "feed_type": "rss"},
     {"name": "Carbon Brief", "url": "https://www.carbonbrief.org/feed/", "category": "environment", "credibility": 7, "feed_type": "rss"},
     {"name": "Mongabay", "url": "https://news.mongabay.com/feed/", "category": "environment", "credibility": 7, "feed_type": "rss"},
     {"name": "Yale Environment 360", "url": "https://e360.yale.edu/feed.xml", "category": "environment", "credibility": 7, "feed_type": "rss"},
+    # --- Environment & Climate (skeptic / critical of climate-policy lockdowns) ---
+    {"name": "CO2 Coalition", "url": "https://co2coalition.org/feed/", "category": "environment", "credibility": 7, "feed_type": "rss"},
+    {"name": "Watts Up With That", "url": "https://wattsupwiththat.com/feed/", "category": "environment", "credibility": 7, "feed_type": "rss"},
+    {"name": "Climate Depot", "url": "https://www.climatedepot.com/feed/", "category": "environment", "credibility": 6, "feed_type": "rss"},
+    {"name": "Climate Realism (Heartland)", "url": "https://climaterealism.com/feed/", "category": "environment", "credibility": 7, "feed_type": "rss"},
+    {"name": "Climate Etc. (Judith Curry)", "url": "https://judithcurry.com/feed/", "category": "environment", "credibility": 8, "feed_type": "rss"},
+    {"name": "JunkScience", "url": "https://junkscience.com/feed/", "category": "environment", "credibility": 6, "feed_type": "rss"},
+    {"name": "NoTricksZone", "url": "https://notrickszone.com/feed/", "category": "environment", "credibility": 6, "feed_type": "rss"},
+    {"name": "Manhattan Contrarian", "url": "https://www.manhattancontrarian.com/blog?format=rss", "category": "environment", "credibility": 6, "feed_type": "rss"},
+    {"name": "Real Climate Science", "url": "https://realclimatescience.com/feed/", "category": "environment", "credibility": 6, "feed_type": "rss"},
 ]
 
 POLITICS_SOURCES = [
@@ -154,6 +172,18 @@ POLITICS_SOURCES = [
     {"name": "ProPublica", "url": "https://www.propublica.org/feeds/propublica/main", "category": "politics", "credibility": 7, "feed_type": "rss"},
     {"name": "Brookings", "url": "https://www.brookings.edu/feed/", "category": "politics", "credibility": 7, "feed_type": "rss"},
     {"name": "RAND", "url": "https://www.rand.org/content/rand/blog.rss", "category": "politics", "credibility": 7, "feed_type": "rss"},
+
+    # --- Eagle Forum (national; Oregon chapter has no live RSS) ---
+    {"name": "Eagle Forum", "url": "https://eagleforum.org/feed", "category": "politics", "credibility": 7, "feed_type": "rss"},
+
+    # --- Agenda 2030 / Lockdown / Smart-City critics ---
+    {"name": "Brownstone Institute", "url": "https://brownstone.org/feed/", "category": "politics", "credibility": 7, "feed_type": "rss"},
+    {"name": "Reclaim The Net", "url": "https://reclaimthenet.org/feed", "category": "politics", "credibility": 7, "feed_type": "rss"},
+    {"name": "The Counter Signal", "url": "https://thecountersignal.com/feed", "category": "politics", "credibility": 6, "feed_type": "rss"},
+    {"name": "Winter Oak", "url": "https://winteroak.org.uk/feed/", "category": "politics", "credibility": 6, "feed_type": "rss"},
+    {"name": "Iain Davis", "url": "https://www.iaindavis.com/feed/", "category": "politics", "credibility": 6, "feed_type": "rss"},
+    {"name": "The Exposé", "url": "https://expose-news.com/feed/", "category": "politics", "credibility": 5, "feed_type": "rss"},
+    {"name": "Activist Post", "url": "https://www.activistpost.com/feed", "category": "politics", "credibility": 6, "feed_type": "rss"},
 
     # --- Independent Commentary / Podcasts ---
     {"name": "Candace (Podcast)", "url": "https://feeds.megaphone.fm/candace", "category": "politics", "credibility": 8, "feed_type": "rss"},
