@@ -200,9 +200,19 @@ def build_es_doc(url, text, page_count):
     meta_path_url = pdf_url
     meta = parse_url_metadata(meta_path_url)
     title = meta["title"] or "FBI Vault document"
-    summary = (text[:500].replace("\n", " ") if text else "").strip()
-    if len(text) > 500:
-        summary = summary.rsplit(" ", 1)[0] + "…"
+    if text:
+        summary = text[:500].replace("\n", " ").strip()
+        if len(text) > 500:
+            summary = summary.rsplit(" ", 1)[0] + "…"
+    else:
+        # FBI Vault PDFs are image-only scans with no embedded text layer.
+        # Surface that in the summary so users know to download the PDF.
+        case_label = meta["case"].replace("-", " ").title() if meta["case"] else ""
+        summary = (
+            f"Scanned PDF — {page_count} page{'s' if page_count != 1 else ''}. "
+            f"{case_label} case file from the FBI Vault. "
+            f"No extractable text layer; download the PDF to read."
+        )
 
     # doc_id is collection-prefixed so multiple collections share one index
     raw_id = f"{COLLECTION}::{pdf_url}"
