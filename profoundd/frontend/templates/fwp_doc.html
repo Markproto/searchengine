@@ -92,16 +92,7 @@
         {% endif %}
     </section>
 
-    {% if related %}
-    <section class="fwp-related">
-        <h2>Related</h2>
-        <ul>
-        {% for r in related[:6] %}
-            <li><a href="{{ r.url }}">{{ r.title }}</a> <span class="fwp-related-meta">— {{ r.source_type }}</span></li>
-        {% endfor %}
-        </ul>
-    </section>
-    {% endif %}
+    {% include "_related_docs.html" %}
 </div>
 
 <style>
