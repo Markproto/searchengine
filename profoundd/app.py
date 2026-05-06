@@ -4,6 +4,7 @@ Main Flask application for Profoundd search engine.
 import os
 import json
 import hashlib
+import re
 import threading
 import time
 import uuid
@@ -928,6 +929,41 @@ def create_app(config_override=None):
             source_filter=source_filter or None,
             exclude_sponsored=exclude_sponsored,
         )
+
+        # Long-query relax-to-OR: AND-default leaves natural-language questions
+        # (>12 words) with 0 hits when no doc contains every word. Retry once
+        # with a 30%-min-should-match OR query so the request still surfaces
+        # something topically relevant. Marks results so the template can show
+        # a "We loosened your query" notice.
+        long_query_relaxed = False
+        if query and results.get("total", 0) == 0 and len(query.split()) > 12:
+            try:
+                # Strip stopwords + short tokens, OR the rest with min-should-match
+                stop = {"the","a","an","and","or","but","of","to","for","with","on",
+                        "in","at","by","is","are","was","were","be","been","being",
+                        "this","that","these","those","it","its","into","about",
+                        "tell","me","more","what","when","where","why","how","does","did","do"}
+                terms = [t for t in re.findall(r"[A-Za-z0-9'-]+", query)
+                         if len(t) >= 3 and t.lower() not in stop]
+                if len(terms) >= 4:
+                    relaxed_q = " OR ".join(f'"{t}"' if "-" in t else t for t in terms[:20])
+                    relaxed = search_engine.search(
+                        query=relaxed_q,
+                        category=category,
+                        page=page,
+                        sort_by=sort_by,
+                        date_from=date_from,
+                        date_to=date_to,
+                        source_filter=source_filter or None,
+                        exclude_sponsored=exclude_sponsored,
+                    )
+                    if relaxed.get("total", 0) > 0:
+                        results = relaxed
+                        long_query_relaxed = True
+                        results["long_query_relaxed"] = True
+                        results["original_long_query"] = query
+            except Exception as e:
+                logger.debug("long-query relax failed: %s", e)
 
         # Blend in Epstein court document results on "all" and "epstein-files" category searches
         if tab == "all" and category in ("all", "epstein-files") and query:

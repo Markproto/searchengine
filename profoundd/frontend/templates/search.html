@@ -370,6 +370,13 @@
     </div>
     {% endif %}
 
+    {% if results.long_query_relaxed %}
+    <div class="expansion-note" style="margin:8px 0 12px;padding:10px 14px;background:var(--bg-secondary);border-left:3px solid var(--accent);border-radius:6px;font-size:0.88rem;color:var(--text-secondary);">
+        Your full question didn't have an exact match, so we loosened it to look
+        for <em>any</em> of its key words. Showing best topical matches.
+    </div>
+    {% endif %}
+
     {% if results.alias_expansions %}
     <div class="expansion-note" style="margin:8px 0 12px;padding:10px 14px;background:var(--bg-secondary);border-left:3px solid var(--accent);border-radius:6px;font-size:0.88rem;color:var(--text-secondary);">
         Also matching documented aliases &amp; OCR variants:
@@ -658,6 +665,7 @@
     {% elif query %}
     <div class="no-results">
         <h2>No results found for "{{ query }}"</h2>
+        <div id="zero-results-spelling" style="display:none;margin:14px 0;padding:10px 14px;background:var(--bg-secondary);border-left:3px solid var(--accent);border-radius:6px;font-size:0.95rem;"></div>
         <p>Profoundd searched its curated index and external sources but couldn't find a match.</p>
         <div class="no-results-tips">
             <p><strong>Try:</strong></p>
@@ -669,6 +677,22 @@
         </div>
         <a href="/" class="btn btn-primary">Back to Home</a>
     </div>
+    <script>
+    (function() {
+        var q = {{ query | tojson }};
+        if (!q || q.length < 2) return;
+        fetch('/api/spelling?q=' + encodeURIComponent(q))
+          .then(function(r){ return r.json(); })
+          .then(function(d){
+              if (!d || !d.suggestion || d.suggestion.toLowerCase() === q.toLowerCase()) return;
+              var el = document.getElementById('zero-results-spelling');
+              if (!el) return;
+              el.innerHTML = 'Did you mean: <a href="/search?q=' + encodeURIComponent(d.suggestion) + '" style="font-weight:600;">' + d.suggestion + '</a>?';
+              el.style.display = 'block';
+          })
+          .catch(function(){});
+    })();
+    </script>
     {% else %}
     <div class="search-prompt">
         <h2>Enter a search query</h2>
