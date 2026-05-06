@@ -53,10 +53,52 @@ def looks_like_podcast_feed(url, content_type=""):
     return False
 
 
-def fetch_audio_bytes(url, max_bytes=MAX_AUDIO_BYTES, timeout=120):
+def _ffmpeg_recompress(input_bytes, target_bytes=MAX_AUDIO_BYTES):
+    """Re-encode audio at a lower bitrate so it fits under Groq's 25 MB limit.
+    Uses ffmpeg in-process via subprocess. Returns (output_bytes, "audio/mpeg").
+    Raises if ffmpeg isn't installed or the output still exceeds target."""
+    if not shutil.which("ffmpeg"):
+        raise ValueError(
+            "Audio file too large for Groq (>25 MB) and ffmpeg is not "
+            "installed. Add ffmpeg to the container or trim manually."
+        )
+    with tempfile.TemporaryDirectory() as tmp:
+        in_path = f"{tmp}/in"
+        out_path = f"{tmp}/out.mp3"
+        with open(in_path, "wb") as f:
+            f.write(input_bytes)
+        # 32 kbps mono — Whisper handles low-bitrate fine; ~13 MB / hour
+        cmd = [
+            "ffmpeg", "-y", "-loglevel", "error",
+            "-i", in_path,
+            "-vn",
+            "-ac", "1",
+            "-b:a", "32k",
+            "-ar", "16000",
+            "-codec:a", "libmp3lame",
+            out_path,
+        ]
+        try:
+            subprocess.run(cmd, check=True, timeout=600,
+                           capture_output=True, text=True)
+        except subprocess.CalledProcessError as e:
+            raise ValueError(f"ffmpeg recompress failed: {e.stderr[:200]}")
+        with open(out_path, "rb") as f:
+            data = f.read()
+        if len(data) > target_bytes:
+            raise ValueError(
+                f"Even after recompression the file is {len(data)} bytes "
+                f"(> {target_bytes}). Try a shorter clip."
+            )
+        return data, "audio/mpeg"
+
+
+def fetch_audio_bytes(url, max_bytes=MAX_AUDIO_BYTES, timeout=300):
     """GET an audio URL and return (bytes, content_type, suggested_filename).
 
-    Raises ValueError if the URL doesn't look like audio or exceeds size.
+    If the file exceeds max_bytes (Groq's 25 MB limit), automatically
+    downloads the full file and re-encodes via ffmpeg at 32 kbps mono.
+    Raises ValueError if the URL doesn't look like audio.
     """
     resp = requests.get(
         url,
@@ -67,28 +109,27 @@ def fetch_audio_bytes(url, max_bytes=MAX_AUDIO_BYTES, timeout=120):
     resp.raise_for_status()
     ctype = resp.headers.get("Content-Type", "")
     clen = resp.headers.get("Content-Length")
-    if clen and int(clen) > max_bytes:
-        resp.close()
-        raise ValueError(
-            f"Audio file too large: {int(clen)} bytes (max {max_bytes}). "
-            "Re-encode at lower bitrate, trim, or split before re-trying."
-        )
 
-    # Read up to max_bytes
+    # Generous cap on the raw download so we can recompress big files.
+    # Hard ceiling at 200 MB to avoid runaway downloads.
+    raw_cap = max(max_bytes * 8, 200 * 1024 * 1024)
+
     chunks = []
     total = 0
     for chunk in resp.iter_content(chunk_size=131072):
         if not chunk:
             continue
         total += len(chunk)
-        if total > max_bytes:
+        if total > raw_cap:
             resp.close()
             raise ValueError(
-                f"Audio file exceeded size cap mid-download (>{max_bytes} bytes)."
+                f"Audio file exceeded raw cap ({raw_cap} bytes); refusing to download more."
             )
         chunks.append(chunk)
     resp.close()
     data = b"".join(chunks)
+
+    needs_recompress = len(data) > max_bytes
 
     # Sanity-check we got audio
     if not (any(t in ctype.lower() for t in AUDIO_CONTENT_TYPES)
@@ -102,7 +143,6 @@ def fetch_audio_bytes(url, max_bytes=MAX_AUDIO_BYTES, timeout=120):
     parsed = urlparse(url)
     name = parsed.path.rsplit("/", 1)[-1] or "audio.mp3"
     if "." not in name:
-        # Pick extension from content-type
         if "mpeg" in ctype or "mp3" in ctype:
             name += ".mp3"
         elif "m4a" in ctype or "mp4" in ctype:
@@ -111,6 +151,15 @@ def fetch_audio_bytes(url, max_bytes=MAX_AUDIO_BYTES, timeout=120):
             name += ".wav"
         else:
             name += ".mp3"
+
+    if needs_recompress:
+        logger.info("Audio %s is %d bytes (>%d); recompressing via ffmpeg",
+                    name, len(data), max_bytes)
+        data, ctype = _ffmpeg_recompress(data, target_bytes=max_bytes)
+        # Force .mp3 extension on recompressed output
+        if not name.lower().endswith(".mp3"):
+            name = name.rsplit(".", 1)[0] + ".mp3"
+
     return data, ctype, name[:200]
 
 
