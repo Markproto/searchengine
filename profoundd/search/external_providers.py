@@ -785,11 +785,40 @@ def fetch_brave_web(query, max_results=10):
         return []
 
 
+# Pfizer-sponsored domains tagged for downrate even when not in our RSS feed list.
+# These appear via web fallback (SearXNG, Brave) — boost_known_domains stamps
+# source_credibility=5 + source_sponsors=["Pfizer"] so they sort lower and the
+# "Exclude Pfizer-sponsored" checkbox can hide them.
+# Match is suffix-based, so "www.mayoclinic.org" and "newsnetwork.mayoclinic.org"
+# both match "mayoclinic.org".
+PFIZER_SPONSORED_DOMAINS = {
+    "nycourts.gov",
+    "ema.europa.eu",
+    "goodrx.com",
+    "pmc.ncbi.nlm.nih.gov",
+    "mayoclinic.org",
+    "georgiapoisoncenter.org",
+    "drugs.com",
+    "dshs.texas.gov",
+}
+
+
+def _is_pfizer_sponsored(domain):
+    """Suffix match against PFIZER_SPONSORED_DOMAINS."""
+    if not domain:
+        return False
+    d = domain.lower().replace("www.", "")
+    if d in PFIZER_SPONSORED_DOMAINS:
+        return True
+    return any(d.endswith("." + sd) for sd in PFIZER_SPONSORED_DOMAINS)
+
+
 def boost_known_domains(articles):
     """
     Re-rank web results to prioritize domains from Profoundd's source list.
     Known domains get boosted to the top and inherit credibility + sponsor
-    metadata from our source config.
+    metadata from our source config. Domains in PFIZER_SPONSORED_DOMAINS
+    get marked as Pfizer-sponsored even if they aren't in the RSS feed list.
     """
     from profoundd.config.sources import ALL_SOURCES
     from urllib.parse import urlparse
@@ -833,8 +862,29 @@ def boost_known_domains(articles):
     known = []
     unknown = []
     for article in articles:
+        # Prefer domain extracted from URL when source_name is a fuzzy label
+        url = article.get("url") or ""
+        url_domain = ""
+        try:
+            url_domain = urlparse(url).netloc.replace("www.", "").lower()
+        except Exception:
+            pass
         domain = article.get("source_name", "").lower()
         domain_base = domain.split(".")[0] if "." in domain else domain
+
+        # Pfizer-sponsored downrate trumps the RSS-feed match — these always
+        # get tagged regardless of where they appear from.
+        if _is_pfizer_sponsored(url_domain) or _is_pfizer_sponsored(domain):
+            article["source_credibility"] = 5
+            existing = article.get("source_sponsors") or []
+            if isinstance(existing, str):
+                existing = [existing]
+            if "Pfizer" not in existing:
+                existing = list(existing) + ["Pfizer"]
+            article["source_sponsors"] = existing
+            unknown.append(article)
+            continue
+
         matched_meta = domain_meta.get(domain) or domain_meta.get(domain_base)
         if domain in known_domains or domain_base in known_domains:
             if matched_meta:
