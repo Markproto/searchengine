@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Podcast Feed → Bob — Admin{% endblock %}
+
+{% block content %}
+<div class="container admin-page" style="max-width:1100px;">
+    <div class="admin-header">
+        <h1>Podcast feed → Bob</h1>
+        <a href="{{ url_for('admin.bob_audio_list') }}" class="btn btn-secondary">← Audio → Bob</a>
+    </div>
+
+    <div class="admin-section">
+        <h2>Step 1 — paste a podcast feed URL</h2>
+        <p class="action-desc">
+            Either the RSS feed URL directly, or look it up via
+            <a href="https://podcasts.apple.com" target="_blank" rel="noopener">Apple Podcasts</a> /
+            <a href="https://castro.fm" target="_blank" rel="noopener">Castro</a> /
+            <a href="https://podcastindex.org" target="_blank" rel="noopener">Podcast Index</a>.
+            Once parsed, you can ingest a specific episode below.
+        </p>
+        <form method="GET" class="admin-form">
+            <div class="form-group">
+                <label>Feed URL</label>
+                <input type="url" name="feed_url" required value="{{ feed_url|e }}"
+                       placeholder="https://feeds.megaphone.fm/…"
+                       class="form-control">
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Load feed</button>
+            </div>
+        </form>
+    </div>
+
+    {% if feed %}
+    <div class="admin-section">
+        <h2>{{ feed.feed_title }}</h2>
+        <p class="action-desc">
+            <strong>{{ feed.episodes | length }}</strong> episodes.
+            {% if feed.feed_link %}
+            <a href="{{ feed.feed_link }}" target="_blank" rel="noopener">Show site →</a>
+            {% endif %}
+        </p>
+        {% if not groq_key_configured %}
+        <div class="alert alert-error" style="background:#b91c1c33;border:1px solid #b91c1c;padding:12px;border-radius:6px;margin-bottom:12px;">
+            <strong>Groq API key not configured.</strong>
+            Set one in <a href="{{ url_for('admin.ai_settings') }}" style="color:var(--accent);">AI Settings</a>.
+        </div>
+        {% endif %}
+
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Episode</th>
+                    <th>Published</th>
+                    <th>Duration</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ep in feed.episodes %}
+                <tr>
+                    <td>
+                        <strong>{{ ep.title }}</strong>
+                        {% if ep.description %}
+                        <div style="color:var(--text-secondary);font-size:0.82rem;margin-top:4px;">{{ ep.description[:240] }}{% if ep.description | length > 240 %}…{% endif %}</div>
+                        {% endif %}
+                    </td>
+                    <td style="white-space:nowrap;font-size:0.82rem;">{{ ep.pub_date[:16] if ep.pub_date else '—' }}</td>
+                    <td style="white-space:nowrap;font-size:0.82rem;">
+                        {% if ep.duration_seconds %}
+                            {{ '%d' % (ep.duration_seconds // 60) }}:{{ '%02d' % (ep.duration_seconds % 60) }}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('admin.bob_podcast_ingest_episode') }}"
+                              onsubmit="return confirm('Download + transcribe this episode? This may take a minute.');">
+                            <input type="hidden" name="audio_url" value="{{ ep.audio_url }}">
+                            <input type="hidden" name="episode_title" value="{{ ep.title }}">
+                            <input type="hidden" name="feed_title" value="{{ feed.feed_title }}">
+                            <input type="hidden" name="feed_url" value="{{ feed_url }}">
+                            <button type="submit" class="btn btn-sm btn-primary"
+                                    {% if not groq_key_configured %}disabled{% endif %}>
+                                Transcribe
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -3035,3 +3035,144 @@ def bob_audio_delete(transcript_id):
     db.session.commit()
     flash("Transcript deleted.", "success")
     return redirect(url_for("admin.bob_audio_list"))
+
+
+# ---------------------------------------------------------------------------
+# URL / Podcast / Video ingest
+# ---------------------------------------------------------------------------
+
+def _groq_key():
+    import os as _os
+    return SiteSetting.get("groq_api_key", "") or _os.environ.get("GROQ_API_KEY", "")
+
+
+def _save_transcript(filename, result, source_url, source_description):
+    """Common: persist transcript + redirect to review."""
+    tr = AudioTranscript(
+        filename=filename[:300],
+        duration_seconds=result.get("duration"),
+        transcript=result.get("text", ""),
+        detected_language=(result.get("language") or "")[:20],
+        source_url=(source_url or "")[:1000],
+        source_description=(source_description or "")[:500],
+        transcribed_at=datetime.now(timezone.utc),
+    )
+    db.session.add(tr)
+    db.session.commit()
+    return tr
+
+
+@admin_bp.route("/bob/audio/ingest-url", methods=["POST"])
+@login_required
+def bob_audio_ingest_url():
+    """Accept any URL — direct audio, RSS feed (redirects to picker), or
+    YouTube/video — and route to the right ingest path."""
+    from profoundd.search.media_ingest import (
+        is_youtube_url, looks_like_podcast_feed, fetch_audio_bytes,
+        extract_video_audio,
+    )
+    from profoundd.search.audio_transcribe import transcribe_audio
+
+    url = (request.form.get("url") or "").strip()
+    description = (request.form.get("source_description") or "").strip()
+    if not url:
+        flash("Paste a URL first.", "error")
+        return redirect(url_for("admin.bob_audio_list"))
+
+    api_key = _groq_key()
+    if not api_key:
+        flash("Groq API key not configured. Set it in AI Settings.", "error")
+        return redirect(url_for("admin.ai_settings"))
+
+    # Podcast feed? Send to picker.
+    if looks_like_podcast_feed(url):
+        return redirect(url_for("admin.bob_podcast_feed", feed_url=url))
+
+    try:
+        if is_youtube_url(url):
+            data, ctype, filename = extract_video_audio(url)
+            kind = "youtube"
+        else:
+            data, ctype, filename = fetch_audio_bytes(url)
+            kind = "audio"
+    except Exception as e:
+        logger.exception("Audio URL fetch failed")
+        flash(f"Could not fetch audio: {e}", "error")
+        return redirect(url_for("admin.bob_audio_list"))
+
+    try:
+        result = transcribe_audio(data, filename, api_key)
+    except Exception as e:
+        logger.exception("Transcription failed")
+        flash(f"Transcription failed: {e}", "error")
+        return redirect(url_for("admin.bob_audio_list"))
+
+    tr = _save_transcript(
+        filename, result,
+        source_url=url,
+        source_description=description or f"[{kind}] {url}",
+    )
+    flash(f"Transcribed from URL: {len(tr.transcript)} chars", "success")
+    return redirect(url_for("admin.bob_audio_review", transcript_id=tr.id))
+
+
+@admin_bp.route("/bob/audio/podcast", methods=["GET", "POST"])
+@login_required
+def bob_podcast_feed():
+    """Step 1 of podcast ingest: paste a feed URL, see the episode list."""
+    from profoundd.search.media_ingest import parse_podcast_feed
+
+    feed_url = (request.values.get("feed_url") or "").strip()
+    feed = None
+    if feed_url:
+        try:
+            feed = parse_podcast_feed(feed_url)
+        except Exception as e:
+            flash(f"Could not parse feed: {e}", "error")
+            feed = None
+    return render_template(
+        "admin/bob_podcast_feed.html",
+        feed=feed,
+        feed_url=feed_url,
+        groq_key_configured=bool(_groq_key()),
+    )
+
+
+@admin_bp.route("/bob/audio/podcast/ingest", methods=["POST"])
+@login_required
+def bob_podcast_ingest_episode():
+    """Step 2 of podcast ingest: download + transcribe the chosen episode."""
+    from profoundd.search.media_ingest import fetch_audio_bytes
+    from profoundd.search.audio_transcribe import transcribe_audio
+
+    audio_url = (request.form.get("audio_url") or "").strip()
+    episode_title = (request.form.get("episode_title") or "").strip()
+    feed_title = (request.form.get("feed_title") or "").strip()
+    feed_url = (request.form.get("feed_url") or "").strip()
+    if not audio_url:
+        flash("No episode selected.", "error")
+        return redirect(url_for("admin.bob_podcast_feed", feed_url=feed_url))
+
+    api_key = _groq_key()
+    if not api_key:
+        flash("Groq API key not configured. Set it in AI Settings.", "error")
+        return redirect(url_for("admin.ai_settings"))
+
+    try:
+        data, ctype, filename = fetch_audio_bytes(audio_url)
+    except Exception as e:
+        logger.exception("Episode fetch failed")
+        flash(f"Could not download episode: {e}", "error")
+        return redirect(url_for("admin.bob_podcast_feed", feed_url=feed_url))
+
+    try:
+        result = transcribe_audio(data, filename, api_key)
+    except Exception as e:
+        logger.exception("Transcription failed")
+        flash(f"Transcription failed: {e}", "error")
+        return redirect(url_for("admin.bob_podcast_feed", feed_url=feed_url))
+
+    desc = f"{feed_title} — {episode_title}" if feed_title and episode_title else (episode_title or feed_title)
+    tr = _save_transcript(filename, result, source_url=audio_url, source_description=desc)
+    flash(f"Transcribed '{episode_title or filename}': {len(tr.transcript)} chars", "success")
+    return redirect(url_for("admin.bob_audio_review", transcript_id=tr.id))
