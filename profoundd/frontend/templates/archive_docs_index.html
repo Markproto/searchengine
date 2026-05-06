@@ -15,9 +15,21 @@
             Recovered SPLC content from the Internet Archive — Intelligence Reports,
             hate group profiles, "Year in Hate" reports, and Hatewatch posts that
             have been removed or paywalled on the live site.
+            {% elif collection == 'phmpt' %}
+            The court-ordered FDA release of Pfizer's COVID-19 vaccine BLA submission
+            (~450K pages across 4 sub-collections), mirrored from PHMPT.org.
+            Searchable with AI explain.
+            {% elif collection == 'acip' %}
+            CDC's Advisory Committee on Immunization Practices (ACIP) — agendas,
+            slides, recommendations, and meeting materials covering vaccine
+            policy decisions.
+            {% elif collection == 'nih-grants' %}
+            Pandemic-era NIH grants (FY2019-2024) covering coronavirus,
+            gain-of-function research, mRNA vaccines, biosafety, and related
+            funding flows. Metadata + abstracts from NIH RePORTER.
             {% else %}
-            Combined archive search across FBI Vault, SPLC, and other historical
-            collections we've ingested.
+            Combined archive search across FBI Vault, SPLC, PHMPT, ACIP, NIH
+            grants, and other collections we've ingested.
             {% endif %}
         </p>
         <nav class="archive-nav">
@@ -128,6 +140,9 @@
 .archive-pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.02em; }
 .archive-pill-fbi-vault { background: rgba(30, 58, 138, 0.15); color: #1e3a8a; border: 1px solid rgba(30, 58, 138, 0.3); }
 .archive-pill-splc { background: rgba(132, 26, 94, 0.15); color: #841a5e; border: 1px solid rgba(132, 26, 94, 0.3); }
+.archive-pill-phmpt { background: rgba(15, 118, 110, 0.15); color: #0f766e; border: 1px solid rgba(15, 118, 110, 0.3); }
+.archive-pill-acip { background: rgba(180, 83, 9, 0.15); color: #b45309; border: 1px solid rgba(180, 83, 9, 0.3); }
+.archive-pill-nih-grants { background: rgba(124, 58, 237, 0.15); color: #7c3aed; border: 1px solid rgba(124, 58, 237, 0.3); }
 .fwp-card-summary { font-size: 0.9rem; line-height: 1.55; color: var(--text); margin: 0; }
 .fwp-card-summary mark { background: rgba(234, 179, 8, 0.25); padding: 0 2px; }
 .fwp-empty { padding: 30px; text-align: center; color: var(--text-secondary); }

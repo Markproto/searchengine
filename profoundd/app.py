@@ -1703,6 +1703,9 @@ def create_app(config_override=None):
     ARCHIVE_LABELS = {
         "fbi-vault": "FBI Vault",
         "splc": "Southern Poverty Law Center (Wayback)",
+        "phmpt": "Pfizer Documents (PHMPT/FDA)",
+        "acip": "CDC ACIP — Vaccine Advisory Committee",
+        "nih-grants": "NIH Pandemic-Era Grants",
         "cia-crest": "CIA CREST",
         "jfk-records": "JFK Records",
     }
