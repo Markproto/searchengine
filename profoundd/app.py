@@ -2006,6 +2006,32 @@ def create_app(config_override=None):
             categories=CATEGORIES,
         )
 
+    @app.route("/archive-docs/<collection>/<doc_id>/pdf")
+    def archive_doc_pdf(collection, doc_id):
+        """Serve the locally-archived PDF if we have one; redirect to the
+        source URL otherwise. Lets users download even if the upstream
+        source removes the file later."""
+        if collection not in ARCHIVE_LABELS:
+            return render_template("404.html"), 404
+        # Local mirror path (matches local_pdf_archiver.py output layout)
+        safe_id = re.sub(r"[^A-Za-z0-9._-]+", "_", doc_id)[:200]
+        local = os.path.join("/app/data/archive-pdfs", collection, safe_id + ".pdf")
+        if os.path.isfile(local):
+            return Response(
+                _stream_file(local),
+                mimetype="application/pdf",
+                headers={
+                    "Content-Disposition": f'inline; filename="{safe_id}.pdf"',
+                    "X-Profoundd-Mirror": "local",
+                },
+            )
+        # No local mirror — redirect to source URL if we have one
+        doc = search_engine.get_archive_doc(doc_id)
+        if doc and doc.get("pdf_url", "").startswith("http"):
+            from flask import redirect as _redirect
+            return _redirect(doc["pdf_url"], code=302)
+        return render_template("404.html"), 404
+
     @app.route("/api/archive-explain", methods=["POST"])
     def api_archive_explain():
         """AI explain a query against an archive doc."""

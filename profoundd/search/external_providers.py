@@ -792,6 +792,7 @@ def fetch_brave_web(query, max_results=10):
 # Match is suffix-based, so "www.mayoclinic.org" and "newsnetwork.mayoclinic.org"
 # both match "mayoclinic.org".
 PFIZER_SPONSORED_DOMAINS = {
+    # User-curated reference / govt / pharmacy
     "nycourts.gov",
     "ema.europa.eu",
     "goodrx.com",
@@ -802,6 +803,31 @@ PFIZER_SPONSORED_DOMAINS = {
     "dshs.texas.gov",
     "npr.org",
     "medicinenet.com",
+    # Apex domains of every Pfizer-sponsored RSS feed in sources.py — kept
+    # here too so SearXNG/Brave hits with bare `webmd.com` source_name match.
+    # boost_known_domains() built domain_meta from the RSS URL netloc which
+    # could be `rssfeeds.webmd.com` etc, missing the suffix match.
+    "washingtonpost.com",
+    "abcnews.go.com",
+    "cnbc.com",
+    "bloomberg.com",
+    "who.int",
+    "medicalnewstoday.com",
+    "thelancet.com",
+    "nejm.org",
+    "webmd.com",
+    "reuters.com",
+    "ft.com",
+    "marketwatch.com",
+    "finance.yahoo.com",
+    "wsj.com",
+    "politico.com",
+    "thehill.com",
+    "dailymail.co.uk",
+    "nypost.com",
+    "businessinsider.com",
+    "foxnews.com",
+    "newsmax.com",
 }
 
 
@@ -860,9 +886,14 @@ def boost_known_domains(articles):
             known_domains.add(variant)
             domain_meta[variant] = meta
 
-    # Split articles into known and unknown, apply metadata
+    # Split articles into known, unknown, and Pfizer-sponsored-deprioritized.
+    # Pfizer-sponsored hits get pushed to the bottom of the web-fallback
+    # ordering — they still appear (so the user can see them if they want)
+    # but never lead. The function_score downrate inside ES does the same
+    # for indexed content; this is the parallel for runtime SearXNG/Brave.
     known = []
     unknown = []
+    sponsored = []
     for article in articles:
         # Prefer domain extracted from URL when source_name is a fuzzy label
         url = article.get("url") or ""
@@ -875,16 +906,16 @@ def boost_known_domains(articles):
         domain_base = domain.split(".")[0] if "." in domain else domain
 
         # Pfizer-sponsored downrate trumps the RSS-feed match — these always
-        # get tagged regardless of where they appear from.
+        # get tagged regardless of where they appear from. Push to bottom.
         if _is_pfizer_sponsored(url_domain) or _is_pfizer_sponsored(domain):
-            article["source_credibility"] = 5
+            article["source_credibility"] = 3
             existing = article.get("source_sponsors") or []
             if isinstance(existing, str):
                 existing = [existing]
             if "Pfizer" not in existing:
                 existing = list(existing) + ["Pfizer"]
             article["source_sponsors"] = existing
-            unknown.append(article)
+            sponsored.append(article)
             continue
 
         matched_meta = domain_meta.get(domain) or domain_meta.get(domain_base)
@@ -897,7 +928,7 @@ def boost_known_domains(articles):
         else:
             unknown.append(article)
 
-    return known + unknown
+    return known + unknown + sponsored
 
 
 def _normalize_pubmed_date(date_str):
