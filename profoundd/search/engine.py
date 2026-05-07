@@ -1247,9 +1247,10 @@ class SearchEngine:
             }
         }
 
-        # Wrap in function_score: credibility, admin boost, and recency
-        # Credibility is dampened to a 1.0–1.6x range so relevance dominates.
-        # Admin boost: 5=neutral, 10=2x, 1=0.2x.
+        # Wrap in function_score: credibility, sponsor penalty, admin boost, recency.
+        # Credibility is dampened to 1.0–1.6× so relevance dominates.
+        # Sponsor penalty: 0.25× if source_sponsors is set (hard downrate).
+        # Admin boost: 5=neutral, 10=2×, 1=0.2×.
         # Recency: Gaussian decay — full score for 1h, halves every 3 days.
         scored_query = {
             "function_score": {
@@ -1261,6 +1262,10 @@ class SearchEngine:
                                 "source": "double cred = doc['source_credibility'].size() > 0 ? doc['source_credibility'].value : 5; return 1.0 + (cred - 1) * 0.067;"
                             }
                         }
+                    },
+                    {
+                        "filter": {"exists": {"field": "source_sponsors"}},
+                        "weight": 0.25,
                     },
                     {
                         "script_score": {

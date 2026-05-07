@@ -1042,6 +1042,48 @@ def create_app(config_override=None):
             except Exception as e:
                 logger.debug("Climate blend failed: %s", e)
 
+        # Blend in archive_docs (FBI Vault, SPLC, PHMPT, ACIP, NIH grants,
+        # Steiner, hesperian, military-manuals) — these were missing from
+        # search results before, so niche queries (waldorf, montessori,
+        # ivermectin, etc.) showed weak coverage.
+        if tab == "all" and query:
+            try:
+                archive_blend = search_engine.search_archive_docs(query, page=1, per_page=4)
+                archive_hits = archive_blend.get("articles", [])
+                if archive_hits:
+                    for doc in archive_hits:
+                        doc["result_type"] = "document"  # reuse existing card variant
+                        # Make sure URL points to our viewer
+                        col = doc.get("collection", "")
+                        did = doc.get("doc_id", "")
+                        if col and did and not doc.get("url", "").startswith("/"):
+                            doc["url"] = f"/archive-docs/{col}/{did}"
+                    articles = results.get("articles", [])
+                    insert_pos = min(7, len(articles))
+                    for i, doc in enumerate(archive_hits):
+                        articles.insert(insert_pos + i, doc)
+                    results["articles"] = articles
+                    results["total"] = results.get("total", 0) + archive_blend.get("total", 0)
+            except Exception as e:
+                logger.debug("Archive blend failed: %s", e)
+
+        # Blend in FWP (Federal Writers' Project) results
+        if tab == "all" and query:
+            try:
+                fwp_blend = search_engine.search_fwp_docs(query, page=1, per_page=3)
+                fwp_hits = fwp_blend.get("articles", [])
+                if fwp_hits:
+                    for doc in fwp_hits:
+                        doc["result_type"] = "document"
+                    articles = results.get("articles", [])
+                    insert_pos = min(9, len(articles))
+                    for i, doc in enumerate(fwp_hits):
+                        articles.insert(insert_pos + i, doc)
+                    results["articles"] = articles
+                    results["total"] = results.get("total", 0) + fwp_blend.get("total", 0)
+            except Exception as e:
+                logger.debug("FWP blend failed: %s", e)
+
         # Fetch enhanced results from external providers (page 1 only)
         enhanced_providers = set()
         web_fallback = False
@@ -1148,6 +1190,14 @@ def create_app(config_override=None):
                         if not any(bd in wr.get("url", "").lower() for bd in blocked_domains)
                     ]
 
+                # Honor "Exclude Pfizer-sponsored" toggle on web fallback results too
+                # (boost_known_domains already tagged them; this filter removes them)
+                if exclude_sponsored:
+                    web_results = [
+                        wr for wr in web_results
+                        if not wr.get("source_sponsors")
+                    ]
+
                 existing_urls = {a.get("url") for a in results.get("articles", [])}
                 new_web = [wr for wr in web_results if wr.get("url") not in existing_urls]
 
@@ -1171,6 +1221,15 @@ def create_app(config_override=None):
                     web_promoted = True
 
                 results["articles"] = blended
+
+            # Belt + suspenders: ensure no Pfizer-sponsored snuck through any
+            # blend stage when the user toggled the exclude switch.
+            if exclude_sponsored:
+                results["articles"] = [
+                    a for a in results.get("articles", [])
+                    if not a.get("source_sponsors")
+                ]
+                results["total"] = len(results["articles"])
 
             # Fire-and-forget: index web results to ES so they become organic results
             # Apply quality filter — skip social media, forums, shopping, short content

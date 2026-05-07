@@ -800,6 +800,8 @@ PFIZER_SPONSORED_DOMAINS = {
     "georgiapoisoncenter.org",
     "drugs.com",
     "dshs.texas.gov",
+    "npr.org",
+    "medicinenet.com",
 }
 
 
