@@ -83,7 +83,7 @@ def init_state(output_root, collection):
     return conn
 
 
-def es_scan(es_url, query, fields, batch_size=100):
+def es_scan(es_url, index, query, fields, batch_size=100):
     """Iterate every doc matching the query via search-after pagination.
     Yields dicts with the requested `fields` populated."""
     body = {
@@ -98,13 +98,14 @@ def es_scan(es_url, query, fields, batch_size=100):
             body["search_after"] = [last]
         try:
             r = requests.post(
-                f"{es_url}/_search",
+                f"{es_url}/{index}/_search",
                 json=body,
+                headers={"Content-Type": "application/json"},
                 timeout=60,
             )
             r.raise_for_status()
         except Exception as e:
-            logger.error("ES scan failed: %s", e)
+            logger.error("ES scan failed (%s): %s", index, e)
             return
         data = r.json()
         hits = data.get("hits", {}).get("hits", [])
@@ -179,7 +180,7 @@ def archive_collection(es_url, collection, output_root, rate=0.5, max_items=None
     nopdf = 0
     start = time.time()
 
-    for doc in es_scan(es_url, query, fields):
+    for doc in es_scan(es_url, ARCHIVE_INDEX, query, fields):
         doc_id = doc.get("doc_id") or doc["_id"]
         url = doc.get("pdf_url") or ""
         if not url or not url.startswith("http"):
@@ -252,7 +253,7 @@ def archive_fwp(es_url, output_root, rate=0.5, max_items=None):
     archived = skipped = errors = nopdf = 0
     start = time.time()
 
-    for doc in es_scan(es_url, query, fields):
+    for doc in es_scan(es_url, FWP_INDEX, query, fields):
         # FWP uses item_id as the natural key
         doc_id = doc.get("item_id") or doc["_id"]
         url = doc.get("pdf_url") or ""
