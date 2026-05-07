@@ -1756,6 +1756,7 @@ def create_app(config_override=None):
         "nih-grants": "NIH Pandemic-Era Grants",
         "military-manuals": "Survival, Water, Medical Field Manuals",
         "steiner": "Rudolf Steiner Archive",
+        "hesperian": "Hesperian Health Guides (Where There Is No Doctor)",
         "cia-crest": "CIA CREST",
         "jfk-records": "JFK Records",
     }
