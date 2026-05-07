@@ -126,9 +126,48 @@ def safe_filename(s):
     return re.sub(r"[^A-Za-z0-9._-]+", "_", s)[:200]
 
 
-def download_pdf(url, out_path, rate=0.5, timeout=300):
-    """GET url, stream to out_path. Return (bytes_written, error_msg)."""
+def _resolve_archive_org(url, timeout=30):
+    """Convert https://archive.org/details/<id> → the actual PDF download URL
+    by hitting /metadata/<id> and picking the first PDF file. Returns the
+    resolved URL or None."""
+    parsed = urlparse(url)
+    if "archive.org" not in parsed.netloc or "/details/" not in parsed.path:
+        return None
+    ident = parsed.path.split("/details/")[-1].strip("/").split("/")[0]
+    if not ident:
+        return None
     try:
+        r = requests.get(
+            f"https://archive.org/metadata/{ident}",
+            headers={"User-Agent": USER_AGENT},
+            timeout=timeout,
+        )
+        if r.status_code != 200:
+            return None
+        data = r.json()
+        for f in data.get("files", []) or []:
+            fmt = (f.get("format") or "").lower()
+            name = f.get("name") or ""
+            if fmt in ("text pdf", "pdf") and name.lower().endswith(".pdf"):
+                from urllib.parse import quote
+                return f"https://archive.org/download/{ident}/{quote(name)}"
+    except Exception:
+        return None
+    return None
+
+
+def download_pdf(url, out_path, rate=0.5, timeout=300):
+    """GET url, stream to out_path. Return (bytes_written, error_msg).
+    Auto-resolves archive.org details URLs to their underlying PDF."""
+    try:
+        # Resolve archive.org /details/ URLs to real PDF URLs
+        if "archive.org" in url and "/details/" in url:
+            resolved = _resolve_archive_org(url)
+            if resolved:
+                url = resolved
+            else:
+                return 0, "archive.org metadata lookup failed"
+
         time.sleep(rate)
         r = requests.get(
             url,
