@@ -27,6 +27,16 @@
             Pandemic-era NIH grants (FY2019-2024) covering coronavirus,
             gain-of-function research, mRNA vaccines, biosafety, and related
             funding flows. Metadata + abstracts from NIH RePORTER.
+            {% elif collection == 'military-manuals' %}
+            US military field manuals on survival, water purification, and
+            combat medicine — public-domain references from archive.org.
+            FM 21-76 (US Army Survival), Special Forces Medical Handbook,
+            water-supply TMs, and the SERE training corpus.
+            {% elif collection == 'steiner' %}
+            Rudolf Steiner's lectures and books — public-domain texts and
+            translations from archive.org. Anthroposophy, Waldorf education,
+            biodynamic agriculture, threefold social order, and
+            anthroposophic medicine.
             {% else %}
             Combined archive search across FBI Vault, SPLC, PHMPT, ACIP, NIH
             grants, and other collections we've ingested.
@@ -143,6 +153,8 @@
 .archive-pill-phmpt { background: rgba(15, 118, 110, 0.15); color: #0f766e; border: 1px solid rgba(15, 118, 110, 0.3); }
 .archive-pill-acip { background: rgba(180, 83, 9, 0.15); color: #b45309; border: 1px solid rgba(180, 83, 9, 0.3); }
 .archive-pill-nih-grants { background: rgba(124, 58, 237, 0.15); color: #7c3aed; border: 1px solid rgba(124, 58, 237, 0.3); }
+.archive-pill-military-manuals { background: rgba(31, 105, 59, 0.15); color: #1f693b; border: 1px solid rgba(31, 105, 59, 0.3); }
+.archive-pill-steiner { background: rgba(157, 102, 59, 0.15); color: #9d663b; border: 1px solid rgba(157, 102, 59, 0.3); }
 .fwp-card-summary { font-size: 0.9rem; line-height: 1.55; color: var(--text); margin: 0; }
 .fwp-card-summary mark { background: rgba(234, 179, 8, 0.25); padding: 0 2px; }
 .fwp-empty { padding: 30px; text-align: center; color: var(--text-secondary); }

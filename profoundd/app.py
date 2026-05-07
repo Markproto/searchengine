@@ -1754,6 +1754,8 @@ def create_app(config_override=None):
         "phmpt": "Pfizer Documents (PHMPT/FDA)",
         "acip": "CDC ACIP — Vaccine Advisory Committee",
         "nih-grants": "NIH Pandemic-Era Grants",
+        "military-manuals": "Survival, Water, Medical Field Manuals",
+        "steiner": "Rudolf Steiner Archive",
         "cia-crest": "CIA CREST",
         "jfk-records": "JFK Records",
     }
