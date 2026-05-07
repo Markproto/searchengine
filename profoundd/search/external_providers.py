@@ -828,6 +828,9 @@ PFIZER_SPONSORED_DOMAINS = {
     "businessinsider.com",
     "foxnews.com",
     "newsmax.com",
+    # User-confirmed Pfizer-sponsored, surfaced high on ivermectin queries
+    "clevelandclinic.org",
+    "britannica.com",
 }
 
 
