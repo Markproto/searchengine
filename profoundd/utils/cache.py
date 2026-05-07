@@ -142,9 +142,9 @@ def cache_set(key, value, ttl=SEARCH_TTL):
         _cleanup_db()
 
 
-def make_search_key(query, category, page, sort_by, date_from=None, date_to=None, source_filter=None, view="cards", per_page=20):
+def make_search_key(query, category, page, sort_by, date_from=None, date_to=None, source_filter=None, view="cards", per_page=20, exclude_sponsored=False):
     """Build a cache key from search parameters."""
-    raw = f"search:{query.lower().strip()}:{category}:{page}:{sort_by}:{date_from}:{date_to}:{source_filter}:{view}:{per_page}"
+    raw = f"search:{query.lower().strip()}:{category}:{page}:{sort_by}:{date_from}:{date_to}:{source_filter}:{view}:{per_page}:{int(bool(exclude_sponsored))}"
     return f"search:{hashlib.md5(raw.encode()).hexdigest()}"
 
 

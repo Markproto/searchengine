@@ -929,7 +929,7 @@ def create_app(config_override=None):
 
         # Check cache first (non-admin only — admins always get fresh results)
         is_admin = session.get("admin_logged_in", False)
-        cache_key = make_search_key(query, category, page, sort_by, date_from, date_to, source_filter, view=view, per_page=per_page)
+        cache_key = make_search_key(query, category, page, sort_by, date_from, date_to, source_filter, view=view, per_page=per_page, exclude_sponsored=exclude_sponsored)
         if not is_admin:
             cached_html = cache_get(cache_key)
             if cached_html:
@@ -1201,6 +1201,13 @@ def create_app(config_override=None):
                 existing_urls = {a.get("url") for a in results.get("articles", [])}
                 new_web = [wr for wr in web_results if wr.get("url") not in existing_urls]
 
+                # Split web results: sponsored go to the back of the blend
+                # regardless of interleave position. Otherwise the round-robin
+                # below puts Pfizer-sponsored hits at positions 3/8/13/etc,
+                # putting them right back at the top of the result list.
+                non_sponsored_web = [w for w in new_web if not w.get("source_sponsors")]
+                sponsored_web = [w for w in new_web if w.get("source_sponsors")]
+
                 local_articles = results.get("articles", [])
                 query_terms = set(query.lower().split())
                 local_relevant = False
@@ -1213,11 +1220,13 @@ def create_app(config_override=None):
 
                 if local_relevant:
                     blended = list(local_articles)
-                    for i, wr in enumerate(new_web):
+                    for i, wr in enumerate(non_sponsored_web):
                         pos = min(3 + i * 4 + i, len(blended))
                         blended.insert(pos, wr)
+                    # Sponsored: always at the very end
+                    blended.extend(sponsored_web)
                 else:
-                    blended = list(new_web) + list(local_articles)
+                    blended = list(non_sponsored_web) + list(local_articles) + list(sponsored_web)
                     web_promoted = True
 
                 results["articles"] = blended
