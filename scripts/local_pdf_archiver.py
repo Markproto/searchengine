@@ -86,11 +86,12 @@ def init_state(output_root, collection):
 def es_scan(es_url, index, query, fields, batch_size=100):
     """Iterate every doc matching the query via search-after pagination.
     Yields dicts with the requested `fields` populated."""
+    # _doc sort is the cheapest stable order; works for search_after.
     body = {
         "size": batch_size,
         "query": query,
         "_source": fields,
-        "sort": [{"_id": "asc"}],
+        "sort": ["_doc"],
     }
     last = None
     while True:
