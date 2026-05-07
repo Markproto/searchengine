@@ -52,6 +52,15 @@ NEWS_SOURCES = [
     # --- Business News ---
     {"name": "CNBC", "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114", "category": "news", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
     {"name": "Bloomberg", "url": "https://feeds.bloomberg.com/markets/news.rss", "category": "news", "credibility": 5, "feed_type": "rss", "sponsors": "Pfizer"},
+
+    # --- Survival / preparedness ---
+    {"name": "The Survival Mom", "url": "https://thesurvivalmom.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
+    {"name": "The Prepared", "url": "https://www.theprepared.com/feed/", "category": "news", "credibility": 8, "feed_type": "rss"},
+    {"name": "Skilled Survival", "url": "https://www.skilledsurvival.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
+    {"name": "The Provident Prepper", "url": "https://theprovidentprepper.org/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
+    {"name": "Off Grid News", "url": "https://www.offgridnews.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
+    {"name": "Urban Survival Site", "url": "https://urbansurvivalsite.com/feed/", "category": "news", "credibility": 7, "feed_type": "rss"},
+    {"name": "Prepper Intel", "url": "https://prepperintel.substack.com/feed", "category": "news", "credibility": 7, "feed_type": "rss"},
 ]
 
 MEDICAL_SOURCES = [
@@ -73,6 +82,24 @@ MEDICAL_SOURCES = [
     {"name": "Children's Health Defense", "url": "https://childrenshealthdefense.org/defender/feed/", "category": "medical", "credibility": 7, "feed_type": "rss"},
     {"name": "GreenMedInfo", "url": "https://greenmedinfo.com/rss.xml", "category": "medical", "credibility": 6, "feed_type": "rss"},
     {"name": "Retraction Watch", "url": "https://retractionwatch.com/feed/", "category": "medical", "credibility": 8, "feed_type": "rss"},
+
+    # --- Terrain theory / virology debate ---
+    {"name": "Dr. Sam Bailey", "url": "https://drsambailey.com/feed", "category": "medical", "credibility": 7, "feed_type": "rss"},
+    {"name": "Dr. Sam Bailey (Substack)", "url": "https://drsambailey.substack.com/feed", "category": "medical", "credibility": 7, "feed_type": "rss"},
+    {"name": "Andrew Kaufman MD", "url": "https://andrewkaufmanmd.substack.com/feed", "category": "medical", "credibility": 7, "feed_type": "rss"},
+    {"name": "Jon Rappoport", "url": "https://jonrappoport.substack.com/feed", "category": "medical", "credibility": 7, "feed_type": "rss"},
+    {"name": "Dr Mark (Substack)", "url": "https://drmark.substack.com/feed", "category": "medical", "credibility": 7, "feed_type": "rss"},
+
+    # --- Homeopathy / herbal medicine ---
+    {"name": "Joette Calabrese", "url": "https://www.joettecalabrese.com/blog/feed/", "category": "medical", "credibility": 7, "feed_type": "rss"},
+    {"name": "Hpathy", "url": "https://hpathy.com/feed/", "category": "medical", "credibility": 6, "feed_type": "rss"},
+    {"name": "Homeopathy Plus", "url": "https://homeopathyplus.com/feed/", "category": "medical", "credibility": 6, "feed_type": "rss"},
+    {"name": "Herbal Academy", "url": "https://www.theherbalacademy.com/feed/", "category": "medical", "credibility": 7, "feed_type": "rss"},
+    {"name": "Chestnut School of Herbal Medicine", "url": "https://chestnutherbs.com/feed/", "category": "medical", "credibility": 7, "feed_type": "rss"},
+    {"name": "The Alchemist's Kitchen", "url": "https://thealchemistskitchen.substack.com/feed", "category": "medical", "credibility": 6, "feed_type": "rss"},
+
+    # --- Mike Adams / Brighteon network ---
+    {"name": "Brighteon News", "url": "https://www.brighteon.com/rss", "category": "medical", "credibility": 6, "feed_type": "rss"},
 ]
 
 LEGAL_SOURCES = [
@@ -143,6 +170,12 @@ EDUCATION_SOURCES = [
     {"name": "The 74", "url": "https://www.the74million.org/feed/", "category": "education", "credibility": 7, "feed_type": "rss"},
     {"name": "Education Next (Hoover)", "url": "https://www.educationnext.org/feed/", "category": "education", "credibility": 8, "feed_type": "rss"},
     {"name": "Reason — Education", "url": "https://reason.com/latest/feed/", "category": "education", "credibility": 7, "feed_type": "rss"},
+
+    # --- Rudolf Steiner / Anthroposophy / Waldorf ---
+    {"name": "Waldorf Today", "url": "https://www.waldorftoday.com/feed/", "category": "education", "credibility": 6, "feed_type": "rss"},
+    {"name": "Reverse Ritual (Steiner)", "url": "https://reverseritual.com/feed/", "category": "education", "credibility": 6, "feed_type": "rss"},
+    {"name": "Anthropress", "url": "https://www.anthropress.org/feed", "category": "education", "credibility": 6, "feed_type": "rss"},
+    {"name": "Lilipoh Magazine", "url": "https://www.lilipoh.com/feed/", "category": "education", "credibility": 6, "feed_type": "rss"},
 ]
 
 ENVIRONMENT_SOURCES = [

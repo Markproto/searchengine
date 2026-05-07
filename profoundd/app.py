@@ -208,6 +208,17 @@ def create_app(config_override=None):
                 return None
             return _source_notes.get(source_name)
 
+        # Featured-topic curated panel (rendered above search results when
+        # the query matches a known niche). Keyword → curated source map
+        # lives in profoundd/search/featured_topics.py.
+        featured_topic = None
+        if request.path.startswith("/search"):
+            try:
+                from profoundd.search.featured_topics import match_featured_topic
+                featured_topic = match_featured_topic(request.args.get("q", ""))
+            except Exception:
+                featured_topic = None
+
         return {
             "categories": CATEGORIES,
             "seo_title": seo_title,
@@ -224,6 +235,7 @@ def create_app(config_override=None):
             "get_source_note": get_source_note,
             "user_logged_in": session.get("user_logged_in", False),
             "user_email": session.get("user_email", ""),
+            "featured_topic": featured_topic,
         }
 
     # --- Long-lived cache headers for static assets ---
