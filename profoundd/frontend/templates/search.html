@@ -80,6 +80,22 @@
                     {% endif %}
                 </select>
             </div>
+            <div class="filter-group">
+                <label>View:</label>
+                <select name="view" onchange="this.form.submit()">
+                    <option value="cards" {% if view != 'table' %}selected{% endif %}>Cards</option>
+                    <option value="table" {% if view == 'table' %}selected{% endif %}>Table</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Per&nbsp;page:</label>
+                <select name="per_page" onchange="this.form.submit()">
+                    {% set _pp = per_page or 20 %}
+                    <option value="20" {% if _pp == 20 %}selected{% endif %}>20</option>
+                    <option value="50" {% if _pp == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if _pp == 100 %}selected{% endif %}>100</option>
+                </select>
+            </div>
 
             {# Source filter (non-epstein tabs) #}
             {% if _current_tab != 'epstein' and source_list is defined and source_list %}
@@ -320,6 +336,17 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
             Share Results
         </button>
+        <span class="dl-results-wrap" style="display:inline-flex;gap:0;margin-left:8px;">
+            <a class="share-link-btn" title="Download these results as CSV"
+               href="/api/search/export?q={{ query|urlencode }}&category={{ category }}&sort={{ sort_by }}&format=csv&limit={{ per_page or 20 }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                CSV
+            </a>
+            <a class="share-link-btn" title="Download these results as JSON"
+               href="/api/search/export?q={{ query|urlencode }}&category={{ category }}&sort={{ sort_by }}&format=json&limit={{ per_page or 20 }}">
+                JSON
+            </a>
+        </span>
         {% if session.get('user_logged_in') %}
         <form method="POST" action="{{ url_for('auth.alerts_create') }}" style="display:inline-flex;align-items:center;gap:4px;margin-left:8px;">
             <input type="hidden" name="query" value="{{ query }}">
@@ -402,6 +429,91 @@
     {% endif %}
 
     <div class="search-layout {% if business_results %}has-business-panel{% endif %}">
+
+    {% if view == 'table' %}
+    {# ------- Compact table view ------- #}
+    <div class="search-results">
+    <table class="search-results-table">
+        <thead>
+            <tr>
+                <th class="col-title">Title</th>
+                <th class="col-source">Source</th>
+                <th class="col-cred">Cred</th>
+                <th class="col-date">Date</th>
+                <th class="col-cat">Category</th>
+                <th class="col-snippet">Snippet</th>
+                <th class="col-dl">Get</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for article in results.articles %}
+            {% set _row_id = 'row-' ~ loop.index0 %}
+            {% set _is_doc = article.result_type in ('document', 'wef-doc', 'climate-doc') %}
+            {% set _link = article.url if not article.url.startswith('profoundd://') else ('/newsroom/' ~ article.url.split('/')[-1] if article.url.startswith('profoundd://bob/') else '/article/' ~ article.url.split('/')[-1]) %}
+            {% set _dl_url = '' %}
+            {% if article.result_type == 'wef-doc' %}{% set _dl_url = '/wef-docs/' ~ article.doc_id ~ '/download' %}
+            {% elif article.result_type == 'climate-doc' %}{% set _dl_url = '/climate-docs/' ~ article.doc_id ~ '/download' %}
+            {% elif article.bates_number %}{% set _dl_url = '/epstein-docs/' ~ article.bates_number ~ '/download' %}
+            {% elif article.pdf_url %}{% set _dl_url = article.pdf_url %}
+            {% endif %}
+            <tr id="{{ _row_id }}" data-row="{{ loop.index0 }}">
+                <td class="col-title">
+                    <span class="row-expand-toggle" onclick="toggleRowDetail({{ loop.index0 }})">▸</span>
+                    <a href="{{ _link }}" {% if not article.url.startswith('profoundd://') %}target="_blank" rel="noopener"{% endif %}>
+                    {% if article._highlights and article._highlights.title %}{{ article._highlights.title[0]|safe }}{% else %}{{ article.title }}{% endif %}
+                    </a>
+                </td>
+                <td class="col-source">{{ article.source_name or '' }}{% if article.source_sponsors %} <span style="color:#ca8a04;font-size:0.7rem;">({{ article.source_sponsors|join(', ') }})</span>{% endif %}</td>
+                <td class="col-cred">{{ article.source_credibility or '—' }}</td>
+                <td class="col-date">{{ (article.published_at or article.doc_date or '')[:10] }}</td>
+                <td class="col-cat">{{ article.category or '' }}</td>
+                <td class="col-snippet">
+                    {% if article._highlights and article._highlights.content %}
+                        {{ article._highlights.content[0]|safe }}…
+                    {% elif article.summary %}
+                        {{ article.summary[:200] }}{% if article.summary|length > 200 %}…{% endif %}
+                    {% endif %}
+                </td>
+                <td class="col-dl">
+                    {% if _dl_url %}<a href="{{ _dl_url }}" {% if _dl_url.startswith('http') %}target="_blank" rel="noopener"{% else %}download{% endif %}>PDF</a>
+                    {% elif not article.url.startswith('profoundd://') %}<a href="{{ article.url }}" target="_blank" rel="noopener">Read</a>{% endif %}
+                </td>
+            </tr>
+            <tr class="row-detail-row" id="{{ _row_id }}-detail" style="display:none;">
+                <td colspan="7">
+                    {% if article.content %}
+                    <pre>{{ article.content }}</pre>
+                    {% elif article.summary %}
+                    <pre>{{ article.summary }}</pre>
+                    {% else %}
+                    <em>No body text indexed.</em>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    <script>
+    function toggleRowDetail(idx) {
+        var row = document.getElementById('row-' + idx);
+        var detail = document.getElementById('row-' + idx + '-detail');
+        var toggle = row && row.querySelector('.row-expand-toggle');
+        if (!detail) return;
+        if (detail.style.display === 'none') {
+            detail.style.display = '';
+            row.classList.add('row-expanded');
+            if (toggle) toggle.textContent = '▾';
+        } else {
+            detail.style.display = 'none';
+            row.classList.remove('row-expanded');
+            if (toggle) toggle.textContent = '▸';
+        }
+    }
+    </script>
+
+    {% else %}
+    {# ------- Default card view ------- #}
     <div class="search-results">
         {% for article in results.articles %}
         {# WEF publication page card — one ES doc per PDF page #}
@@ -573,15 +685,21 @@
                 </a>
                 {% endif %}
             </h3>
-            <p class="result-summary">
-                {% if article._highlights and article._highlights.summary %}
-                {{ article._highlights.summary[0] | safe }}
-                {% elif article._highlights and article._highlights.content %}
-                {{ article._highlights.content[0] | safe }}
-                {% elif article.summary %}
-                {{ article.summary[:300] }}{% if article.summary|length > 300 %}...{% endif %}
-                {% endif %}
-            </p>
+            {% if article._highlights and article._highlights.content %}
+                {% for frag in article._highlights.content %}
+                <p class="result-summary highlight-snippet">…{{ frag | safe }}…</p>
+                {% endfor %}
+            {% elif article._highlights and article._highlights.summary %}
+                <p class="result-summary highlight-snippet">{{ article._highlights.summary[0] | safe }}</p>
+            {% elif article.summary %}
+                <p class="result-summary">{{ article.summary[:400] }}{% if article.summary|length > 400 %}…{% endif %}</p>
+            {% endif %}
+            {% if article.content and article.content|length > 400 %}
+            <details class="result-full-content">
+                <summary>Show full text ({{ article.content|length }} chars)</summary>
+                <div class="result-full-content-body">{{ article.content }}</div>
+            </details>
+            {% endif %}
             {% if article._provider == 'polymarket' and article._polymarket_market_slugs %}
             <div class="polymarket-embeds">
                 {% for mslug in article._polymarket_market_slugs[:3] %}
@@ -612,6 +730,10 @@
             <div class="ai-analysis-panel" style="display:none"></div>
             <div class="result-footer">
                 {% if not article.url.startswith('profoundd://') %}
+                <a href="{{ article.url }}" target="_blank" rel="noopener" class="read-article-btn"
+                   data-pf-source="{{ article.source_name }}" data-pf-category="{{ article.category }}" data-pf-track="external">
+                    Read article →
+                </a>
                 <span class="ai-analyze-wrap">
                     <button type="button" class="ai-analyze-btn" data-url="{{ article.url }}" data-title="{{ article.title }}" data-summary="{{ (article.summary or '')[:300] }}" data-source="{{ article.source_name }}">AI</button><span class="ai-help-icon" title="Get an AI-powered analysis of this article including sentiment, bias detection, and prediction market comparison. First 5 are free, then log in with your own API key.">?</span>
                 </span>
@@ -641,6 +763,7 @@
         {% endif %}{# /document vs article #}
         {% endfor %}
     </div>{# /search-results #}
+    {% endif %}{# /view == table else cards #}
 
     {% if business_results %}
     {% include '_business_panel.html' %}

@@ -731,6 +731,15 @@ def create_app(config_override=None):
         epstein_custodian = request.args.get("custodian", "")
         epstein_dataset = request.args.get("dataset", "")
         exclude_sponsored = request.args.get("nopfizer", "") == "1"
+        # New UX controls — opt-in via query string
+        view = request.args.get("view", "cards")
+        if view not in ("cards", "table"):
+            view = "cards"
+        try:
+            per_page = int(request.args.get("per_page", 20))
+        except (TypeError, ValueError):
+            per_page = 20
+        per_page = max(10, min(per_page, 100))  # cap 10..100
 
         if not query:
             return render_template("search.html", results=None, categories=CATEGORIES,
@@ -920,7 +929,7 @@ def create_app(config_override=None):
 
         # Check cache first (non-admin only — admins always get fresh results)
         is_admin = session.get("admin_logged_in", False)
-        cache_key = make_search_key(query, category, page, sort_by, date_from, date_to, source_filter)
+        cache_key = make_search_key(query, category, page, sort_by, date_from, date_to, source_filter, view=view, per_page=per_page)
         if not is_admin:
             cached_html = cache_get(cache_key)
             if cached_html:
@@ -935,6 +944,7 @@ def create_app(config_override=None):
             query=query,
             category=category,
             page=page,
+            per_page=per_page,
             sort_by=sort_by,
             date_from=date_from,
             date_to=date_to,
@@ -963,6 +973,7 @@ def create_app(config_override=None):
                         query=relaxed_q,
                         category=category,
                         page=page,
+                        per_page=per_page,
                         sort_by=sort_by,
                         date_from=date_from,
                         date_to=date_to,
@@ -1224,7 +1235,9 @@ def create_app(config_override=None):
                                user_location=_get_user_location(),
                                tab_images=None,
                                spelling_suggestion=spelling_suggestion,
-                               source_list=source_list)
+                               source_list=source_list,
+                               view=view,
+                               per_page=per_page)
         resp = make_response(rendered_html)
         resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
 
@@ -1653,6 +1666,107 @@ def create_app(config_override=None):
 
         results = search_engine.search(query=query, category=category, page=page, sort_by=sort_by)
         return jsonify(results)
+
+    @app.route("/api/search/export")
+    def api_search_export():
+        """Bulk export of search results as CSV or JSON.
+        Same query params as /search; capped at limit=200 to keep ES query cost predictable."""
+        import csv as _csv
+        import io as _io
+        query = request.args.get("q", "").strip()
+        if not query:
+            return jsonify(error="Query parameter 'q' is required"), 400
+        category = request.args.get("category", "all")
+        sort_by = request.args.get("sort", "relevance")
+        date_from = request.args.get("date_from")
+        date_to = request.args.get("date_to")
+        source_filter = request.args.get("source") or None
+        try:
+            limit = int(request.args.get("limit", 50))
+        except (TypeError, ValueError):
+            limit = 50
+        limit = max(1, min(limit, 200))
+        fmt = request.args.get("format", "json").lower()
+        if fmt not in ("json", "csv"):
+            fmt = "json"
+
+        try:
+            results = search_engine.search(
+                query=query, category=category, page=1, per_page=limit,
+                sort_by=sort_by, date_from=date_from, date_to=date_to,
+                source_filter=source_filter,
+            )
+        except Exception as e:
+            return jsonify(error=f"Search failed: {e}"), 500
+
+        articles = results.get("articles", []) or []
+        # Strip <mark> tags from highlight fragments (CSV-friendly)
+        _MARK_RE = re.compile(r"</?mark[^>]*>")
+        def _clean(s):
+            if not s:
+                return ""
+            if isinstance(s, list):
+                s = " | ".join(str(x) for x in s)
+            return _MARK_RE.sub("", str(s)).replace("\r", " ").replace("\n", " ").strip()
+
+        rows = []
+        for a in articles:
+            url = a.get("url", "")
+            # Resolve internal profoundd:// URLs to public ones
+            if url.startswith("profoundd://bob/"):
+                slug = url.replace("profoundd://bob/", "").split("/")[-1]
+                url = f"https://{app.config.get('DOMAIN','profoundd.com')}/newsroom/{slug}"
+            elif url.startswith("profoundd://"):
+                url = ""
+            # Pick best snippet
+            snippet = ""
+            highlights = a.get("_highlights") or {}
+            if highlights.get("content"):
+                snippet = highlights["content"][0]
+            elif highlights.get("summary"):
+                snippet = highlights["summary"][0]
+            else:
+                snippet = (a.get("summary") or "")[:400]
+            rows.append({
+                "title": _clean(a.get("title", "")),
+                "source_name": _clean(a.get("source_name", "")),
+                "credibility": a.get("source_credibility", ""),
+                "category": _clean(a.get("category", "")),
+                "published_at": _clean((a.get("published_at") or a.get("doc_date") or "")[:10]),
+                "url": _clean(url),
+                "pdf_url": _clean(a.get("pdf_url", "")),
+                "snippet": _clean(snippet),
+                "tags": _clean(a.get("tags", "")),
+                "sponsors": _clean(a.get("source_sponsors", "")),
+            })
+
+        if fmt == "json":
+            return jsonify({
+                "query": query,
+                "category": category,
+                "total_in_index": results.get("total", 0),
+                "returned": len(rows),
+                "articles": rows,
+            })
+
+        # CSV stream
+        buf = _io.StringIO()
+        writer = _csv.DictWriter(buf, fieldnames=[
+            "title", "source_name", "credibility", "category", "published_at",
+            "url", "pdf_url", "snippet", "tags", "sponsors",
+        ])
+        writer.writeheader()
+        for r in rows:
+            writer.writerow(r)
+        from flask import Response as _Resp
+        safe_q = re.sub(r"[^A-Za-z0-9_-]+", "_", query)[:60] or "search"
+        return _Resp(
+            buf.getvalue(),
+            mimetype="text/csv",
+            headers={
+                "Content-Disposition": f'attachment; filename="profoundd_{safe_q}.csv"',
+            },
+        )
 
     @app.route("/api/trending")
     def api_trending():
