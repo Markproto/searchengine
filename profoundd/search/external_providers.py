@@ -831,6 +831,13 @@ PFIZER_SPONSORED_DOMAINS = {
     # User-confirmed Pfizer-sponsored, surfaced high on ivermectin queries
     "clevelandclinic.org",
     "britannica.com",
+    "ama-assn.org",
+    "pacehospital.com",
+    "newsroom.uw.edu",
+    "news24.com",
+    "facebook.com",
+    "newsweek.com",
+    "newsnationnow.com",
 }
 
 
