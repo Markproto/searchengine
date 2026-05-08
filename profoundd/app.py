@@ -1209,24 +1209,49 @@ def create_app(config_override=None):
                 sponsored_web = [w for w in new_web if w.get("source_sponsors")]
 
                 local_articles = results.get("articles", [])
+
+                # Profoundd-own articles (Bob stories, research, Oregon Corner)
+                # always lead when they matched the ES query at all. The 5×
+                # function_score boost already ranked them at the top of
+                # local_articles; we just need to keep them there even when
+                # the local_relevant heuristic mis-fires (e.g. single-word
+                # queries can't satisfy the overlap test below).
+                profoundd_own = [
+                    a for a in local_articles
+                    if a.get("url", "").startswith("profoundd://")
+                    or a.get("source_name") in ("Profoundd", "Oregon Corner")
+                ]
+                rest_local = [
+                    a for a in local_articles
+                    if not (a.get("url", "").startswith("profoundd://")
+                            or a.get("source_name") in ("Profoundd", "Oregon Corner"))
+                ]
+
                 query_terms = set(query.lower().split())
                 local_relevant = False
-                for a in local_articles[:3]:
-                    title_words = set(a.get("title", "").lower().split())
-                    overlap = query_terms & title_words
-                    if len(overlap) >= max(2, len(query_terms) - 1):
-                        local_relevant = True
-                        break
+                # 1-word queries: any local hit is "relevant enough" since BM25
+                # already gated. >=2-word queries: need title overlap.
+                if len(query_terms) <= 1:
+                    local_relevant = bool(rest_local) or bool(profoundd_own)
+                else:
+                    for a in rest_local[:3]:
+                        title_words = set(a.get("title", "").lower().split())
+                        overlap = query_terms & title_words
+                        if len(overlap) >= max(2, len(query_terms) - 1):
+                            local_relevant = True
+                            break
 
                 if local_relevant:
-                    blended = list(local_articles)
+                    # Profoundd-own first, then rest of local, then web
+                    # interleaved into local positions 3+
+                    blended = list(profoundd_own) + list(rest_local)
                     for i, wr in enumerate(non_sponsored_web):
-                        pos = min(3 + i * 4 + i, len(blended))
+                        pos = min(len(profoundd_own) + 3 + i * 4 + i, len(blended))
                         blended.insert(pos, wr)
-                    # Sponsored: always at the very end
                     blended.extend(sponsored_web)
                 else:
-                    blended = list(non_sponsored_web) + list(local_articles) + list(sponsored_web)
+                    # No local relevance — still keep Profoundd-own at the top
+                    blended = list(profoundd_own) + list(non_sponsored_web) + list(rest_local) + list(sponsored_web)
                     web_promoted = True
 
                 results["articles"] = blended
