@@ -952,6 +952,51 @@ def create_app(config_override=None):
             exclude_sponsored=exclude_sponsored,
         )
 
+        # Profoundd-own articles always lead when they match the query at all.
+        # Run a small dedicated query against profoundd:// URLs without
+        # recency decay — old Bob stories and research articles still surface
+        # at the top whenever the query terms hit. Up to 5 included, then the
+        # main result list follows.
+        if query and page == 1:
+            try:
+                pf_hits = search_engine.es.search(
+                    index=search_engine.index_name,
+                    body={
+                        "query": {
+                            "bool": {
+                                "must": [
+                                    {"simple_query_string": {
+                                        "query": query,
+                                        "fields": ["title^3", "summary^2", "content"],
+                                        "default_operator": "AND",
+                                    }},
+                                    {"prefix": {"url": "profoundd://"}},
+                                ]
+                            }
+                        },
+                        "size": 5,
+                    },
+                )
+                pf_articles = []
+                pf_urls_seen = set()
+                for hit in pf_hits["hits"]["hits"]:
+                    a = hit["_source"]
+                    a["_score"] = hit["_score"]
+                    a["_pinned_profoundd"] = True
+                    if a.get("url") not in pf_urls_seen:
+                        pf_articles.append(a)
+                        pf_urls_seen.add(a.get("url"))
+                if pf_articles:
+                    main_articles = results.get("articles", [])
+                    # Drop duplicates that the main query also returned
+                    main_articles = [
+                        a for a in main_articles
+                        if a.get("url") not in pf_urls_seen
+                    ]
+                    results["articles"] = pf_articles + main_articles
+            except Exception as e:
+                logger.debug("profoundd-own pin failed: %s", e)
+
         # Long-query relax-to-OR: AND-default leaves natural-language questions
         # (>12 words) with 0 hits when no doc contains every word. Retry once
         # with a 30%-min-should-match OR query so the request still surfaces
