@@ -1247,8 +1247,12 @@ class SearchEngine:
             }
         }
 
-        # Wrap in function_score: credibility, sponsor penalty, admin boost, recency.
+        # Wrap in function_score: credibility, Profoundd-own boost,
+        # sponsor penalty, admin boost, recency.
         # Credibility is dampened to 1.0–1.6× so relevance dominates.
+        # Profoundd-own (profoundd:// URL prefix): 5× — Bob stories,
+        #   research articles, and other first-party content lead
+        #   whenever they match the query at all (BM25 still gates).
         # Sponsor penalty: 0.25× if source_sponsors is set (hard downrate).
         # Admin boost: 5=neutral, 10=2×, 1=0.2×.
         # Recency: Gaussian decay — full score for 1h, halves every 3 days.
@@ -1262,6 +1266,10 @@ class SearchEngine:
                                 "source": "double cred = doc['source_credibility'].size() > 0 ? doc['source_credibility'].value : 5; return 1.0 + (cred - 1) * 0.067;"
                             }
                         }
+                    },
+                    {
+                        "filter": {"prefix": {"url": "profoundd://"}},
+                        "weight": 5.0,
                     },
                     {
                         "filter": {"exists": {"field": "source_sponsors"}},
