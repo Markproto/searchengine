@@ -30,8 +30,8 @@ def is_dead(url: str) -> bool:
 
 
 def to_wayback(url: str, timestamp: str | None = None) -> str:
-    """Wrap a URL with the Wayback resolver. Empty timestamp lets web.archive.org pick the closest snapshot."""
-    ts = (timestamp or "").strip() or "*"
+    """Wrap a URL with the Wayback resolver. `web/0/<url>` 302-redirects to the closest available snapshot."""
+    ts = (timestamp or "").strip() or "0"
     return f"{WAYBACK_PREFIX}{ts}/{url}"
 
 
