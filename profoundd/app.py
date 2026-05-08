@@ -22,6 +22,7 @@ from flask_login import LoginManager
 from profoundd.config.settings import get_config
 from profoundd.config.sources import CATEGORIES
 from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick, DailyStats
+from profoundd.utils.dead_domains import rewrite_articles as _rewrite_dead_domains
 from profoundd.search.engine import SearchEngine
 from profoundd.search.ai_summary import generate_summary as ai_generate_summary, is_available as ai_is_available
 from profoundd.admin.routes import admin_bp
@@ -1310,6 +1311,8 @@ def create_app(config_override=None):
                 ]
                 results["total"] = len(results["articles"])
 
+            _rewrite_dead_domains(results.get("articles"))
+
             # Fire-and-forget: index web results to ES so they become organic results
             # Apply quality filter — skip social media, forums, shopping, short content
             if web_results and search_engine.is_available():
@@ -1363,6 +1366,8 @@ def create_app(config_override=None):
 
         # Get source list for filter dropdown (cached in search_engine)
         source_list = search_engine.get_source_names() if search_engine.is_available() else []
+
+        _rewrite_dead_domains(results.get("articles") if isinstance(results, dict) else None)
 
         rendered_html = render_template("search.html", results=results, categories=CATEGORIES,
                                query=query, category=category, sort_by=sort_by,

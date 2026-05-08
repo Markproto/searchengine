@@ -67,6 +67,17 @@
     "kobi5.com": {"category": "news", "credibility": 7, "seeds": ["https://kobi5.com/"]},
     "kdrv.com": {"category": "news", "credibility": 7, "seeds": ["https://kdrv.com/"]},
     "defendinged.org": {"category": "education", "credibility": 7, "seeds": ["https://defendinged.org/news/", "https://defendinged.org/research/"]},
-    "co2coalition.org": {"category": "environment", "credibility": 7, "seeds": ["https://co2coalition.org/news/", "https://co2coalition.org/publications/"]}
+    "co2coalition.org": {"category": "environment", "credibility": 7, "seeds": ["https://co2coalition.org/news/", "https://co2coalition.org/publications/"]},
+    "eugenewaldorf.org": {"category": "education", "credibility": 7, "seeds": ["https://www.eugenewaldorf.org/"], "tags": ["waldorf", "k-12", "eugene", "oregon"]},
+    "madronetrail.org": {"category": "education", "credibility": 7, "seeds": ["https://www.madronetrail.org/"], "tags": ["waldorf", "charter", "k-8", "oregon"]},
+    "oceanetwork.org": {"category": "education", "credibility": 7, "seeds": ["https://oceanetwork.org/"], "tags": ["homeschool", "oregon"]},
+    "lanecc.edu": {"category": "education", "credibility": 8, "seeds": ["https://www.lanecc.edu/programs", "https://www.lanecc.edu/cce"], "tags": ["trade-school", "community-college", "eugene", "oregon"]},
+    "roguecc.edu": {"category": "education", "credibility": 8, "seeds": ["https://www.roguecc.edu/programs/", "https://www.roguecc.edu/CTE/"], "tags": ["trade-school", "community-college", "grants-pass", "oregon"]},
+    "umpqua.edu": {"category": "education", "credibility": 8, "seeds": ["https://www.umpqua.edu/programs", "https://www.umpqua.edu/career-technical"], "tags": ["trade-school", "community-college", "roseburg", "oregon"]},
+    "4j.lane.edu": {"category": "education", "credibility": 7, "seeds": ["https://www.4j.lane.edu/schools/"], "tags": ["k-12", "school-district", "eugene", "oregon"]},
+    "grantspass.k12.or.us": {"category": "education", "credibility": 7, "seeds": ["https://www.grantspass.k12.or.us/"], "tags": ["k-12", "school-district", "grants-pass", "oregon"]},
+    "roseburg.k12.or.us": {"category": "education", "credibility": 7, "seeds": ["https://www.roseburg.k12.or.us/"], "tags": ["k-12", "school-district", "roseburg", "oregon"]},
+    "fernridge.k12.or.us": {"category": "education", "credibility": 7, "seeds": ["https://www.fernridge.k12.or.us/"], "tags": ["k-12", "school-district", "veneta", "oregon"]},
+    "siskiyouschool.org": {"category": "education", "credibility": 7, "seeds": ["https://siskiyouschool.org/"], "tags": ["charter", "k-8", "oregon"]}
   }
 }
