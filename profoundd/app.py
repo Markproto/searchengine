@@ -1794,6 +1794,24 @@ def create_app(config_override=None):
         return render_template("article.html", article=article, doc_id=doc_id,
                                related=related, categories=CATEGORIES)
 
+    @app.route("/snapshot/<url_hash>")
+    def snapshot_view(url_hash):
+        """Profoundd-hosted snapshot of an article whose origin domain is dead.
+
+        Lookup by ES _id, which equals md5(stored_url) — the convention used by
+        feed_crawler, wayback_newspaper_crawler, and the other indexers. Content
+        was captured at index time, so this serves our copy without phoning out
+        to the (gone) origin or to web.archive.org.
+        """
+        if not search_engine.is_available():
+            return render_template("404.html", categories=CATEGORIES), 404
+        try:
+            res = search_engine.es.get(index=search_engine.index_name, id=url_hash)
+            article = res["_source"]
+        except Exception:
+            return render_template("404.html", categories=CATEGORIES), 404
+        return render_template("snapshot.html", article=article, categories=CATEGORIES)
+
     # --- API Routes ---
 
     @app.route("/api/search")
