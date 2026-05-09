@@ -149,32 +149,67 @@
     </div>
     {% endif %}
 
-    <!-- Quick Links -->
+    <!-- Quick Links — grouped for fast scan -->
     <div class="admin-section">
         <h2>Manage</h2>
-        <div class="admin-links">
-            <a href="{{ url_for('admin.analytics') }}" class="btn btn-primary">Visitor Analytics</a>
-            <a href="{{ url_for('admin.search_analytics') }}" class="btn btn-primary">Search Analytics</a>
-            <a href="{{ url_for('admin.sources_list') }}" class="btn btn-secondary">Manage Sources</a>
-            <a href="{{ url_for('admin.add_source') }}" class="btn btn-secondary">Add New Source</a>
-            <a href="{{ url_for('admin.submissions_list') }}" class="btn btn-secondary">Source Submissions</a>
-            <a href="{{ url_for('admin.crawl_history') }}" class="btn btn-secondary">Crawl History</a>
-            <a href="{{ url_for('admin.crawler_dashboard') }}" class="btn btn-secondary">Domain Crawler</a>
-            <a href="{{ url_for('admin.bob_audio_list') }}" class="btn btn-secondary">Audio &rarr; Bob</a>
-            <a href="{{ url_for('admin.edit_about') }}" class="btn btn-secondary">Edit About Page</a>
-            <a href="{{ url_for('admin.edit_seo') }}" class="btn btn-secondary">SEO Settings</a>
-            <a href="{{ url_for('admin.research_library') }}" class="btn btn-secondary">Add Research</a>
-            <a href="{{ url_for('admin.analyze_url') }}" class="btn btn-secondary">Analyze URL (AI)</a>
-            <a href="{{ url_for('admin.ai_settings') }}" class="btn btn-secondary">AI Settings</a>
-            <a href="{{ url_for('admin.ai_provider') }}" class="btn btn-secondary">AI Provider</a>
-            <a href="{{ url_for('admin.curator_queue') }}" class="btn btn-secondary">Curator Queue</a>
-            <a href="{{ url_for('admin.blocked_domains') }}" class="btn btn-secondary">Blocked Domains</a>
-            <a href="{{ url_for('admin.osm_manage') }}" class="btn btn-secondary">Local Businesses (OSM)</a>
-            <a href="{{ url_for('admin.the_man') }}" class="btn btn-secondary">The Man</a>
-            <a href="{{ url_for('admin.write_story') }}" class="btn btn-primary">Write Story</a>
-            <a href="{{ url_for('admin.bob_stories_list') }}" class="btn btn-secondary">NewsRoom Bob</a>
-            <a href="{{ url_for('admin.verify_claim') }}" class="btn btn-secondary">Victor the Verifier</a>
-            <a href="{{ url_for('admin.source_notes_list') }}" class="btn btn-secondary">Source Notes</a>
+
+        <div class="admin-link-group">
+            <h3 style="margin:0.5rem 0;font-size:0.95rem;color:#555;">AI &amp; Curator</h3>
+            <div class="admin-links">
+                <a href="{{ url_for('admin.ai_provider') }}" class="btn btn-primary" style="background:#0a7;">AI Provider Toggle</a>
+                <a href="{{ url_for('admin.ai_settings') }}" class="btn btn-secondary">AI Settings</a>
+                <a href="{{ url_for('admin.analyze_url') }}" class="btn btn-secondary">Analyze URL (AI)</a>
+                <a href="{{ url_for('admin.curator_queue') }}" class="btn btn-primary" style="background:#0a7;">Curator Queue</a>
+                <a href="{{ url_for('admin.curator_audit') }}" class="btn btn-secondary">Curator Audit Log</a>
+            </div>
+        </div>
+
+        <div class="admin-link-group" style="margin-top:1rem;">
+            <h3 style="margin:0.5rem 0;font-size:0.95rem;color:#555;">Sources &amp; Content</h3>
+            <div class="admin-links">
+                <a href="{{ url_for('admin.sources_list') }}" class="btn btn-secondary">Manage Sources</a>
+                <a href="{{ url_for('admin.add_source') }}" class="btn btn-secondary">Add New Source</a>
+                <a href="{{ url_for('admin.submissions_list') }}" class="btn btn-secondary">Source Submissions</a>
+                <a href="{{ url_for('admin.blocked_domains') }}" class="btn btn-secondary">Blocked Domains</a>
+                <a href="{{ url_for('admin.source_notes_list') }}" class="btn btn-secondary">Source Notes</a>
+                <a href="{{ url_for('admin.research_library') }}" class="btn btn-secondary">Add Research</a>
+            </div>
+        </div>
+
+        <div class="admin-link-group" style="margin-top:1rem;">
+            <h3 style="margin:0.5rem 0;font-size:0.95rem;color:#555;">Crawl</h3>
+            <div class="admin-links">
+                <a href="{{ url_for('admin.crawl_history') }}" class="btn btn-secondary">Crawl History</a>
+                <a href="{{ url_for('admin.crawler_dashboard') }}" class="btn btn-secondary">Domain Crawler</a>
+            </div>
+        </div>
+
+        <div class="admin-link-group" style="margin-top:1rem;">
+            <h3 style="margin:0.5rem 0;font-size:0.95rem;color:#555;">Insights</h3>
+            <div class="admin-links">
+                <a href="{{ url_for('admin.analytics') }}" class="btn btn-primary">Visitor Analytics</a>
+                <a href="{{ url_for('admin.search_analytics') }}" class="btn btn-primary">Search Analytics</a>
+            </div>
+        </div>
+
+        <div class="admin-link-group" style="margin-top:1rem;">
+            <h3 style="margin:0.5rem 0;font-size:0.95rem;color:#555;">Editorial Tools</h3>
+            <div class="admin-links">
+                <a href="{{ url_for('admin.write_story') }}" class="btn btn-primary">Write Story</a>
+                <a href="{{ url_for('admin.bob_stories_list') }}" class="btn btn-secondary">NewsRoom Bob</a>
+                <a href="{{ url_for('admin.bob_audio_list') }}" class="btn btn-secondary">Audio &rarr; Bob</a>
+                <a href="{{ url_for('admin.the_man') }}" class="btn btn-secondary">The Man</a>
+                <a href="{{ url_for('admin.verify_claim') }}" class="btn btn-secondary">Victor the Verifier</a>
+                <a href="{{ url_for('admin.osm_manage') }}" class="btn btn-secondary">Local Businesses (OSM)</a>
+            </div>
+        </div>
+
+        <div class="admin-link-group" style="margin-top:1rem;">
+            <h3 style="margin:0.5rem 0;font-size:0.95rem;color:#555;">Site Settings</h3>
+            <div class="admin-links">
+                <a href="{{ url_for('admin.edit_about') }}" class="btn btn-secondary">Edit About Page</a>
+                <a href="{{ url_for('admin.edit_seo') }}" class="btn btn-secondary">SEO Settings</a>
+            </div>
         </div>
     </div>
 

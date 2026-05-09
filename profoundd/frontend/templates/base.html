@@ -118,6 +118,10 @@
         </div>
     </nav>
 
+    {% if request.path and request.path.startswith('/admin') and current_user.is_authenticated and request.endpoint != 'admin.login' %}
+        {% include 'admin/_admin_nav.html' %}
+    {% endif %}
+
     <main>
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}

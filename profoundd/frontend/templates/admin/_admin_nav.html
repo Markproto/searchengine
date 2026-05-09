@@ -1,0 +1,51 @@
+{# Persistent admin sub-nav. Auto-included by base.html on /admin/* paths.
+   Grouped so links are easy to scan. Active link highlighted via CSS class. #}
+{% set p = request.path or '' %}
+<div class="admin-subnav" style="background:#f7f8fa;border-bottom:1px solid #e3e6ec;padding:0.55rem 0;font-size:0.88rem;">
+    <div class="container" style="display:flex;flex-wrap:wrap;gap:0.4rem 1.4rem;align-items:center;">
+        <a href="{{ url_for('admin.dashboard') }}" style="font-weight:600;color:#1d4ed8;text-decoration:none;">⌂ Admin</a>
+
+        <span style="color:#999;">·</span>
+        <span style="color:#555;font-weight:600;">Content</span>
+        <a href="{{ url_for('admin.sources_list') }}" {% if '/admin/sources' in p and '/edit' not in p and '/add' not in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>Sources</a>
+        <a href="{{ url_for('admin.submissions_list') }}" {% if '/submissions' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>Submissions</a>
+        <a href="{{ url_for('admin.blocked_domains') }}" {% if '/blocked-domains' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>Blocked</a>
+        <a href="{{ url_for('admin.source_notes_list') }}" {% if '/source-notes' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>Notes</a>
+
+        <span style="color:#999;">·</span>
+        <span style="color:#555;font-weight:600;">Crawl</span>
+        <a href="{{ url_for('admin.crawl_history') }}" {% if '/crawl-history' in p or p.endswith('/crawl') %}style="font-weight:700;text-decoration:underline;"{% endif %}>History</a>
+        <a href="{{ url_for('admin.crawler_dashboard') }}" {% if '/crawler' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>Domains</a>
+
+        <span style="color:#999;">·</span>
+        <span style="color:#555;font-weight:600;">AI</span>
+        <a href="{{ url_for('admin.ai_provider') }}" {% if '/ai-provider' in p %}style="font-weight:700;text-decoration:underline;color:#0a7;"{% endif %}>Provider</a>
+        <a href="{{ url_for('admin.ai_settings') }}" {% if p.endswith('/ai-settings') %}style="font-weight:700;text-decoration:underline;"{% endif %}>Settings</a>
+        <a href="{{ url_for('admin.analyze_url') }}" {% if '/analyze-url' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>Analyze URL</a>
+
+        <span style="color:#999;">·</span>
+        <span style="color:#555;font-weight:600;">Curator</span>
+        <a href="{{ url_for('admin.curator_queue') }}" {% if '/curator-queue' in p %}style="font-weight:700;text-decoration:underline;color:#0a7;"{% endif %}>Queue</a>
+        <a href="{{ url_for('admin.curator_audit') }}" {% if '/curator-audit' in p %}style="font-weight:700;text-decoration:underline;color:#0a7;"{% endif %}>Audit Log</a>
+
+        <span style="color:#999;">·</span>
+        <span style="color:#555;font-weight:600;">Insights</span>
+        <a href="{{ url_for('admin.analytics') }}" {% if p.endswith('/analytics') %}style="font-weight:700;text-decoration:underline;"{% endif %}>Visitors</a>
+        <a href="{{ url_for('admin.search_analytics') }}" {% if '/search-analytics' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>Searches</a>
+
+        <span style="color:#999;">·</span>
+        <span style="color:#555;font-weight:600;">Tools</span>
+        <a href="{{ url_for('admin.write_story') }}" {% if '/bob/write' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>Write Story</a>
+        <a href="{{ url_for('admin.bob_stories_list') }}" {% if '/bob/stories' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>Bob Stories</a>
+        <a href="{{ url_for('admin.bob_audio_list') }}" {% if '/bob/audio' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>Audio→Bob</a>
+        <a href="{{ url_for('admin.the_man') }}" {% if '/the-man' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>The Man</a>
+        <a href="{{ url_for('admin.verify_claim') }}" {% if '/verify' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>Verify</a>
+        <a href="{{ url_for('admin.research_library') }}" {% if '/research' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>Research</a>
+        <a href="{{ url_for('admin.osm_manage') }}" {% if '/osm' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>OSM</a>
+
+        <span style="color:#999;">·</span>
+        <span style="color:#555;font-weight:600;">Site</span>
+        <a href="{{ url_for('admin.edit_about') }}" {% if '/about' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>About</a>
+        <a href="{{ url_for('admin.edit_seo') }}" {% if '/seo' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>SEO</a>
+    </div>
+</div>
