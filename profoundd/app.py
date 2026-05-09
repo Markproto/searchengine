@@ -478,10 +478,12 @@ def create_app(config_override=None):
 
     def _build_trending_topics(engine):
         """
-        Build trending topic chips from our own data:
-        1. Our users' top searches (past 48h)
-        2. Hot topics from our indexed article headlines (last 12h)
-        Filters out mainstream media noise. Returns list of 12-15 topic strings.
+        Build the homepage "What People Are Searching" panel from real user
+        searches in the last 48h. Bot UAs excluded; case-insensitive group;
+        single-word queries kept (e.g. "ivermectin", "covid"). If we don't
+        have enough real searches, we fall back to topical headline phrases
+        BUT only after exhausting human queries, and we flag that fallback
+        in the returned list so the template can label it differently.
         """
         import re
         from collections import Counter
@@ -489,8 +491,15 @@ def create_app(config_override=None):
         topics = []
 
         # Source 1: Our users' actual searches.
-        # Group case-insensitively + exclude bot UAs so a stocks-bot scraper
-        # can't dominate the trending panel ahead of real human queries.
+        # Group case-insensitively + exclude bot UAs + exclude known scraper
+        # patterns (stocks-bot 2-word boilerplate) so real human curiosity
+        # surfaces ahead of programmatic noise.
+        SCRAPER_PATTERNS = re.compile(
+            r"^(stocks? under|best growth|growth stocks?|stock buy|"
+            r"analyst call|earnings call|inc results|results earnings|"
+            r"small cap|large cap|mid cap)\b",
+            re.IGNORECASE,
+        )
         try:
             from profoundd.utils.models import SearchLog
             from sqlalchemy import func
@@ -503,21 +512,31 @@ def create_app(config_override=None):
                 .filter(SearchLog.is_bot == False)  # noqa: E712
                 .group_by(norm)
                 .order_by(func.count(SearchLog.id).desc())
-                .limit(20)
+                .limit(40)
                 .all()
             )
-            for q, _ in user_queries:
+            for q, count in user_queries:
                 q = (q or "").strip()
-                # Skip junk: URLs, test queries, single short words, numbers-only
-                if (3 < len(q) < 60
-                    and not q.startswith("http")
-                    and not q.startswith("-")
-                    and q.lower() not in ("test", "hello", "asdf")
-                    and not re.match(r'^[\d\s\'"]+$', q)
-                    and len(q.split()) <= 8):
+                # Filter junk: URLs, very short, very long, test queries, scraper patterns
+                if not (1 <= len(q) <= 80):
+                    continue
+                if q.startswith(("http", "-")):
+                    continue
+                if q.lower() in ("test", "hello", "asdf", "asd", "x", "..."):
+                    continue
+                if re.match(r'^[\d\s\'"]+$', q):
+                    continue
+                if SCRAPER_PATTERNS.match(q):
+                    continue
+                if len(q.split()) > 8:
+                    continue
+                # Real search count >=2 makes the cut; anything searched once is noise
+                if count >= 2:
                     topics.append(q)
-        except Exception:
-            pass
+                if len(topics) >= 15:
+                    break
+        except Exception as e:
+            logger.exception("trending: user-query lookup failed: %s", e)
 
         # Source 2: Hot phrases from our indexed headlines (last 12h)
         try:
