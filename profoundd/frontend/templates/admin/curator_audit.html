@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Curator Audit Log{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>Curator Audit Log</h1>
+        <a href="{{ url_for('admin.curator_queue') }}" class="btn btn-secondary">Back to queue</a>
+    </div>
+
+    <p class="action-desc">
+        Append-only history of every Curator-driven mutation. Use this to reconstruct
+        what the system did and when, especially after a Layer-2 revert.
+    </p>
+
+    {% if not rows %}
+        <p class="text-muted">No audit entries yet.</p>
+    {% else %}
+    <table class="admin-table" style="width: 100%;">
+        <thead>
+            <tr>
+                <th>When</th>
+                <th>Action</th>
+                <th>Type</th>
+                <th>Domain</th>
+                <th>Before → After</th>
+                <th>Actor</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+                {% set p = proposals_by_id.get(r.proposal_id) %}
+                <tr>
+                    <td><small>{{ r.occurred_at.strftime('%Y-%m-%d %H:%M:%S') }}</small></td>
+                    <td><code>{{ r.action }}</code></td>
+                    <td>{% if p %}<code>{{ p.proposal_type }}</code>{% else %}<small class="text-muted">(deleted)</small>{% endif %}</td>
+                    <td>{% if p %}{{ p.target_domain }}{% endif %}</td>
+                    <td style="max-width: 500px;">
+                        <details>
+                            <summary>{{ (r.before_value or '')[:60] }} → {{ (r.after_value or '')[:60] }}</summary>
+                            <div style="margin-top: 0.5rem;">
+                                <strong>Before:</strong>
+                                <pre style="background: #fff5f5; padding: 0.5rem; max-height: 200px; overflow: auto;">{{ r.before_value }}</pre>
+                                <strong>After:</strong>
+                                <pre style="background: #f0fff0; padding: 0.5rem; max-height: 200px; overflow: auto;">{{ r.after_value }}</pre>
+                            </div>
+                        </details>
+                    </td>
+                    <td><small>{{ r.actor }}</small></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+{% endblock %}

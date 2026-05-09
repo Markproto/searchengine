@@ -11,7 +11,7 @@ from functools import wraps
 import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick, AudioTranscript, DailyStats
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick, AudioTranscript, DailyStats, CuratorProposal, CuratorAuditLog, DomainCredibility
 from profoundd.config.settings import get_config
 from profoundd.config.sources import ALL_SOURCES, CATEGORIES, SPECIAL_SECTION_KEYWORDS
 from profoundd.search.engine import SearchEngine
@@ -1294,6 +1294,68 @@ def ai_provider_health(role):
         return jsonify(ok=True, provider=provider, latency_s=elapsed, response=text)
     except Exception as e:
         return jsonify(ok=False, error=str(e)[:300]), 200
+
+
+# ---------------------------------------------------------------------------
+# Curator review queue (Layer-2 rollback for autonomous source management)
+# ---------------------------------------------------------------------------
+
+CURATOR_TABS = ["pending", "applied", "rejected", "reverted"]
+
+
+@admin_bp.route("/curator-queue")
+@login_required
+def curator_queue():
+    """List Curator-generated proposals filtered by status tab."""
+    tab = request.args.get("tab", "pending")
+    if tab not in CURATOR_TABS:
+        tab = "pending"
+    proposals = (db.session.query(CuratorProposal)
+                 .filter_by(status=tab)
+                 .order_by(CuratorProposal.created_at.desc())
+                 .limit(200).all())
+    counts = {t: db.session.query(CuratorProposal).filter_by(status=t).count()
+              for t in CURATOR_TABS}
+    return render_template("admin/curator_queue.html",
+                           proposals=proposals, tab=tab, counts=counts,
+                           categories=CATEGORIES)
+
+
+@admin_bp.route("/curator-queue/<int:pid>/<action>", methods=["POST"])
+@login_required
+def curator_proposal_action(pid, action):
+    """Apply / revert / reject a Curator proposal."""
+    from profoundd.curator import apply as curator_apply
+    actor = session.get("admin_user", "admin")
+    if action == "apply":
+        ok, msg = curator_apply.apply_proposal(pid, actor=actor)
+    elif action == "revert":
+        ok, msg = curator_apply.revert_proposal(pid, actor=actor)
+    elif action == "reject":
+        ok, msg = curator_apply.reject_proposal(pid, actor=actor)
+    else:
+        ok, msg = False, f"unknown action {action!r}"
+    flash(msg, "success" if ok else "error")
+    next_tab = request.form.get("tab", "pending")
+    return redirect(url_for("admin.curator_queue", tab=next_tab))
+
+
+@admin_bp.route("/curator-audit")
+@login_required
+def curator_audit():
+    """Append-only log of every Curator-driven mutation."""
+    rows = (db.session.query(CuratorAuditLog)
+            .order_by(CuratorAuditLog.occurred_at.desc())
+            .limit(500).all())
+    # Join in proposal context for display
+    proposals_by_id = {}
+    if rows:
+        ids = list({r.proposal_id for r in rows})
+        for p in db.session.query(CuratorProposal).filter(CuratorProposal.id.in_(ids)).all():
+            proposals_by_id[p.id] = p
+    return render_template("admin/curator_audit.html",
+                           rows=rows, proposals_by_id=proposals_by_id,
+                           categories=CATEGORIES)
 
 
 @admin_bp.route("/analyze-url", methods=["GET", "POST"])

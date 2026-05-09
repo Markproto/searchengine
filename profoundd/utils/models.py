@@ -185,6 +185,52 @@ class SiteSetting(db.Model):
         db.session.commit()
 
 
+class CuratorProposal(db.Model):
+    """Autonomous-curator-generated change proposals awaiting human review.
+
+    Generated nightly. Each proposal targets a domain or source; admin approves
+    or rejects from /admin/curator-queue. Approved proposals are applied via
+    profoundd.curator.apply, which captures before_value before mutating so the
+    change is reversible (Layer-2 rollback).
+    """
+    __tablename__ = "curator_proposals"
+
+    id = db.Column(db.Integer, primary_key=True)
+    proposal_type = db.Column(db.String(40), nullable=False, index=True)
+    # Types: "block_domain" | "sponsor_tag" | "credibility_adjust" | "unblock_domain"
+    target_domain = db.Column(db.String(255), nullable=False, index=True)
+    target_source_id = db.Column(db.Integer, db.ForeignKey("sources.id"), nullable=True)
+    proposed_value = db.Column(db.Text, nullable=False)
+    before_value = db.Column(db.Text, default="")  # captured at apply time
+    reasoning = db.Column(db.Text, default="")
+    evidence_urls = db.Column(db.Text, default="")  # newline-sep list
+    confidence = db.Column(db.Float, default=0.5)   # 0.0-1.0
+    status = db.Column(db.String(20), default="pending", index=True)
+    # pending | approved | rejected | applied | reverted
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    reviewed_by = db.Column(db.String(80), nullable=True)
+    applied_at = db.Column(db.DateTime, nullable=True)
+    reverted_at = db.Column(db.DateTime, nullable=True)
+
+
+class CuratorAuditLog(db.Model):
+    """Append-only record of every Curator-driven mutation.
+
+    No code path UPDATEs or DELETEs rows here. Used to reconstruct
+    "what did the system do" for debugging or rollback.
+    """
+    __tablename__ = "curator_audit_log"
+
+    id = db.Column(db.Integer, primary_key=True)
+    proposal_id = db.Column(db.Integer, db.ForeignKey("curator_proposals.id"), nullable=False, index=True)
+    action = db.Column(db.String(20), nullable=False)  # "apply" | "revert"
+    before_value = db.Column(db.Text, default="")
+    after_value = db.Column(db.Text, default="")
+    actor = db.Column(db.String(80), default="")
+    occurred_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+
 class DomainCredibility(db.Model):
     """External-dataset domain credibility ratings (Iffy.news, CRED-1, Wikipedia RSP, MBFC).
 
