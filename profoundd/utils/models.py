@@ -185,6 +185,32 @@ class SiteSetting(db.Model):
         db.session.commit()
 
 
+class DomainCredibility(db.Model):
+    """External-dataset domain credibility ratings (Iffy.news, CRED-1, Wikipedia RSP, MBFC).
+
+    Bootstrapped from public datasets to give the Curator + ranker a 5k-domain head start.
+    Domain is the apex (no www, no scheme). Score 0.0=spam/fake, 1.0=high credibility.
+    Bias: 1=far-left, 5=center, 10=far-right (matches Source.bias_score).
+    """
+    __tablename__ = "domain_credibility"
+
+    domain = db.Column(db.String(255), primary_key=True)
+    credibility = db.Column(db.Float, nullable=False, index=True)  # 0.0-1.0
+    bias_score = db.Column(db.Integer, nullable=True)              # 1-10 or null
+    category = db.Column(db.String(50), nullable=True)             # "fake", "satire", "questionable", "pro", etc.
+    sources = db.Column(db.String(120), nullable=False)            # comma-sep: "iffy,cred1,rsp,mbfc"
+    notes = db.Column(db.Text, default="")
+    last_updated = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                             onupdate=lambda: datetime.now(timezone.utc))
+
+    @staticmethod
+    def lookup(domain):
+        """Return DomainCredibility row for an apex domain, or None."""
+        if not domain:
+            return None
+        return db.session.query(DomainCredibility).filter_by(domain=domain.lower()).first()
+
+
 class ResearchDocument(db.Model):
     """Admin-curated research documents persisted in DB so they survive ES rebuilds."""
     __tablename__ = "research_documents"
