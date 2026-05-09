@@ -273,7 +273,6 @@ EPSTEIN_SOURCES = [
     {"name": "Lawfare", "url": "https://www.lawfaremedia.org/feed", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
     {"name": "Reuters Legal", "url": "https://www.reuters.com/legal/rss", "category": "epstein-files", "credibility": 3, "feed_type": "rss", "sponsors": "Pfizer"},
     {"name": "ProPublica", "url": "https://www.propublica.org/feeds/propublica/main", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
-    {"name": "The Intercept", "url": "https://theintercept.com/feed/?rss", "category": "epstein-files", "credibility": 7, "feed_type": "rss"},
     # Tabloid / High-volume news
     {"name": "Daily Mail US", "url": "https://www.dailymail.co.uk/articles.rss", "category": "epstein-files", "credibility": 3, "feed_type": "rss", "sponsors": "Pfizer"},
     {"name": "New York Post", "url": "https://nypost.com/feed/", "category": "epstein-files", "credibility": 3, "feed_type": "rss", "sponsors": "Pfizer"},

@@ -42,7 +42,6 @@
     "washingtontimes.com": {"category": "news", "credibility": 7, "seeds": ["https://www.washingtontimes.com/"]},
     "nypost.com": {"category": "news", "credibility": 5, "seeds": ["https://nypost.com/"], "sponsors": "Pfizer"},
     "foxnews.com": {"category": "news", "credibility": 5, "seeds": ["https://www.foxnews.com/"], "sponsors": "Pfizer"},
-    "theintercept.com": {"category": "news", "credibility": 7, "seeds": ["https://theintercept.com/"]},
     "propublica.org": {"category": "news", "credibility": 7, "seeds": ["https://www.propublica.org/"]},
     "icij.org": {"category": "news", "credibility": 8, "seeds": ["https://www.icij.org/"]},
     "retractionwatch.com": {"category": "medical", "credibility": 8, "seeds": ["https://retractionwatch.com/"]},
