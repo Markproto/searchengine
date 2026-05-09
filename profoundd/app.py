@@ -445,6 +445,7 @@ def create_app(config_override=None):
             "ALTER TABLE page_views ADD COLUMN language VARCHAR(20)",
             "ALTER TABLE admin_users ADD COLUMN magic_token VARCHAR(128)",
             "ALTER TABLE admin_users ADD COLUMN magic_token_expires DATETIME",
+            "ALTER TABLE search_logs ADD COLUMN is_bot BOOLEAN DEFAULT 0",
         ]:
             try:
                 db.session.execute(db.text(col_sql))
@@ -454,6 +455,12 @@ def create_app(config_override=None):
         # Ensure analytics indexes
         try:
             db.session.execute(db.text("CREATE INDEX IF NOT EXISTS ix_page_views_session_id ON page_views (session_id)"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+        try:
+            db.session.execute(db.text("CREATE INDEX IF NOT EXISTS ix_search_logs_searched_at ON search_logs (searched_at)"))
+            db.session.execute(db.text("CREATE INDEX IF NOT EXISTS ix_search_logs_is_bot ON search_logs (is_bot)"))
             db.session.commit()
         except Exception:
             db.session.rollback()
@@ -481,22 +488,26 @@ def create_app(config_override=None):
 
         topics = []
 
-        # Source 1: Our users' actual searches
+        # Source 1: Our users' actual searches.
+        # Group case-insensitively + exclude bot UAs so a stocks-bot scraper
+        # can't dominate the trending panel ahead of real human queries.
         try:
             from profoundd.utils.models import SearchLog
             from sqlalchemy import func
             from datetime import timedelta
             cutoff = datetime.now(timezone.utc) - timedelta(hours=48)
+            norm = func.lower(func.trim(SearchLog.query))
             user_queries = (
-                db.session.query(SearchLog.query, func.count(SearchLog.id))
+                db.session.query(norm.label("nq"), func.count(SearchLog.id).label("c"))
                 .filter(SearchLog.searched_at >= cutoff)
-                .group_by(SearchLog.query)
+                .filter(SearchLog.is_bot == False)  # noqa: E712
+                .group_by(norm)
                 .order_by(func.count(SearchLog.id).desc())
-                .limit(10)
+                .limit(20)
                 .all()
             )
             for q, _ in user_queries:
-                q = q.strip()
+                q = (q or "").strip()
                 # Skip junk: URLs, test queries, single short words, numbers-only
                 if (3 < len(q) < 60
                     and not q.startswith("http")
@@ -584,10 +595,12 @@ def create_app(config_override=None):
 
         # Build trending topics from OUR sources — not Google/mainstream
         from profoundd.utils.cache import cache_get, cache_set
+        # Trending cache: short TTL (2 min) so newly-popular queries surface quickly.
+        # Was 1800s (30 min) which made the homepage panel stale relative to user behavior.
         brave_trending = cache_get("homepage:trending_topics")
         if brave_trending is None:
             brave_trending = _build_trending_topics(search_engine)
-            cache_set("homepage:trending_topics", brave_trending, ttl=1800)
+            cache_set("homepage:trending_topics", brave_trending, ttl=120)
 
         # Cache may return bytes from SQLite L2 — deserialize
         if isinstance(brave_trending, (bytes, memoryview)):
@@ -1340,16 +1353,24 @@ def create_app(config_override=None):
                 threading.Thread(target=_bg_index, args=(_to_index, _skipped), daemon=True).start()
 
         # Log the search (background — don't block response for DB write)
-        _search_q = query
+        # Normalize: trim + collapse whitespace so future grouping is automatic.
+        # NOTE: we store the canonical form (lowercased) in `query_norm` if the
+        # column exists, but keep the original `query` for display. As of
+        # 2026-05-09 we don't have a separate column, so we just trim.
+        _search_q = (query or "").strip()
         _search_cat = category
         _search_count = results.get("total", 0)
         _search_ip = _hash_ip(_get_client_ip())
+        # Tag bot searches so trending/top-queries can exclude them.
+        from profoundd.utils.bot_detection import detect_bot
+        _search_is_bot = detect_bot(request.user_agent.string or "")
 
         def _bg_log_search():
             with app.app_context():
                 try:
                     log = SearchLog(query=_search_q, category=_search_cat,
-                                    results_count=_search_count, ip_address=_search_ip)
+                                    results_count=_search_count, ip_address=_search_ip,
+                                    is_bot=_search_is_bot)
                     db.session.add(log)
                     db.session.commit()
                 except Exception as e:

@@ -869,72 +869,134 @@ def deduplicate():
 @admin_bp.route("/search-analytics")
 @login_required
 def search_analytics():
-    """Search analytics: queries grouped by category, top queries, trends."""
+    """Search analytics: queries grouped by category, top queries, trends.
+
+    Groups case-insensitively (so "Epstein"/"epstein"/" Epstein " collapse).
+    Splits human vs bot traffic — bots default-hidden so the noise from
+    programmatic scrapers doesn't drown out real-user trends.
+    """
     from sqlalchemy import func, desc
 
     days = request.args.get("days", 7, type=int)
     if days not in (1, 7, 30, 90):
         days = 7
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    show_bots = request.args.get("bots") == "1"
 
-    # Total searches in period
-    total_searches = db.session.query(func.count(SearchLog.id)).filter(
-        SearchLog.searched_at >= cutoff
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    norm = func.lower(func.trim(SearchLog.query))  # canonicalised query
+
+    base_filter = [SearchLog.searched_at >= cutoff]
+    if not show_bots:
+        base_filter.append(SearchLog.is_bot == False)  # noqa: E712
+
+    # Total searches in period (split by bot/human)
+    total_human = db.session.query(func.count(SearchLog.id)).filter(
+        SearchLog.searched_at >= cutoff, SearchLog.is_bot == False  # noqa: E712
     ).scalar() or 0
+    total_bot = db.session.query(func.count(SearchLog.id)).filter(
+        SearchLog.searched_at >= cutoff, SearchLog.is_bot == True  # noqa: E712
+    ).scalar() or 0
+    total_searches = total_human + total_bot if show_bots else total_human
 
     # Searches by category
     category_breakdown = db.session.query(
         SearchLog.category,
         func.count(SearchLog.id).label("count"),
-    ).filter(
-        SearchLog.searched_at >= cutoff,
-    ).group_by(SearchLog.category).order_by(desc("count")).all()
+    ).filter(*base_filter).group_by(SearchLog.category).order_by(desc("count")).all()
 
-    # Top 50 queries overall
+    # Top 50 queries — case-insensitive, with last-searched + first-searched
     top_queries = db.session.query(
-        SearchLog.query.label("q"),
-        SearchLog.category,
+        norm.label("q"),
         func.count(SearchLog.id).label("count"),
         func.avg(SearchLog.results_count).label("avg_results"),
-    ).filter(
-        SearchLog.searched_at >= cutoff,
-    ).group_by(SearchLog.query, SearchLog.category).order_by(desc("count")).limit(50).all()
+        func.max(SearchLog.searched_at).label("last_at"),
+        func.min(SearchLog.searched_at).label("first_at"),
+    ).filter(*base_filter).group_by(norm).order_by(desc("count")).limit(50).all()
 
-    # Zero-result queries (people searching but finding nothing)
+    # Zero-result queries
     zero_result = db.session.query(
-        SearchLog.query.label("q"),
-        SearchLog.category,
+        norm.label("q"),
         func.count(SearchLog.id).label("count"),
+        func.max(SearchLog.searched_at).label("last_at"),
     ).filter(
-        SearchLog.searched_at >= cutoff,
+        *base_filter,
         SearchLog.results_count == 0,
-    ).group_by(SearchLog.query, SearchLog.category).order_by(desc("count")).limit(20).all()
+    ).group_by(norm).order_by(desc("count")).limit(30).all()
 
-    # Top queries per category (build a dict: {category: [(query, count), ...]})
-    per_category = {}
-    for row in top_queries:
-        cat = row.category or "all"
-        if cat not in per_category:
-            per_category[cat] = []
-        if len(per_category[cat]) < 10:
-            per_category[cat].append({"query": row.q, "count": row.count, "avg_results": round(row.avg_results or 0)})
+    # Recent 50 searches with bot flag visible
+    recent_q = db.session.query(SearchLog).order_by(SearchLog.searched_at.desc())
+    if not show_bots:
+        recent_q = recent_q.filter(SearchLog.is_bot == False)  # noqa: E712
+    recent = recent_q.limit(50).all()
 
-    # Recent 30 searches (for the raw feed)
-    recent = db.session.query(SearchLog).order_by(
-        SearchLog.searched_at.desc()
-    ).limit(30).all()
+    # "Trending now" — top queries in last 1h that didn't dominate prior 23h
+    recent_cutoff = datetime.now(timezone.utc) - timedelta(hours=1)
+    prior_cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    last_hour = dict(db.session.query(norm, func.count(SearchLog.id))
+                     .filter(SearchLog.searched_at >= recent_cutoff,
+                             SearchLog.is_bot == False)  # noqa: E712
+                     .group_by(norm).all())
+    prior_23h = dict(db.session.query(norm, func.count(SearchLog.id))
+                     .filter(SearchLog.searched_at >= prior_cutoff,
+                             SearchLog.searched_at < recent_cutoff,
+                             SearchLog.is_bot == False)  # noqa: E712
+                     .group_by(norm).all())
+    trending_now = []
+    for q, c1 in last_hour.items():
+        if not q:
+            continue
+        c0 = prior_23h.get(q, 0)
+        # Show queries with >=2 hits in last hour and meaningful jump from baseline
+        avg_per_hour_prior = c0 / 23.0 if c0 else 0
+        if c1 >= 2 and (avg_per_hour_prior == 0 or c1 >= avg_per_hour_prior * 2):
+            trending_now.append({"q": q, "last_hour": c1, "prior_per_hour": round(avg_per_hour_prior, 1)})
+    trending_now.sort(key=lambda x: x["last_hour"], reverse=True)
+    trending_now = trending_now[:15]
 
     return render_template(
         "admin/search_analytics.html",
         days=days,
+        show_bots=show_bots,
         total_searches=total_searches,
+        total_human=total_human,
+        total_bot=total_bot,
         category_breakdown=category_breakdown,
         top_queries=top_queries[:30],
         zero_result=zero_result,
-        per_category=per_category,
         recent=recent,
+        trending_now=trending_now,
         categories=CATEGORIES,
+        now=datetime.now(timezone.utc),
     )
+
+
+@admin_bp.route("/search-analytics/query")
+@login_required
+def search_query_detail():
+    """Drill-down view: every individual SearchLog row matching ?q=<normalized>."""
+    from sqlalchemy import func
+    q = (request.args.get("q") or "").strip().lower()
+    if not q:
+        flash("No query specified.", "error")
+        return redirect(url_for("admin.search_analytics"))
+    days = request.args.get("days", 30, type=int)
+    if days not in (1, 7, 30, 90, 365):
+        days = 30
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    norm = func.lower(func.trim(SearchLog.query))
+    rows = (db.session.query(SearchLog)
+            .filter(norm == q, SearchLog.searched_at >= cutoff)
+            .order_by(SearchLog.searched_at.desc())
+            .limit(1000).all())
+    # Top categories for this query
+    cat_breakdown = (db.session.query(SearchLog.category, func.count(SearchLog.id))
+                     .filter(norm == q, SearchLog.searched_at >= cutoff)
+                     .group_by(SearchLog.category)
+                     .order_by(func.count(SearchLog.id).desc()).all())
+    return render_template("admin/search_query_detail.html",
+                           q=q, rows=rows, cat_breakdown=cat_breakdown,
+                           days=days, total=len(rows),
+                           categories=CATEGORIES)
 
 
 @admin_bp.route("/crawl-history")

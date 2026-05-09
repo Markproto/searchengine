@@ -122,7 +122,8 @@ class SearchLog(db.Model):
     category = db.Column(db.String(50))
     results_count = db.Column(db.Integer, default=0)
     ip_address = db.Column(db.String(45))
-    searched_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    is_bot = db.Column(db.Boolean, default=False, nullable=False, index=True)
+    searched_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
 
 class CrawlLog(db.Model):

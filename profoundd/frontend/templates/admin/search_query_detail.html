@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Query: {{ q }} - Search Detail{% endblock %}
+
+{% block content %}
+<div class="container admin-page" style="max-width:1100px;">
+    <div class="admin-header">
+        <h1 style="font-family:var(--font-mono, monospace);font-weight:600;">"{{ q }}"</h1>
+        <div>
+            <a href="/search?q={{ q | urlencode }}" target="_blank" class="btn btn-primary">Run this search</a>
+            <a href="{{ url_for('admin.search_analytics', days=days) }}" class="btn btn-secondary">Back to analytics</a>
+        </div>
+    </div>
+
+    <div style="margin-bottom:1rem;display:flex;gap:8px;align-items:center;">
+        <span style="color:var(--text-muted);font-size:0.85rem;">Range:</span>
+        {% for d in [1, 7, 30, 90, 365] %}
+        <a href="{{ url_for('admin.search_query_detail', q=q, days=d) }}"
+           class="btn btn-sm {% if days == d %}btn-primary{% else %}btn-secondary{% endif %}">
+            {% if d == 1 %}24h{% elif d == 7 %}7d{% elif d == 30 %}30d{% elif d == 90 %}90d{% else %}1y{% endif %}
+        </a>
+        {% endfor %}
+    </div>
+
+    <div class="stats-grid" style="margin-bottom:1.5rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
+        <div class="stat-card">
+            <h3>Total searches</h3>
+            <p class="stat-value">{{ '{:,}'.format(total) }}</p>
+            <p class="stat-detail">In last {{ days }}d</p>
+        </div>
+        {% for cat, count in cat_breakdown[:3] %}
+        <div class="stat-card">
+            <h3>{{ cat or 'all' }}</h3>
+            <p class="stat-value">{{ count }}</p>
+            <p class="stat-detail">searches</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="admin-section">
+        <h2>Every search</h2>
+        {% if not rows %}
+            <p class="text-muted">No searches in the selected window.</p>
+        {% else %}
+        <table class="admin-table" style="width:100%;">
+            <thead>
+                <tr>
+                    <th>When (UTC)</th>
+                    <th>Original casing</th>
+                    <th>Category</th>
+                    <th>Results</th>
+                    <th>IP hash</th>
+                    <th>Bot?</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in rows %}
+                <tr {% if r.is_bot %}style="opacity:0.55;"{% endif %}>
+                    <td><small style="font-family:monospace;">{{ r.searched_at.strftime('%Y-%m-%d %H:%M:%S') if r.searched_at else '' }}</small></td>
+                    <td><code style="background:#f4f4f4;padding:1px 5px;">{{ r.query }}</code></td>
+                    <td>{{ r.category or 'all' }}</td>
+                    <td>{{ r.results_count }}</td>
+                    <td><small style="font-family:monospace;color:#888;">{{ (r.ip_address or '')[:12] }}</small></td>
+                    <td>{% if r.is_bot %}<span style="font-size:0.75rem;background:#888;color:white;padding:1px 6px;border-radius:3px;">BOT</span>{% else %}—{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
