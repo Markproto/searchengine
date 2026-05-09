@@ -104,6 +104,7 @@ def _get_or_make_summary(doc_type, doc_id, page_number, content, meta):
         from langchain_core.messages import HumanMessage
         result = llm.invoke([HumanMessage(content=prompt)])
         summary_text = result.content if hasattr(result, "content") else str(result)
+        summary_text = _strip_think(summary_text)
     except Exception as e:
         logger.warning("summary LLM call failed: %s", e)
         return None, False
@@ -152,18 +153,57 @@ def _smart_window(content, query, window_total=8000):
 
 _llm_cache = {"provider": None, "llm": None}
 
+_THINK_BLOCK_RE = re.compile(r"<think>.*?</think>\s*", re.DOTALL | re.IGNORECASE)
+
+
+def _strip_think(text):
+    """Remove Qwen3-style <think>...</think> reasoning blocks from a response.
+
+    Qwen3 (and similar reasoning-mode models) emit a private chain-of-thought
+    that we don't want to show users. Anthropic / Grok responses don't contain
+    this tag, so this is a safe no-op for them.
+    """
+    if not text or "<think>" not in text.lower():
+        return text
+    return _THINK_BLOCK_RE.sub("", text).strip()
+
+
+def _get_explain_provider():
+    """Resolve the live ai_explain provider name (SiteSetting > env > default)."""
+    from profoundd.utils.models import SiteSetting
+    return (
+        SiteSetting.get("ai_explain_provider", "")
+        or os.environ.get("AI_EXPLAIN_PROVIDER", "anthropic")
+    ).lower()
+
 
 def _build_llm():
-    """Lazy-construct and cache a LangChain LLM handle per provider config."""
-    provider = os.environ.get("AI_EXPLAIN_PROVIDER", "anthropic").lower()
-    if _llm_cache["provider"] == provider and _llm_cache["llm"] is not None:
+    """Lazy-construct and cache a LangChain LLM handle per provider config.
+
+    Provider selection: SiteSetting("ai_explain_provider") wins over env var,
+    so admin can flip provider live at /admin/ai-provider without a redeploy.
+    """
+    from profoundd.utils.models import SiteSetting
+    provider = (
+        SiteSetting.get("ai_explain_provider", "")
+        or os.environ.get("AI_EXPLAIN_PROVIDER", "anthropic")
+    ).lower()
+
+    cache_key = (provider,
+                 SiteSetting.get("ai_explain_ollama_model", ""),
+                 SiteSetting.get("ai_anthropic_model", ""))
+    if _llm_cache.get("key") == cache_key and _llm_cache.get("llm") is not None:
         return _llm_cache["llm"]
 
     if provider == "ollama":
         from langchain_ollama import ChatOllama
+        model = (SiteSetting.get("ai_explain_ollama_model", "")
+                 or os.environ.get("OLLAMA_MODEL", "qwen3:8b"))
+        base_url = (SiteSetting.get("ai_explain_ollama_url", "")
+                    or os.environ.get("OLLAMA_URL", "http://10.0.6.1:11434"))
         llm = ChatOllama(
-            model=os.environ.get("OLLAMA_MODEL", "mistral:latest"),
-            base_url=os.environ.get("OLLAMA_URL", "http://10.0.6.1:11434"),
+            model=model,
+            base_url=base_url,
             temperature=0.2,
             num_predict=1200,
         )
@@ -186,9 +226,19 @@ def _build_llm():
             timeout=60,
         )
 
-    _llm_cache["provider"] = provider
+    _llm_cache["key"] = cache_key
     _llm_cache["llm"] = llm
     return llm
+
+
+def reset_llm_cache():
+    """Force the next _build_llm() call to re-read provider config.
+
+    Call after changing ai_explain_* SiteSettings so the admin toggle
+    takes effect on the next AI request without a container restart.
+    """
+    _llm_cache["key"] = None
+    _llm_cache["llm"] = None
 
 
 def _try_grok_fallback(prompt):
@@ -312,7 +362,7 @@ def explain(doc_type, doc_id, page_number, content, query, meta, prompt_template
         logger.warning("explain LLM init failed: %s", e)
         return {"error": f"AI provider unavailable: {e}"}, 500
 
-    primary_provider = os.environ.get("AI_EXPLAIN_PROVIDER", "anthropic").lower()
+    primary_provider = _get_explain_provider()
     explanation = None
     used_provider = primary_provider
     fallback_reason = None
@@ -321,6 +371,7 @@ def explain(doc_type, doc_id, page_number, content, query, meta, prompt_template
         from langchain_core.messages import HumanMessage
         result = llm.invoke([HumanMessage(content=prompt)])
         explanation = result.content if hasattr(result, "content") else str(result)
+        explanation = _strip_think(explanation)
     except Exception as e:
         msg = str(e)
         logger.warning("explain primary (%s) failed: %s", primary_provider, msg)

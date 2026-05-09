@@ -1204,6 +1204,98 @@ def blocked_domains():
                            categories=CATEGORIES)
 
 
+# ---------------------------------------------------------------------------
+# AI provider toggle (Layer-1 rollback)
+# ---------------------------------------------------------------------------
+# Roles map to their respective AI modules. Each can be flipped independently
+# between anthropic / ollama (and grok where supported as primary). Settings
+# live in SiteSetting so flips don't require a redeploy.
+AI_ROLES = [
+    ("explain", "AI Explain (Epstein/Climate/WEF/FWP/Archive doc panels)"),
+    # ai_summary, ai_analyzer, ai_article_analysis become live targets after
+    # the centralization refactor (task #4). Listed here for forward compat.
+]
+AI_PROVIDERS = ["anthropic", "ollama"]
+AI_PROVIDER_DEFAULT = {
+    "explain_anthropic_model": "claude-sonnet-4-6",
+    "explain_ollama_model": "qwen3:8b",
+    "explain_ollama_url": "http://10.0.6.1:11434",
+}
+
+
+@admin_bp.route("/ai-provider", methods=["GET", "POST"])
+@login_required
+def ai_provider():
+    """Per-role provider toggle. Layer-1 rollback for the Ollama swap."""
+    from profoundd.search import ai_explain as _ai_explain
+
+    if request.method == "POST":
+        action = request.form.get("action", "save")
+        if action == "revert_all":
+            for role, _ in AI_ROLES:
+                SiteSetting.set(f"ai_{role}_provider", "anthropic")
+            _ai_explain.reset_llm_cache()
+            flash("Reverted all AI roles to Anthropic.", "success")
+            return redirect(url_for("admin.ai_provider"))
+        # Save form
+        for role, _ in AI_ROLES:
+            provider = request.form.get(f"{role}_provider", "anthropic")
+            if provider not in AI_PROVIDERS:
+                provider = "anthropic"
+            SiteSetting.set(f"ai_{role}_provider", provider)
+            ollama_model = request.form.get(f"{role}_ollama_model", "").strip()
+            if ollama_model:
+                SiteSetting.set(f"ai_{role}_ollama_model", ollama_model)
+            ollama_url = request.form.get(f"{role}_ollama_url", "").strip()
+            if ollama_url:
+                SiteSetting.set(f"ai_{role}_ollama_url", ollama_url)
+        _ai_explain.reset_llm_cache()
+        flash("AI provider settings saved. New requests use the new config.", "success")
+        return redirect(url_for("admin.ai_provider"))
+
+    # GET — gather state and render
+    config = []
+    for role, label in AI_ROLES:
+        provider = SiteSetting.get(f"ai_{role}_provider", "anthropic") or "anthropic"
+        ollama_model = (SiteSetting.get(f"ai_{role}_ollama_model", "")
+                        or AI_PROVIDER_DEFAULT.get(f"{role}_ollama_model", ""))
+        ollama_url = (SiteSetting.get(f"ai_{role}_ollama_url", "")
+                      or AI_PROVIDER_DEFAULT.get(f"{role}_ollama_url", ""))
+        config.append({
+            "role": role,
+            "label": label,
+            "provider": provider,
+            "ollama_model": ollama_model,
+            "ollama_url": ollama_url,
+        })
+
+    return render_template("admin/ai_provider.html",
+                           config=config,
+                           providers=AI_PROVIDERS,
+                           categories=CATEGORIES)
+
+
+@admin_bp.route("/ai-provider/health/<role>", methods=["POST"])
+@login_required
+def ai_provider_health(role):
+    """One-shot health check: send a tiny prompt to the configured provider for `role`."""
+    if role not in {r for r, _ in AI_ROLES}:
+        return jsonify(ok=False, error="unknown role"), 400
+    try:
+        from profoundd.search.ai_explain import _build_llm, _strip_think
+        from langchain_core.messages import HumanMessage
+        import time
+        llm = _build_llm()
+        t0 = time.time()
+        result = llm.invoke([HumanMessage(content="Say 'ok' if you are running. Reply with one word.")])
+        elapsed = round(time.time() - t0, 2)
+        text = _strip_think(result.content if hasattr(result, "content") else str(result))[:200]
+        provider = SiteSetting.get(f"ai_{role}_provider", "anthropic") or "anthropic"
+        return jsonify(ok=True, provider=provider, latency_s=elapsed, response=text)
+    except Exception as e:
+        return jsonify(ok=False, error=str(e)[:300]), 200
+
+
 @admin_bp.route("/analyze-url", methods=["GET", "POST"])
 @login_required
 def analyze_url():

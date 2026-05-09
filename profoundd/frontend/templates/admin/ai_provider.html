@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}AI Provider{% endblock %}
+
+{% block content %}
+<div class="container admin-page">
+    <div class="admin-header">
+        <h1>AI Provider</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+    </div>
+
+    <div class="admin-section" style="background: #fff5f5; border: 1px solid #f5c2c2; padding: 1rem; margin-bottom: 1rem;">
+        <h2 style="margin-top: 0;">Emergency rollback</h2>
+        <p class="action-desc">If Ollama responses are degraded or unavailable, click below to instantly route every AI module back to Anthropic Claude. Takes effect on the next request — no redeploy.</p>
+        <form method="POST" style="display: inline;">
+            <input type="hidden" name="action" value="revert_all">
+            <button type="submit" class="btn" style="background: #c00; color: white; font-weight: bold;">
+                Revert all AI roles to Anthropic
+            </button>
+        </form>
+    </div>
+
+    <form method="POST" class="admin-form">
+        <input type="hidden" name="action" value="save">
+        {% for role in config %}
+        <div class="admin-section">
+            <h2>{{ role.label }}</h2>
+
+            <div class="form-group">
+                <label>Provider</label>
+                <select name="{{ role.role }}_provider" class="form-control">
+                    {% for p in providers %}
+                    <option value="{{ p }}" {% if role.provider == p %}selected{% endif %}>{{ p }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Ollama model (used when provider=ollama)</label>
+                <input type="text" name="{{ role.role }}_ollama_model" value="{{ role.ollama_model }}"
+                       class="form-control" placeholder="qwen3:8b">
+            </div>
+
+            <div class="form-group">
+                <label>Ollama base URL</label>
+                <input type="text" name="{{ role.role }}_ollama_url" value="{{ role.ollama_url }}"
+                       class="form-control" placeholder="http://10.0.6.1:11434">
+                <small class="text-muted">Apollo9 host bridge: <code>http://10.0.6.1:11434</code> &middot; Tark1 (future): <code>http://192.168.1.200:11434</code></small>
+            </div>
+
+            <div class="form-group">
+                <button type="button" class="btn btn-secondary" onclick="testHealth('{{ role.role }}', this)">
+                    Test current config
+                </button>
+                <span id="health-{{ role.role }}" style="margin-left: 1rem; font-family: monospace;"></span>
+            </div>
+        </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
+
+    <div class="admin-section" style="margin-top: 2rem; background: #f8f8f8; padding: 1rem;">
+        <h3>Notes</h3>
+        <ul>
+            <li><strong>Cache:</strong> AI explain caches results for 24h keyed on (doc, query). Flipping providers does not invalidate cache — old responses keep serving until natural expiry. Clear cache if you need a clean compare.</li>
+            <li><strong>Fallback:</strong> When provider is <code>anthropic</code>, automatic Grok fallback fires on Claude 529/overload. When provider is <code>ollama</code>, no auto-fallback (Ollama is the failover from API providers).</li>
+            <li><strong>Apollo9 capacity:</strong> Qwen3-8B Q4_K_M on apollo9 CPU runs ~8 tok/s. Expect 18-25s for typical responses. AI panels are async — search results render first.</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+function testHealth(role, btn) {
+    var span = document.getElementById('health-' + role);
+    span.textContent = 'testing...';
+    btn.disabled = true;
+    fetch('{{ url_for("admin.ai_provider") }}/health/' + role, {method: 'POST'})
+        .then(function(r) { return r.json(); })
+        .then(function(j) {
+            btn.disabled = false;
+            if (j.ok) {
+                span.textContent = '✓ ' + j.provider + ' (' + j.latency_s + 's): ' + j.response;
+                span.style.color = '#080';
+            } else {
+                span.textContent = '✗ ' + j.error;
+                span.style.color = '#c00';
+            }
+        })
+        .catch(function(e) {
+            btn.disabled = false;
+            span.textContent = '✗ ' + e;
+            span.style.color = '#c00';
+        });
+}
+</script>
+{% endblock %}
