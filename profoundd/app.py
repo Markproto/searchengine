@@ -312,7 +312,7 @@ def create_app(config_override=None):
             pv = PageView(
                 path=path[:1000],
                 visitor_id=visitor_id,
-                ip_address=_hash_ip(request.remote_addr),
+                ip_address=_hash_ip(_get_client_ip()),
                 user_agent=ua,
                 referrer=_clean_referrer(request.referrer),
                 is_bot=True,
@@ -342,7 +342,7 @@ def create_app(config_override=None):
             pv = PageView(
                 path=(data.get("path") or "/")[:1000],
                 visitor_id=visitor_id,
-                ip_address=_hash_ip(request.remote_addr),
+                ip_address=_hash_ip(_get_client_ip()),
                 user_agent=ua,
                 referrer=_clean_referrer(data.get("referrer") or ""),
                 session_id=(data.get("sessionId") or "")[:64] or None,
@@ -1343,7 +1343,7 @@ def create_app(config_override=None):
         _search_q = query
         _search_cat = category
         _search_count = results.get("total", 0)
-        _search_ip = _hash_ip(request.remote_addr)
+        _search_ip = _hash_ip(_get_client_ip())
 
         def _bg_log_search():
             with app.app_context():
@@ -2753,7 +2753,7 @@ def create_app(config_override=None):
                 category="news",  # admin assigns the real category on review
                 reason=request.form.get("reason", "").strip(),
                 submitted_by=request.form.get("submitted_by", "").strip() or "Anonymous",
-                ip_address=_hash_ip(request.remote_addr),
+                ip_address=_hash_ip(_get_client_ip()),
             )
             db.session.add(submission)
             db.session.commit()
