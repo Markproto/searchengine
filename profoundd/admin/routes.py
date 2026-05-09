@@ -966,7 +966,9 @@ def search_analytics():
         recent=recent,
         trending_now=trending_now,
         categories=CATEGORIES,
-        now=datetime.now(timezone.utc),
+        # SQLite returns naive datetimes; pass a naive UTC `now` so template
+        # subtraction in relative_time() doesn't trip the offset-aware/naive mix.
+        now=datetime.utcnow(),
     )
 
 
