@@ -89,7 +89,7 @@ def _get_or_make_summary(doc_type, doc_id, page_number, content, meta):
     window = (content or "")[:8000]
     safe_meta = {k: (v if v is not None else "") for k, v in (meta or {}).items()}
     try:
-        prompt = template.format(content_window=window, **safe_meta)
+        prompt = template.format(content_window=window, **safe_meta) + "\n" + RAG_RULES
     except KeyError as e:
         logger.warning("summary prompt missing key %s", e)
         return None, False
@@ -350,7 +350,7 @@ def explain(doc_type, doc_id, page_number, content, query, meta, prompt_template
     try:
         prompt = prompt_template.format(
             query=query, content_window=content_window, **safe_meta
-        )
+        ) + "\n" + RAG_RULES
     except KeyError as e:
         logger.warning("explain prompt missing key %s", e)
         return {"error": f"Prompt template missing key: {e}"}, 500
@@ -423,6 +423,26 @@ def explain(doc_type, doc_id, page_number, content, query, meta, prompt_template
 # Prompt templates per doc_type — kept identical to the original inline
 # prompts so existing UX doesn't regress. Template variables:
 #   {query}, {content_window}, + doc-type-specific meta keys.
+# Shared RAG-only rules appended to every per-collection prompt.
+# Keep terse — the editorial constitution already provides framing;
+# this block specifically forbids training-data drift.
+RAG_RULES = """
+STRICT RAG-ONLY MODE — read carefully:
+- You may use ONLY information present in the document text shown above.
+- You may NOT use background knowledge from your training data about this
+  topic, person, organization, or event. Even if you "know" the answer,
+  do not supply it from memory.
+- If the document does not address what the user asked, say plainly
+  "This document does not address X" rather than supplying X from
+  training data.
+- Do not contextualize using outside facts. Stick to what the document
+  explicitly states.
+- Do not invent or paraphrase quotes — quote verbatim or do not quote.
+- Do not editorialize on whether the document is credible, biased, or
+  authoritative. That is the reader's call.
+"""
+
+
 PROMPTS = {
     "epstein": """You are analyzing a court document from the Jeffrey Epstein case files (DOJ release).
 

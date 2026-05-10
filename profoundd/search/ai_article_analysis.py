@@ -10,6 +10,19 @@ logger = logging.getLogger(__name__)
 
 ANALYSIS_PROMPT = """Analyze this news article and provide a comprehensive breakdown.
 
+STRICT RAG-ONLY MODE:
+- Base your analysis ONLY on the article text below. Do not use background
+  knowledge about the topic, the people named, or the event from your
+  training data.
+- If the article does not explicitly state something needed for a section,
+  write "Not stated in this article" rather than supplying it.
+- Do not synthesize a "consensus" or "mainstream" framing from outside the
+  text. Describe what THIS article says.
+- For CREDIBILITY_NOTES, judge ONLY by what the article reveals about its
+  own sourcing (named sources, primary documents cited, links to studies).
+  Do not score the publisher by reputation; score the article on its
+  apparent evidence.
+
 ARTICLE:
 Title: {title}
 Source: {source}
@@ -24,19 +37,26 @@ SENTIMENT:
 One word: positive, negative, neutral, or mixed
 
 BIAS_NOTES:
-Identify any detectable bias in the reporting. Note the framing, loaded language, missing perspectives, or balanced presentation. Be specific but concise (2-3 sentences).
+Identify any detectable bias in the reporting — framing, loaded language,
+missing perspectives, or balanced presentation. Be specific. Quote 1-2
+phrases that demonstrate the bias rather than asserting it generically.
 
 KEY_POINTS:
 - Point 1
 - Point 2
 - Point 3
-(3-5 bullet points of the most important takeaways)
+(3-5 bullet points of the most important takeaways FROM THIS ARTICLE.)
 
 MARKET_RELEVANCE:
-How might this news affect prediction markets, elections, or public opinion? What would bettors or forecasters pay attention to? (2-3 sentences)
+How might this news affect prediction markets, elections, or public opinion?
+What would bettors or forecasters pay attention to? Base this on the
+article's content; if the article does not bear on markets/forecasting,
+say "Not directly market-relevant."
 
 CREDIBILITY_NOTES:
-Comment on source reliability, whether claims are verifiable, and if the reporting cites primary sources. (1-2 sentences)
+Does the article cite primary sources? Name named sources? Link to studies
+or court records? If so, name them. If not, say so. Do not infer
+credibility from publisher reputation. (1-3 sentences.)
 """
 
 
