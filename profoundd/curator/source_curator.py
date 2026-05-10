@@ -60,43 +60,57 @@ def _get_setting_float(key: str, default: float) -> float:
 
 def _sample_recent_domains(es_url: str, hours: int = 24, max_domains: int = 200,
                             min_samples: int = 3):
-    """Return {domain: article_count} for domains with >= min_samples in last `hours`."""
+    """Return {domain: article_count} for domains with >= min_samples in last `hours`.
+
+    Tries a fast terms-agg on the `domain` field first; falls back to a
+    paged URL scan when no `domain` keyword field is mapped (common —
+    Profoundd's ES index uses `url` as the keyword field and parses
+    domains client-side).
+    """
     import requests
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    # Path 1: fast aggregation if `domain` keyword field exists
     body = {
         "size": 0,
         "query": {"range": {"crawled_at": {"gte": cutoff}}},
-        "aggs": {
-            "by_domain": {
-                "terms": {"field": "domain", "size": max_domains}
-            }
-        }
+        "aggs": {"by_domain": {"terms": {"field": "domain", "size": max_domains}}}
     }
     try:
         r = requests.get(f"{es_url}/profoundd_articles/_search", json=body, timeout=30)
-        if r.status_code != 200:
-            logger.warning("ES aggregation failed (status %s): %s", r.status_code, r.text[:200])
-            return {}
-        buckets = r.json().get("aggregations", {}).get("by_domain", {}).get("buckets", [])
-        return {b["key"]: b["doc_count"] for b in buckets if b["doc_count"] >= min_samples}
+        if r.status_code == 200:
+            buckets = r.json().get("aggregations", {}).get("by_domain", {}).get("buckets", [])
+            if buckets:
+                return {b["key"]: b["doc_count"] for b in buckets
+                        if b["doc_count"] >= min_samples}
+        else:
+            logger.info("ES domain agg returned %s — falling back to URL scan", r.status_code)
     except Exception as e:
-        # Some ES indices don't have a 'domain' keyword field; fall back to URL scan.
-        logger.info("ES domain agg unavailable (%s) — falling back to URL scan", e)
+        logger.info("ES domain agg threw (%s) — falling back to URL scan", e)
 
-    # Fallback: pull last-24h URLs and aggregate in Python
-    body2 = {
-        "size": 500,
-        "query": {"range": {"crawled_at": {"gte": cutoff}}},
-        "_source": ["url"],
-    }
+    # Path 2: paginated URL scan, aggregate in Python.
+    # Use scroll or scan_search for completeness — but a 5000-doc sample
+    # is plenty to find prolific domains and cheap to pull.
+    counter = Counter()
     try:
-        r = requests.get(f"{es_url}/profoundd_articles/_search", json=body2, timeout=30)
-        counter = Counter()
+        body2 = {
+            "size": 5000,
+            "query": {"range": {"crawled_at": {"gte": cutoff}}},
+            "_source": ["url"],
+            "sort": [{"crawled_at": {"order": "desc"}}],
+        }
+        r = requests.get(f"{es_url}/profoundd_articles/_search", json=body2, timeout=60)
+        if r.status_code != 200:
+            logger.warning("ES URL-scan returned %s: %s", r.status_code, r.text[:200])
+            return {}
         for hit in r.json().get("hits", {}).get("hits", []):
             d = _domain_of((hit.get("_source") or {}).get("url"))
             if d:
                 counter[d] += 1
-        return {d: c for d, c in counter.items() if c >= min_samples}
+        result = {d: c for d, c in counter.items() if c >= min_samples}
+        logger.info("URL-scan fallback: scanned %d docs, %d unique domains, %d meet min_samples=%d",
+                    sum(counter.values()), len(counter), len(result), min_samples)
+        return result
     except Exception as e:
         logger.exception("ES URL-fallback failed: %s", e)
         return {}
