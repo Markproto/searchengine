@@ -11,7 +11,7 @@ from functools import wraps
 import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick, AudioTranscript, DailyStats, CuratorProposal, CuratorAuditLog, DomainCredibility, HumanVerifyEvent
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick, AudioTranscript, DailyStats, CuratorProposal, CuratorAuditLog, DomainCredibility, HumanVerifyEvent, EditorialConstitutionRevision
 from profoundd.config.settings import get_config
 from profoundd.config.sources import ALL_SOURCES, CATEGORIES, SPECIAL_SECTION_KEYWORDS
 from profoundd.search.engine import SearchEngine
@@ -1358,6 +1358,53 @@ def ai_provider_health(role):
         return jsonify(ok=True, provider=provider, latency_s=elapsed, response=text)
     except Exception as e:
         return jsonify(ok=False, error=str(e)[:300]), 200
+
+
+# ---------------------------------------------------------------------------
+# Editorial Constitution — single source-of-truth for LLM editorial framing
+# ---------------------------------------------------------------------------
+
+@admin_bp.route("/editorial-constitution", methods=["GET", "POST"])
+@login_required
+def editorial_constitution():
+    """Edit the text prepended to every LLM prompt across the site."""
+    from profoundd.utils import editorial_constitution as ec
+
+    if request.method == "POST":
+        action = request.form.get("action", "save")
+        actor = session.get("admin_user", "admin")
+        if action == "reset":
+            ec.reset_to_default()
+            flash("Constitution reverted to default. Default text is now active.", "success")
+        elif action == "restore_revision":
+            try:
+                rev_id = int(request.form.get("revision_id", "0"))
+            except (ValueError, TypeError):
+                rev_id = 0
+            rev = db.session.query(EditorialConstitutionRevision).get(rev_id)
+            if rev:
+                ec.save(rev.content, actor=actor, change_summary=f"restored revision #{rev.id}")
+                flash(f"Restored constitution to revision #{rev.id} ({rev.created_at}).", "success")
+            else:
+                flash("Revision not found.", "error")
+        else:
+            content = request.form.get("constitution", "")
+            change_summary = (request.form.get("change_summary") or "").strip()
+            ec.save(content, actor=actor, change_summary=change_summary)
+            flash("Editorial constitution saved. New AI calls will use it immediately.", "success")
+        return redirect(url_for("admin.editorial_constitution"))
+
+    current = ec.get_constitution()
+    is_default = (current.strip() == ec.DEFAULT_CONSTITUTION.strip())
+    revisions = (db.session.query(EditorialConstitutionRevision)
+                 .order_by(EditorialConstitutionRevision.created_at.desc())
+                 .limit(20).all())
+    return render_template("admin/editorial_constitution.html",
+                           current=current,
+                           default_constitution=ec.DEFAULT_CONSTITUTION,
+                           is_default=is_default,
+                           revisions=revisions,
+                           categories=CATEGORIES)
 
 
 # ---------------------------------------------------------------------------

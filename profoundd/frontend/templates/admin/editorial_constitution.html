@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Editorial Constitution{% endblock %}
+
+{% block content %}
+<div class="container admin-page" style="max-width:1100px;">
+    <div class="admin-header">
+        <h1>Editorial Constitution</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+    </div>
+
+    <p class="action-desc">
+        This text is <strong>prepended verbatim to every LLM prompt</strong> across
+        Profoundd — AI Explain panels, search-result summaries, URL analyzer,
+        Bob NewsRoom, The Man, Verify Bot, and the Curator. It defines the
+        editorial perspective the system speaks from. Edits take effect
+        on the very next AI call (no redeploy).
+    </p>
+
+    <div class="admin-section" style="background:{% if is_default %}#f0f8ff{% else %}#fff5e6{% endif %};border:1px solid {% if is_default %}#c2d9f5{% else %}#f0c97a{% endif %};padding:1rem;">
+        <strong>Status:</strong>
+        {% if is_default %}
+            Currently using the <strong>default constitution</strong> shipped with Profoundd.
+        {% else %}
+            Currently using a <strong>customised constitution</strong> ({{ current|length }} chars).
+        {% endif %}
+        <br>
+        <small style="color:var(--text-muted);">
+            Empty constitution = preamble disabled, LLMs receive raw prompts (legacy behavior).
+        </small>
+    </div>
+
+    <form method="POST" class="admin-form">
+        <input type="hidden" name="action" value="save">
+
+        <div class="form-group">
+            <label>Constitution text (markdown OK; the model sees it as plain text)</label>
+            <textarea name="constitution" rows="32" class="form-control"
+                      style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; line-height: 1.5;"
+                      id="constitution-text">{{ current }}</textarea>
+            <small id="char-count" style="color:var(--text-muted);">
+                {{ current|length }} characters
+            </small>
+        </div>
+
+        <div class="form-group">
+            <label>Change summary (optional, for the revision log)</label>
+            <input type="text" name="change_summary" class="form-control"
+                   placeholder="e.g., 'tightened regulator-capture language'">
+        </div>
+
+        <div class="form-actions" style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+            <button type="submit" class="btn btn-primary" style="background:#0a7;">
+                Save constitution
+            </button>
+            <button type="button" class="btn btn-secondary"
+                    onclick="document.getElementById('constitution-text').value = {{ default_constitution|tojson }}; document.getElementById('char-count').textContent = (document.getElementById('constitution-text').value.length + ' characters');">
+                Load default into editor
+            </button>
+        </div>
+    </form>
+
+    <div class="admin-section" style="margin-top:1.5rem;border-left:4px solid #c00;padding-left:1rem;">
+        <h2 style="color:#c00;">Reset to default</h2>
+        <p style="font-size:0.9rem;color:var(--text-muted);">
+            Removes any saved override; ships behavior reverts to the built-in default constitution.
+            (Your custom text remains in the revision log so you can restore it.)
+        </p>
+        <form method="POST" style="display:inline;">
+            <input type="hidden" name="action" value="reset">
+            <button type="submit" class="btn"
+                    style="background:#c00;color:white;"
+                    onclick="return confirm('Revert to the default constitution? Your current customisation will remain in the revision log for restore.');">
+                Revert to default
+            </button>
+        </form>
+    </div>
+
+    <div class="admin-section" style="margin-top:1.5rem;">
+        <h2>Revision history <small style="font-weight:400;color:var(--text-muted);">(last 20)</small></h2>
+        {% if not revisions %}
+            <p class="text-muted">No saved revisions yet.</p>
+        {% else %}
+        <table class="admin-table" style="width:100%;font-size:0.85rem;">
+            <thead><tr><th>Saved</th><th>By</th><th>Summary</th><th>Length</th><th></th></tr></thead>
+            <tbody>
+                {% for r in revisions %}
+                <tr>
+                    <td><small>{{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else '' }}</small></td>
+                    <td>{{ r.created_by }}</td>
+                    <td>{{ r.change_summary or '—' }}</td>
+                    <td>{{ r.content|length }}</td>
+                    <td>
+                        <details>
+                            <summary style="cursor:pointer;">View / restore</summary>
+                            <form method="POST" style="margin-top:0.5rem;">
+                                <input type="hidden" name="action" value="restore_revision">
+                                <input type="hidden" name="revision_id" value="{{ r.id }}">
+                                <pre style="background:#f8f8f8;padding:0.75rem;max-height:300px;overflow:auto;font-size:0.8rem;white-space:pre-wrap;">{{ r.content }}</pre>
+                                <button type="submit" class="btn btn-secondary btn-sm"
+                                        onclick="return confirm('Restore the constitution to this revision?');">
+                                    Restore this revision
+                                </button>
+                            </form>
+                        </details>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+(function () {
+    var ta = document.getElementById('constitution-text');
+    var cc = document.getElementById('char-count');
+    if (ta && cc) {
+        ta.addEventListener('input', function () {
+            cc.textContent = ta.value.length + ' characters';
+        });
+    }
+})();
+</script>
+{% endblock %}

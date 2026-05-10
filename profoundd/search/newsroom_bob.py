@@ -54,10 +54,11 @@ def generate_bob_story(article_data, api_key, model="claude-sonnet-4-6"):
             content=content,
         )
 
+        from profoundd.utils.editorial_constitution import prepend as ec_prepend
         message = client.messages.create(
             model=model,
             max_tokens=3000,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": ec_prepend(prompt)}],
         )
 
         response_text = message.content[0].text

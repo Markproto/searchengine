@@ -392,10 +392,11 @@ def generate_verification_story(claim_text, claims_data, evidence, api_key,
             "```"
         )
 
+        from profoundd.utils.editorial_constitution import prepend as ec_prepend
         message = client.messages.create(
             model=model,
             max_tokens=6000,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": ec_prepend(prompt)}],
         )
 
         raw_output = message.content[0].text.strip()

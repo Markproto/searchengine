@@ -106,11 +106,12 @@ def analyze_article(url, title, summary, source_name, provider, api_key, model=N
 def _call_anthropic(prompt, api_key, model):
     """Call Claude API."""
     import anthropic
+    from profoundd.utils.editorial_constitution import prepend as ec_prepend
     client = anthropic.Anthropic(api_key=api_key)
     response = client.messages.create(
         model=model,
         max_tokens=1500,
-        messages=[{"role": "user", "content": prompt}],
+        messages=[{"role": "user", "content": ec_prepend(prompt)}],
     )
     text = response.content[0].text
     return _parse_analysis(text)
@@ -119,6 +120,7 @@ def _call_anthropic(prompt, api_key, model):
 def _call_openai(prompt, api_key, model, base_url=None):
     """Call OpenAI-compatible API (ChatGPT or Grok)."""
     import openai
+    from profoundd.utils.editorial_constitution import prepend as ec_prepend
     kwargs = {"api_key": api_key}
     if base_url:
         kwargs["base_url"] = base_url
@@ -126,7 +128,7 @@ def _call_openai(prompt, api_key, model, base_url=None):
     response = client.chat.completions.create(
         model=model,
         max_tokens=1500,
-        messages=[{"role": "user", "content": prompt}],
+        messages=[{"role": "user", "content": ec_prepend(prompt)}],
     )
     text = response.choices[0].message.content
     return _parse_analysis(text)

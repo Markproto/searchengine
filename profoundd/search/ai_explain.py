@@ -102,7 +102,8 @@ def _get_or_make_summary(doc_type, doc_id, page_number, content, meta):
 
     try:
         from langchain_core.messages import HumanMessage
-        result = llm.invoke([HumanMessage(content=prompt)])
+        from profoundd.utils.editorial_constitution import prepend as ec_prepend
+        result = llm.invoke([HumanMessage(content=ec_prepend(prompt))])
         summary_text = result.content if hasattr(result, "content") else str(result)
         summary_text = _strip_think(summary_text)
     except Exception as e:
@@ -369,7 +370,8 @@ def explain(doc_type, doc_id, page_number, content, query, meta, prompt_template
 
     try:
         from langchain_core.messages import HumanMessage
-        result = llm.invoke([HumanMessage(content=prompt)])
+        from profoundd.utils.editorial_constitution import prepend as ec_prepend
+        result = llm.invoke([HumanMessage(content=ec_prepend(prompt))])
         explanation = result.content if hasattr(result, "content") else str(result)
         explanation = _strip_think(explanation)
     except Exception as e:
@@ -379,7 +381,8 @@ def explain(doc_type, doc_id, page_number, content, query, meta, prompt_template
         is_ratelimit = "rate" in msg.lower() and "limit" in msg.lower()
 
         # Try Grok as automatic fallback when Claude is unavailable.
-        grok_explanation, grok_err = _try_grok_fallback(prompt)
+        # Prepend constitution to fallback prompt as well.
+        grok_explanation, grok_err = _try_grok_fallback(ec_prepend(prompt))
         if grok_explanation is not None:
             explanation = grok_explanation
             used_provider = "grok"

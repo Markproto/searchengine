@@ -67,11 +67,12 @@ def generate_summary(query, articles, max_articles=12):
     )
 
     try:
+        from profoundd.utils.editorial_constitution import prepend as ec_prepend
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         message = client.messages.create(
             model=MODEL,
             max_tokens=500,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": ec_prepend(prompt)}],
         )
         answer = message.content[0].text.strip()
         logger.info("AI summary generated for '%s' (%d chars)", query, len(answer))

@@ -137,6 +137,7 @@ def analyze_with_anthropic(content_data, api_key, model="claude-sonnet-4-6"):
     """Use Anthropic's Claude to analyze extracted content."""
     try:
         import anthropic
+        from profoundd.utils.editorial_constitution import prepend as ec_prepend
 
         client = anthropic.Anthropic(api_key=api_key)
 
@@ -149,7 +150,7 @@ def analyze_with_anthropic(content_data, api_key, model="claude-sonnet-4-6"):
         message = client.messages.create(
             model=model,
             max_tokens=2048,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": ec_prepend(prompt)}],
         )
 
         response_text = message.content[0].text
@@ -164,6 +165,7 @@ def analyze_with_xai(content_data, api_key, model="grok-2-latest"):
     """Use xAI's Grok to analyze extracted content."""
     try:
         from openai import OpenAI
+        from profoundd.utils.editorial_constitution import prepend as ec_prepend
 
         client = OpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
 
@@ -176,7 +178,7 @@ def analyze_with_xai(content_data, api_key, model="grok-2-latest"):
         response = client.chat.completions.create(
             model=model,
             max_tokens=2048,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": ec_prepend(prompt)}],
         )
 
         response_text = response.choices[0].message.content
@@ -251,11 +253,12 @@ def revise_with_anthropic(content_data, current_draft, feedback, api_key,
     """Re-run the draft through Claude with editor feedback applied."""
     try:
         import anthropic
+        from profoundd.utils.editorial_constitution import prepend as ec_prepend
         client = anthropic.Anthropic(api_key=api_key)
         prompt = _build_revision_prompt(content_data, current_draft, feedback)
         message = client.messages.create(
             model=model, max_tokens=2048,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": ec_prepend(prompt)}],
         )
         response_text = message.content[0].text
         return _parse_analysis(response_text, content_data.get("url", "")), None
@@ -269,11 +272,12 @@ def revise_with_xai(content_data, current_draft, feedback, api_key,
     """Re-run the draft through Grok with editor feedback applied."""
     try:
         from openai import OpenAI
+        from profoundd.utils.editorial_constitution import prepend as ec_prepend
         client = OpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
         prompt = _build_revision_prompt(content_data, current_draft, feedback)
         response = client.chat.completions.create(
             model=model, max_tokens=2048,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": ec_prepend(prompt)}],
         )
         response_text = response.choices[0].message.content
         return _parse_analysis(response_text, content_data.get("url", "")), None

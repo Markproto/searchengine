@@ -186,6 +186,21 @@ class SiteSetting(db.Model):
         db.session.commit()
 
 
+class EditorialConstitutionRevision(db.Model):
+    """Append-only history of editorial-constitution edits.
+
+    Lets admin roll back the constitution to a prior revision. Every save
+    via editorial_constitution.save() appends here.
+    """
+    __tablename__ = "editorial_constitution_revisions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    created_by = db.Column(db.String(80), default="admin")
+    change_summary = db.Column(db.String(200), default="")
+
+
 class HumanVerifyEvent(db.Model):
     """Telemetry for the proof-of-work human-gate.
 

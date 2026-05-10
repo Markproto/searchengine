@@ -137,11 +137,12 @@ def run_the_man(engine, guidelines, past_actions, api_key, model="claude-sonnet-
 
     # Call Claude
     try:
+        from profoundd.utils.editorial_constitution import prepend as ec_prepend
         client = anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
             model=model,
             max_tokens=4096,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": ec_prepend(prompt)}],
         )
         response_text = message.content[0].text
     except Exception as e:
