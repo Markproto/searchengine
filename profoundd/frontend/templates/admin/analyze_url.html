@@ -14,7 +14,7 @@
     </div>
     {% endif %}
 
-    <!-- Step 1: Submit URL -->
+    {# ---------------------------------------------------------------- Step 1 #}
     {% if not analysis %}
     <div class="admin-section">
         <h2>Paste a URL to Analyze</h2>
@@ -35,15 +35,27 @@
         </form>
     </div>
 
+    {# --------------------------------------------- Steps 2+: Review / Revise #}
     {% else %}
-    <!-- Step 2: Review & Approve -->
     <div class="admin-section">
-        <h2>AI Analysis Results</h2>
-        <p class="action-desc">Review the AI's analysis below. Edit any fields before approving to index.</p>
+        <h2>
+            AI Draft
+            {% if revision_count and revision_count > 0 %}
+            <small style="font-weight:400;color:var(--text-muted);">
+                — revision {{ revision_count }}
+            </small>
+            {% endif %}
+        </h2>
+        <p class="action-desc">
+            The AI has produced a draft. You can:
+            <strong>(a)</strong> ask the AI to revise with feedback below,
+            <strong>(b)</strong> edit any field manually and publish as-is, or
+            <strong>(c)</strong> mix — manual edits are preserved when you click "Revise with AI."
+        </p>
 
-        <!-- AI Insights Panel (read-only) -->
+        {# AI Insights Panel (read-only summary of structured fields) #}
         <div class="ai-insights-panel">
-            <h3>AI Insights</h3>
+            <h3>Quick view</h3>
             <div class="ai-insights-grid">
                 {% if analysis.key_points %}
                 <div class="ai-insight-block">
@@ -91,10 +103,31 @@
             </div>
         </div>
 
-        <!-- Editable Form -->
-        <form method="POST" class="admin-form analyze-form">
-            <input type="hidden" name="step" value="approve">
-            <input type="hidden" name="original_url" value="{{ analysis.url }}">
+        {# Feedback history (each prior revision's feedback shown collapsed) #}
+        {% if feedback_history %}
+        <div style="margin: 1rem 0; padding: 0.75rem 1rem; background: var(--bg-secondary, #f8f8f8); border-left: 3px solid var(--accent, #0a7); font-size: 0.9rem;">
+            <details>
+                <summary><strong>Revision history ({{ feedback_history|length }})</strong></summary>
+                <ol style="margin-top: 0.5rem;">
+                    {% for fb in feedback_history %}
+                    <li style="margin-bottom: 0.5rem;"><em>{{ fb }}</em></li>
+                    {% endfor %}
+                </ol>
+            </details>
+        </div>
+        {% endif %}
+
+        {# ------------------------------------------------- THE EDITABLE FORM
+           Single <form> shared by Revise and Approve so all field edits the
+           user makes are sent with whichever button they click.
+           Two submit buttons differentiated by `name="step"`. #}
+        <form method="POST" class="admin-form analyze-form" id="analyze-edit-form">
+            {# Hidden state passed to revise pass #}
+            <input type="hidden" name="provider" value="{{ provider or default_provider }}">
+            <input type="hidden" name="revision_count" value="{{ revision_count or 0 }}">
+            <input type="hidden" name="feedback_history" value="{% for fb in feedback_history %}{{ fb }}{% if not loop.last %}
+---FB---
+{% endif %}{% endfor %}">
 
             <div class="form-group">
                 <label>Title</label>
@@ -104,6 +137,11 @@
             <div class="form-group">
                 <label>Summary</label>
                 <textarea name="summary" rows="6" class="form-control form-control-lg">{{ analysis.summary }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Key Points <small style="color:var(--text-muted);">(separated by semicolons)</small></label>
+                <textarea name="key_points" rows="3" class="form-control">{{ analysis.key_points }}</textarea>
             </div>
 
             <div class="form-row-2">
@@ -133,19 +171,58 @@
             </div>
 
             <div class="form-group">
-                <label>Tags</label>
-                <input type="text" name="tags" value="{{ analysis.tags }}" class="form-control" placeholder="tag1, tag2, tag3">
+                <label>Credibility Reasoning</label>
+                <input type="text" name="credibility_reasoning" value="{{ analysis.credibility_reasoning }}" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label>Bias Notes</label>
+                <input type="text" name="bias_notes" value="{{ analysis.bias_notes }}" class="form-control">
+            </div>
+
+            <div class="form-row-2">
+                <div class="form-group">
+                    <label>Date Published</label>
+                    <input type="text" name="date_published" value="{{ analysis.date_published }}" class="form-control" placeholder="YYYY-MM-DD">
+                </div>
+                <div class="form-group">
+                    <label>Tags</label>
+                    <input type="text" name="tags" value="{{ analysis.tags }}" class="form-control" placeholder="tag1, tag2, tag3">
+                </div>
             </div>
 
             <div class="form-group">
                 <label>URL</label>
-                <input type="url" name="url" value="{{ analysis.url }}" class="form-control">
+                <input type="url" name="url" value="{{ analysis.url }}" class="form-control" required>
             </div>
 
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary btn-lg">Approve & Index</button>
+            {# Feedback box for next AI pass — empty between revisions #}
+            <div class="form-group" style="margin-top: 1.5rem; padding: 1rem; background: #f0f8ff; border: 1px solid #c2d9f5; border-radius: 6px;">
+                <label style="font-weight: 600; font-size: 1rem;">Feedback for AI revision (optional)</label>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.25rem 0 0.5rem;">
+                    Tell the AI what to change, add, or emphasize. Examples:
+                    <em>"Cover the funding sources of the cited study,"</em> or
+                    <em>"Tone down the editorial language; just stick to facts,"</em> or
+                    <em>"Add a paragraph on prior coverage of this topic."</em>
+                </p>
+                <textarea name="feedback" rows="3" class="form-control" placeholder="What else should be covered? How should it be covered?"></textarea>
+            </div>
+
+            <div class="form-actions" style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.5rem;">
+                <button type="submit" name="step" value="revise" class="btn btn-primary"
+                        {% if not has_ai_key %}disabled title="No AI key configured"{% endif %}>
+                    Revise with AI
+                </button>
+                <button type="submit" name="step" value="approve" class="btn btn-primary"
+                        style="background: #0a7;">
+                    Publish (use current draft as-is)
+                </button>
                 <a href="{{ url_for('admin.analyze_url') }}" class="btn btn-secondary">Start Over</a>
             </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.75rem;">
+                Manual edits to any field above are preserved when you click <em>Revise with AI</em>.
+                Click <em>Publish</em> at any time to index the current draft without further AI involvement.
+            </p>
         </form>
     </div>
     {% endif %}

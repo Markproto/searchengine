@@ -1526,12 +1526,45 @@ def human_verify():
                            now=datetime.utcnow())
 
 
+def _form_to_draft(form):
+    """Snapshot the analyze-url form into the same dict shape ai_analyzer
+    returns. Used to feed the current state (with any manual edits) into
+    a revise pass."""
+    def _int(v, default):
+        try:
+            return int(str(v).split("/")[0].strip())
+        except (ValueError, AttributeError, IndexError):
+            return default
+    return {
+        "title": (form.get("title") or "").strip(),
+        "summary": (form.get("summary") or "").strip(),
+        "key_points": (form.get("key_points") or "").strip(),
+        "category": (form.get("category") or "news").strip(),
+        "tags": (form.get("tags") or "").strip(),
+        "credibility": _int(form.get("credibility"), 7),
+        "credibility_reasoning": (form.get("credibility_reasoning") or "").strip(),
+        "source_name": (form.get("source_name") or "").strip(),
+        "author": (form.get("author") or "").strip(),
+        "date_published": (form.get("date_published") or "").strip(),
+        "bias_notes": (form.get("bias_notes") or "").strip(),
+        "url": (form.get("url") or "").strip(),
+    }
+
+
 @admin_bp.route("/analyze-url", methods=["GET", "POST"])
 @login_required
 def analyze_url():
-    """Analyze a URL with AI, review, and index into search."""
+    """Analyze a URL with AI, refine via feedback loop, then index into search.
+
+    Steps:
+      analyze  - first AI draft from URL fetch
+      revise   - apply editor feedback to current draft, AI rewrites
+      approve  - publish (with or without further AI involvement)
+    """
     from profoundd.search.ai_analyzer import (
-        fetch_url_content, analyze_with_anthropic, analyze_with_xai
+        fetch_url_content, analyze_with_anthropic, analyze_with_xai,
+        revise_with_anthropic, revise_with_xai,
+        cache_content, get_cached_content,
     )
 
     anthropic_key = get_anthropic_key()
@@ -1557,6 +1590,10 @@ def analyze_url():
                 flash(f"Could not fetch URL: {error}", "error")
                 return redirect(url_for("admin.analyze_url"))
 
+            # Cache for revise passes (1h TTL) so the editor can iterate
+            # without paying the fetch cost each time.
+            cache_content(content_data)
+
             # Run AI analysis
             if provider == "xai" and xai_key:
                 model = SiteSetting.get("ai_xai_model", "grok-2-latest")
@@ -1574,6 +1611,88 @@ def analyze_url():
 
             return render_template("admin/analyze_url.html",
                                    analysis=analysis,
+                                   provider=provider,
+                                   revision_count=0,
+                                   feedback_history=[],
+                                   has_ai_key=has_ai_key,
+                                   default_provider=default_provider,
+                                   categories=CATEGORIES)
+
+        elif step == "revise":
+            # Step 1.5: Editor feedback loop — apply input to current draft.
+            url = request.form.get("url", "").strip()
+            feedback = request.form.get("feedback", "").strip()
+            provider = request.form.get("provider", default_provider)
+            try:
+                revision_count = int(request.form.get("revision_count", 0))
+            except (ValueError, TypeError):
+                revision_count = 0
+            history_raw = request.form.get("feedback_history", "")
+            feedback_history = [s for s in history_raw.split("\n---FB---\n") if s.strip()]
+
+            if not url:
+                flash("URL missing from form. Start over.", "error")
+                return redirect(url_for("admin.analyze_url"))
+            if not feedback:
+                flash("Provide some feedback before asking AI to revise.", "error")
+                # fall through to render with current values intact
+                current_draft = _form_to_draft(request.form)
+                return render_template("admin/analyze_url.html",
+                                       analysis=current_draft,
+                                       provider=provider,
+                                       revision_count=revision_count,
+                                       feedback_history=feedback_history,
+                                       has_ai_key=has_ai_key,
+                                       default_provider=default_provider,
+                                       categories=CATEGORIES)
+
+            # Reuse cached page content; if expired, re-fetch.
+            content_data = get_cached_content(url)
+            if not content_data:
+                content_data, error = fetch_url_content(url)
+                if error:
+                    flash(f"Could not re-fetch URL for revision: {error}", "error")
+                    return redirect(url_for("admin.analyze_url"))
+                cache_content(content_data)
+
+            current_draft = _form_to_draft(request.form)
+
+            if provider == "xai" and xai_key:
+                model = SiteSetting.get("ai_xai_model", "grok-2-latest")
+                analysis, error = revise_with_xai(content_data, current_draft, feedback,
+                                                  xai_key, model)
+            elif anthropic_key:
+                model = SiteSetting.get("ai_anthropic_model", "claude-sonnet-4-6")
+                analysis, error = revise_with_anthropic(content_data, current_draft, feedback,
+                                                        anthropic_key, model)
+            else:
+                flash("No API key configured for the selected provider.", "error")
+                return render_template("admin/analyze_url.html",
+                                       analysis=current_draft, provider=provider,
+                                       revision_count=revision_count,
+                                       feedback_history=feedback_history,
+                                       has_ai_key=has_ai_key,
+                                       default_provider=default_provider,
+                                       categories=CATEGORIES)
+
+            if error or not analysis:
+                flash(error or "Revision failed.", "error")
+                return render_template("admin/analyze_url.html",
+                                       analysis=current_draft, provider=provider,
+                                       revision_count=revision_count,
+                                       feedback_history=feedback_history,
+                                       has_ai_key=has_ai_key,
+                                       default_provider=default_provider,
+                                       categories=CATEGORIES)
+
+            # Carry URL forward (parser may set it to "")
+            analysis["url"] = url
+            feedback_history.append(feedback)
+            return render_template("admin/analyze_url.html",
+                                   analysis=analysis,
+                                   provider=provider,
+                                   revision_count=revision_count + 1,
+                                   feedback_history=feedback_history,
                                    has_ai_key=has_ai_key,
                                    default_provider=default_provider,
                                    categories=CATEGORIES)

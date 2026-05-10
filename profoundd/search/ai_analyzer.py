@@ -1,16 +1,56 @@
 """
 AI-powered URL content analyzer.
 Fetches a URL, extracts content, and uses Claude or Grok to analyze it.
+Supports a draft -> feedback -> revise loop so editors can refine the AI
+output without re-fetching the source URL.
 """
+import hashlib
 import logging
 
 import requests
 from bs4 import BeautifulSoup
 
+from profoundd.utils.cache import cache_get, cache_set
+
 logger = logging.getLogger(__name__)
 
 # Max content length to send to the AI (characters)
 MAX_CONTENT_LENGTH = 15000
+
+# How long the fetched page content is cached for revision passes (1 hour).
+ANALYZE_CONTENT_TTL = 3600
+
+
+def _content_cache_key(url: str) -> str:
+    return f"analyze_url:content:{hashlib.md5(url.encode('utf-8')).hexdigest()}"
+
+
+def cache_content(content_data: dict) -> None:
+    """Store fetched URL content so revise passes don't re-fetch."""
+    if not content_data or not content_data.get("url"):
+        return
+    try:
+        import json
+        cache_set(_content_cache_key(content_data["url"]),
+                  json.dumps(content_data),
+                  ttl=ANALYZE_CONTENT_TTL)
+    except Exception as e:
+        logger.debug("cache_content failed: %s", e)
+
+
+def get_cached_content(url: str) -> dict | None:
+    """Pull cached fetched content; re-fetches via fetch_url_content if absent."""
+    try:
+        import json
+        raw = cache_get(_content_cache_key(url))
+        if raw is None:
+            return None
+        if isinstance(raw, (bytes, bytearray)):
+            raw = raw.decode("utf-8", errors="ignore")
+        return json.loads(raw)
+    except Exception as e:
+        logger.debug("get_cached_content miss/error: %s", e)
+        return None
 
 
 def fetch_url_content(url):
@@ -145,6 +185,101 @@ def analyze_with_xai(content_data, api_key, model="grok-2-latest"):
     except Exception as e:
         logger.error("xAI API error: %s", e)
         return None, f"Grok analysis failed: {e}"
+
+
+REVISION_PROMPT = """You are a senior editorial analyst for Profoundd. You previously produced a draft for the URL below. The editor has reviewed it and given specific feedback. Apply the feedback faithfully — do not change fields the editor did not ask to change. Output the FULL revised draft using the same exact format.
+
+URL: {url}
+Page Title: {page_title}
+
+ORIGINAL SOURCE CONTENT (the article being analyzed):
+{text}
+
+CURRENT DRAFT (your previous output, possibly with minor manual edits by the editor):
+TITLE: {title}
+SUMMARY: {summary}
+KEY_POINTS: {key_points}
+CATEGORY: {category}
+TAGS: {tags}
+CREDIBILITY: {credibility}
+CREDIBILITY_REASONING: {credibility_reasoning}
+SOURCE_NAME: {source_name}
+AUTHOR: {author}
+DATE_PUBLISHED: {date_published}
+BIAS_NOTES: {bias_notes}
+
+EDITOR FEEDBACK (apply this):
+{feedback}
+
+Now produce the REVISED draft. Use EXACTLY the same field labels, one per line, in the same order. Be specific and substantive. Do not editorialize about the feedback itself — just apply it.
+
+TITLE: ...
+SUMMARY: ...
+KEY_POINTS: ...
+CATEGORY: ...
+TAGS: ...
+CREDIBILITY: ...
+CREDIBILITY_REASONING: ...
+SOURCE_NAME: ...
+AUTHOR: ...
+DATE_PUBLISHED: ...
+BIAS_NOTES: ..."""
+
+
+def _build_revision_prompt(content_data: dict, current_draft: dict, feedback: str) -> str:
+    return REVISION_PROMPT.format(
+        url=content_data.get("url", ""),
+        page_title=content_data.get("page_title", ""),
+        text=content_data.get("text", ""),
+        title=current_draft.get("title", ""),
+        summary=current_draft.get("summary", ""),
+        key_points=current_draft.get("key_points", ""),
+        category=current_draft.get("category", "news"),
+        tags=current_draft.get("tags", ""),
+        credibility=current_draft.get("credibility", 7),
+        credibility_reasoning=current_draft.get("credibility_reasoning", ""),
+        source_name=current_draft.get("source_name", ""),
+        author=current_draft.get("author", ""),
+        date_published=current_draft.get("date_published", ""),
+        bias_notes=current_draft.get("bias_notes", ""),
+        feedback=(feedback or "").strip() or "(none — just polish and tighten the draft)",
+    )
+
+
+def revise_with_anthropic(content_data, current_draft, feedback, api_key,
+                          model="claude-sonnet-4-6"):
+    """Re-run the draft through Claude with editor feedback applied."""
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+        prompt = _build_revision_prompt(content_data, current_draft, feedback)
+        message = client.messages.create(
+            model=model, max_tokens=2048,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        response_text = message.content[0].text
+        return _parse_analysis(response_text, content_data.get("url", "")), None
+    except Exception as e:
+        logger.error("Anthropic revise error: %s", e)
+        return None, f"Claude revision failed: {e}"
+
+
+def revise_with_xai(content_data, current_draft, feedback, api_key,
+                    model="grok-2-latest"):
+    """Re-run the draft through Grok with editor feedback applied."""
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
+        prompt = _build_revision_prompt(content_data, current_draft, feedback)
+        response = client.chat.completions.create(
+            model=model, max_tokens=2048,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        response_text = response.choices[0].message.content
+        return _parse_analysis(response_text, content_data.get("url", "")), None
+    except Exception as e:
+        logger.error("xAI revise error: %s", e)
+        return None, f"Grok revision failed: {e}"
 
 
 def _parse_analysis(text, url):
