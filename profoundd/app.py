@@ -259,6 +259,37 @@ def create_app(config_override=None):
         if _BLOCKED_BOTS_RE.search(ua):
             return Response("Blocked. See /robots.txt", status=403, mimetype="text/plain")
 
+    # --- Amazon-specific hard block (top offender 2026-05) ---
+    # Amazonbot has been the dominant scraper across every endpoint, not
+    # just downloads. Hard-block on every path until further notice.
+    # Toggle via SiteSetting('block_amazonbot_globally', '0') to disable.
+    _AMAZON_RE = _re.compile(
+        r"Amazonbot|Amzn-SearchBot|amazon-music|amazonadbot|amzn[-_]?",
+        _re.IGNORECASE,
+    )
+
+    @app.before_request
+    def block_amazon_globally():
+        if SiteSetting.get("block_amazonbot_globally", "1") != "1":
+            return None
+        ua = request.user_agent.string or ""
+        if _AMAZON_RE.search(ua):
+            # Telemetry — reuse the human-verify events table so blocks
+            # surface in /admin/human-verify.
+            try:
+                db.session.add(HumanVerifyEvent(
+                    ip_hash=_hash_ip(_get_client_ip()),
+                    user_agent=ua[:500],
+                    target_path=(request.path or "")[:500],
+                    status="auto_blocked",
+                    reason="amazon_global",
+                ))
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+            return Response("Forbidden. Amazon crawlers are not permitted.",
+                            status=403, mimetype="text/plain")
+
     # --- Human-gate (proof-of-work) on document downloads ---
     # AI crawlers (GPTBot, Amazonbot, ClaudeBot, etc.) get auto-403 — they
     # ignore robots.txt and have downloaded ~50k PDFs in 7 days. Real
