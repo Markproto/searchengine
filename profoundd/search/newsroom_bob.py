@@ -55,13 +55,9 @@ def generate_bob_story(article_data, api_key, model="claude-sonnet-4-6"):
         )
 
         from profoundd.utils.editorial_constitution import prepend as ec_prepend
-        message = client.messages.create(
-            model=model,
-            max_tokens=3000,
-            messages=[{"role": "user", "content": ec_prepend(prompt)}],
-        )
-
-        response_text = message.content[0].text
+        from profoundd.search.llm_provider import build_llm, invoke_text
+        llm = build_llm("bob", max_tokens=3000, temperature=0.4)
+        response_text = invoke_text(llm, ec_prepend(prompt))
         return _parse_bob_response(response_text), None
 
     except Exception as e:

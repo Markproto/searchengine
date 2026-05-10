@@ -156,19 +156,15 @@ def run_the_man(engine, guidelines, past_actions, api_key, model="claude-sonnet-
         articles=format_articles(articles),
     )
 
-    # Call Claude
+    # Call via centralized llm_provider (role='the_man').
     try:
         from profoundd.utils.editorial_constitution import prepend as ec_prepend
-        client = anthropic.Anthropic(api_key=api_key)
-        message = client.messages.create(
-            model=model,
-            max_tokens=4096,
-            messages=[{"role": "user", "content": ec_prepend(prompt)}],
-        )
-        response_text = message.content[0].text
+        from profoundd.search.llm_provider import build_llm, invoke_text
+        llm = build_llm("the_man", max_tokens=4096, temperature=0.2)
+        response_text = invoke_text(llm, ec_prepend(prompt))
     except Exception as e:
-        logger.error("The Man API error: %s", e)
-        return None, f"Claude API call failed: {e}"
+        logger.error("The Man LLM error: %s", e)
+        return None, f"LLM call failed: {e}"
 
     # Parse decisions
     decisions = parse_the_man_response(response_text)

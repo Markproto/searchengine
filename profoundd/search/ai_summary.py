@@ -1,21 +1,19 @@
 """
-AI-powered search summary using Claude API.
+AI-powered search summary.
 Generates a brief AI answer from search results on every query.
+Provider chosen via /admin/ai-provider (role='summary'); defaults to Anthropic.
 """
 import logging
-import os
-
-import anthropic
 
 logger = logging.getLogger(__name__)
-
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-MODEL = "claude-haiku-4-5-20251001"
 
 
 def generate_summary(query, articles, max_articles=12):
     """
-    Send search results to Claude and get an AI summary.
+    Send search results to the configured LLM and get an AI summary.
+
+    Provider is determined by /admin/ai-provider (role='summary').
+    Falls back to Anthropic when no config exists.
 
     Returns a dict with:
         - answer: The AI-generated answer/summary text
@@ -23,9 +21,6 @@ def generate_summary(query, articles, max_articles=12):
     """
     if not articles:
         return {"answer": "", "error": None}
-
-    if not ANTHROPIC_API_KEY:
-        return {"answer": "", "error": "AI not configured"}
 
     # Build context from top results
     top = articles[:max_articles]
@@ -75,27 +70,31 @@ def generate_summary(query, articles, max_articles=12):
 
     try:
         from profoundd.utils.editorial_constitution import prepend as ec_prepend
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        message = client.messages.create(
-            model=MODEL,
-            max_tokens=500,
-            messages=[{"role": "user", "content": ec_prepend(prompt)}],
-        )
-        answer = message.content[0].text.strip()
+        from profoundd.search.llm_provider import build_llm, invoke_text
+        llm = build_llm("summary", max_tokens=500, temperature=0.2)
+        answer = invoke_text(llm, ec_prepend(prompt)).strip()
         logger.info("AI summary generated for '%s' (%d chars)", query, len(answer))
         return {"answer": answer, "error": None}
-
-    except anthropic.APIConnectionError:
-        logger.warning("Claude API not reachable")
-        return {"answer": "", "error": "AI service unavailable"}
-    except anthropic.RateLimitError:
-        logger.warning("Claude API rate limited")
-        return {"answer": "", "error": "AI service busy"}
+    except RuntimeError as e:
+        logger.warning("AI summary provider not configured: %s", e)
+        return {"answer": "", "error": "AI not configured"}
     except Exception as e:
-        logger.error("Claude API error: %s", e)
-        return {"answer": "", "error": str(e)}
+        msg = str(e)
+        if "rate" in msg.lower() and "limit" in msg.lower():
+            logger.warning("LLM rate limited: %s", msg)
+            return {"answer": "", "error": "AI service busy"}
+        if "connect" in msg.lower() or "timeout" in msg.lower():
+            logger.warning("LLM not reachable: %s", msg)
+            return {"answer": "", "error": "AI service unavailable"}
+        logger.error("LLM error: %s", msg)
+        return {"answer": "", "error": msg}
 
 
 def is_available():
-    """Check if Claude API key is configured."""
-    return bool(ANTHROPIC_API_KEY)
+    """Check if any AI provider can be built for the summary role."""
+    try:
+        from profoundd.search.llm_provider import build_llm
+        build_llm("summary")
+        return True
+    except Exception:
+        return False

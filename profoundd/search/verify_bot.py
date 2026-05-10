@@ -393,11 +393,17 @@ def generate_verification_story(claim_text, claims_data, evidence, api_key,
         )
 
         from profoundd.utils.editorial_constitution import prepend as ec_prepend
-        message = client.messages.create(
-            model=model,
-            max_tokens=6000,
-            messages=[{"role": "user", "content": ec_prepend(prompt)}],
-        )
+        from profoundd.search.llm_provider import build_llm, invoke_text
+        llm = build_llm("verify", max_tokens=6000, temperature=0.2)
+        _raw = invoke_text(llm, ec_prepend(prompt))
+        # Synthesize a minimal "message" object for downstream code expecting .content[0].text
+        class _MsgShim:
+            def __init__(self, text):
+                class _Block:
+                    def __init__(self, t):
+                        self.text = t
+                self.content = [_Block(text)]
+        message = _MsgShim(_raw)
 
         raw_output = message.content[0].text.strip()
 

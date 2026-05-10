@@ -123,34 +123,24 @@ def analyze_article(url, title, summary, source_name, provider, api_key, model=N
         return {"error": str(e)}
 
 
-def _call_anthropic(prompt, api_key, model):
-    """Call Claude API."""
-    import anthropic
-    from profoundd.utils.editorial_constitution import prepend as ec_prepend
-    client = anthropic.Anthropic(api_key=api_key)
-    response = client.messages.create(
-        model=model,
-        max_tokens=1500,
-        messages=[{"role": "user", "content": ec_prepend(prompt)}],
-    )
-    text = response.content[0].text
-    return _parse_analysis(text)
+def _call_anthropic(prompt, api_key=None, model=None):
+    """Call Claude via centralized llm_provider (role='article')."""
+    return _call_via_provider(prompt, provider_override="anthropic", model_override=model)
 
 
-def _call_openai(prompt, api_key, model, base_url=None):
-    """Call OpenAI-compatible API (ChatGPT or Grok)."""
-    import openai
+def _call_openai(prompt, api_key=None, model=None, base_url=None):
+    """Call OpenAI-compatible API (ChatGPT or Grok) via centralized llm_provider."""
+    provider = "xai" if (base_url and "x.ai" in base_url) else "anthropic"
+    return _call_via_provider(prompt, provider_override=provider, model_override=model)
+
+
+def _call_via_provider(prompt, provider_override=None, model_override=None):
     from profoundd.utils.editorial_constitution import prepend as ec_prepend
-    kwargs = {"api_key": api_key}
-    if base_url:
-        kwargs["base_url"] = base_url
-    client = openai.OpenAI(**kwargs)
-    response = client.chat.completions.create(
-        model=model,
-        max_tokens=1500,
-        messages=[{"role": "user", "content": ec_prepend(prompt)}],
-    )
-    text = response.choices[0].message.content
+    from profoundd.search.llm_provider import build_llm, invoke_text
+    llm = build_llm("article", max_tokens=1500, temperature=0.2,
+                    provider_override=provider_override,
+                    model_override=model_override)
+    text = invoke_text(llm, ec_prepend(prompt))
     return _parse_analysis(text)
 
 

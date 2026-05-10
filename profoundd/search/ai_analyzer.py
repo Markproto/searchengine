@@ -133,60 +133,40 @@ DATE_PUBLISHED: [Publication date if found in content, in YYYY-MM-DD format, oth
 BIAS_NOTES: [Brief note on any detectable bias or perspective. Example: "Article presents primarily the plaintiff's perspective" or "Balanced coverage with quotes from both sides" or "None detected"]"""
 
 
-def analyze_with_anthropic(content_data, api_key, model="claude-sonnet-4-6"):
-    """Use Anthropic's Claude to analyze extracted content."""
+def analyze_with_anthropic(content_data, api_key=None, model=None):
+    """Analyze content with whichever provider is configured for role='analyzer'.
+
+    Provider/model args are kept for legacy callers but are ignored —
+    the centralized llm_provider.build_llm('analyzer') honors the
+    /admin/ai-provider toggle. Function name preserved for back-compat.
+    """
+    return _run_analyzer(content_data, provider_override="anthropic" if api_key else None,
+                         model_override=model)
+
+
+def analyze_with_xai(content_data, api_key=None, model=None):
+    """Same as analyze_with_anthropic but pinned to xAI when called directly."""
+    return _run_analyzer(content_data, provider_override="xai" if api_key else None,
+                         model_override=model)
+
+
+def _run_analyzer(content_data, provider_override=None, model_override=None):
     try:
-        import anthropic
         from profoundd.utils.editorial_constitution import prepend as ec_prepend
-
-        client = anthropic.Anthropic(api_key=api_key)
-
+        from profoundd.search.llm_provider import build_llm, invoke_text
         prompt = ANALYSIS_PROMPT.format(
             url=content_data["url"],
             page_title=content_data["page_title"],
             text=content_data["text"],
         )
-
-        message = client.messages.create(
-            model=model,
-            max_tokens=2048,
-            messages=[{"role": "user", "content": ec_prepend(prompt)}],
-        )
-
-        response_text = message.content[0].text
+        llm = build_llm("analyzer", max_tokens=2048, temperature=0.2,
+                        provider_override=provider_override,
+                        model_override=model_override)
+        response_text = invoke_text(llm, ec_prepend(prompt))
         return _parse_analysis(response_text, content_data["url"]), None
-
     except Exception as e:
-        logger.error("Anthropic API error: %s", e)
-        return None, f"Claude analysis failed: {e}"
-
-
-def analyze_with_xai(content_data, api_key, model="grok-2-latest"):
-    """Use xAI's Grok to analyze extracted content."""
-    try:
-        from openai import OpenAI
-        from profoundd.utils.editorial_constitution import prepend as ec_prepend
-
-        client = OpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
-
-        prompt = ANALYSIS_PROMPT.format(
-            url=content_data["url"],
-            page_title=content_data["page_title"],
-            text=content_data["text"],
-        )
-
-        response = client.chat.completions.create(
-            model=model,
-            max_tokens=2048,
-            messages=[{"role": "user", "content": ec_prepend(prompt)}],
-        )
-
-        response_text = response.choices[0].message.content
-        return _parse_analysis(response_text, content_data["url"]), None
-
-    except Exception as e:
-        logger.error("xAI API error: %s", e)
-        return None, f"Grok analysis failed: {e}"
+        logger.error("Analyzer LLM error: %s", e)
+        return None, f"Analysis failed: {e}"
 
 
 REVISION_PROMPT = """You are a senior editorial analyst for Profoundd. You previously produced a draft for the URL below. The editor has reviewed it and given specific feedback. Apply the feedback faithfully — do not change fields the editor did not ask to change. Output the FULL revised draft using the same exact format.
@@ -248,42 +228,33 @@ def _build_revision_prompt(content_data: dict, current_draft: dict, feedback: st
     )
 
 
-def revise_with_anthropic(content_data, current_draft, feedback, api_key,
-                          model="claude-sonnet-4-6"):
-    """Re-run the draft through Claude with editor feedback applied."""
-    try:
-        import anthropic
-        from profoundd.utils.editorial_constitution import prepend as ec_prepend
-        client = anthropic.Anthropic(api_key=api_key)
-        prompt = _build_revision_prompt(content_data, current_draft, feedback)
-        message = client.messages.create(
-            model=model, max_tokens=2048,
-            messages=[{"role": "user", "content": ec_prepend(prompt)}],
-        )
-        response_text = message.content[0].text
-        return _parse_analysis(response_text, content_data.get("url", "")), None
-    except Exception as e:
-        logger.error("Anthropic revise error: %s", e)
-        return None, f"Claude revision failed: {e}"
+def revise_with_anthropic(content_data, current_draft, feedback, api_key=None, model=None):
+    """Re-run draft with editor feedback. Provider via /admin/ai-provider role='analyzer'."""
+    return _run_revise(content_data, current_draft, feedback,
+                       provider_override="anthropic" if api_key else None,
+                       model_override=model)
 
 
-def revise_with_xai(content_data, current_draft, feedback, api_key,
-                    model="grok-2-latest"):
-    """Re-run the draft through Grok with editor feedback applied."""
+def revise_with_xai(content_data, current_draft, feedback, api_key=None, model=None):
+    return _run_revise(content_data, current_draft, feedback,
+                       provider_override="xai" if api_key else None,
+                       model_override=model)
+
+
+def _run_revise(content_data, current_draft, feedback,
+                provider_override=None, model_override=None):
     try:
-        from openai import OpenAI
         from profoundd.utils.editorial_constitution import prepend as ec_prepend
-        client = OpenAI(api_key=api_key, base_url="https://api.x.ai/v1")
+        from profoundd.search.llm_provider import build_llm, invoke_text
         prompt = _build_revision_prompt(content_data, current_draft, feedback)
-        response = client.chat.completions.create(
-            model=model, max_tokens=2048,
-            messages=[{"role": "user", "content": ec_prepend(prompt)}],
-        )
-        response_text = response.choices[0].message.content
+        llm = build_llm("analyzer", max_tokens=2048, temperature=0.2,
+                        provider_override=provider_override,
+                        model_override=model_override)
+        response_text = invoke_text(llm, ec_prepend(prompt))
         return _parse_analysis(response_text, content_data.get("url", "")), None
     except Exception as e:
-        logger.error("xAI revise error: %s", e)
-        return None, f"Grok revision failed: {e}"
+        logger.error("Revise LLM error: %s", e)
+        return None, f"Revision failed: {e}"
 
 
 def _parse_analysis(text, url):

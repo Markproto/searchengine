@@ -179,7 +179,19 @@ def _get_explain_provider():
 
 
 def _build_llm():
-    """Lazy-construct and cache a LangChain LLM handle per provider config.
+    """Delegate to the centralized llm_provider.build_llm for role='explain'.
+
+    Retained as a thin shim so existing call sites in this file (and any
+    external callers) continue to work without modification. New code
+    should call profoundd.search.llm_provider.build_llm() directly.
+    """
+    from profoundd.search.llm_provider import build_llm
+    return build_llm("explain", max_tokens=1200, temperature=0.2)
+
+
+def _build_llm_legacy_DEPRECATED():
+    """[deprecated — kept for reference only, no longer called]
+    Lazy-construct and cache a LangChain LLM handle per provider config.
 
     Provider selection: SiteSetting("ai_explain_provider") wins over env var,
     so admin can flip provider live at /admin/ai-provider without a redeploy.
@@ -235,11 +247,17 @@ def _build_llm():
 def reset_llm_cache():
     """Force the next _build_llm() call to re-read provider config.
 
-    Call after changing ai_explain_* SiteSettings so the admin toggle
-    takes effect on the next AI request without a container restart.
+    Delegates to the centralized llm_provider cache. Call after
+    changing ai_*_provider SiteSettings so the admin toggle takes
+    effect on the next AI request without a container restart.
     """
     _llm_cache["key"] = None
     _llm_cache["llm"] = None
+    try:
+        from profoundd.search.llm_provider import reset_cache
+        reset_cache()
+    except Exception:
+        pass
 
 
 def _try_grok_fallback(prompt):

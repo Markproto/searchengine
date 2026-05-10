@@ -1272,18 +1272,21 @@ def blocked_domains():
 # AI provider toggle (Layer-1 rollback)
 # ---------------------------------------------------------------------------
 # Roles map to their respective AI modules. Each can be flipped independently
-# between anthropic / ollama (and grok where supported as primary). Settings
-# live in SiteSetting so flips don't require a redeploy.
+# between providers. Settings live in SiteSetting so flips don't require a
+# redeploy. All roles now route through profoundd.search.llm_provider.build_llm.
 AI_ROLES = [
-    ("explain", "AI Explain (Epstein/Climate/WEF/FWP/Archive doc panels)"),
-    # ai_summary, ai_analyzer, ai_article_analysis become live targets after
-    # the centralization refactor (task #4). Listed here for forward compat.
+    ("explain",  "AI Explain (Epstein/Climate/WEF/FWP/Archive doc panels)"),
+    ("summary",  "Search-results AI summary"),
+    ("analyzer", "/admin/analyze-url URL analyzer + revise loop"),
+    ("article",  "Per-article sentiment/bias analysis cards"),
+    ("the_man",  "The Man — editorial ranking decisions"),
+    ("bob",      "NewsRoom Bob — story drafting"),
+    ("verify",   "Verify Bot — dual-perspective claim analysis"),
 ]
-AI_PROVIDERS = ["anthropic", "ollama"]
+AI_PROVIDERS = ["anthropic", "ollama", "xai"]
 AI_PROVIDER_DEFAULT = {
-    "explain_anthropic_model": "claude-sonnet-4-6",
-    "explain_ollama_model": "qwen3:8b",
-    "explain_ollama_url": "http://10.0.6.1:11434",
+    "ollama_model": "qwen3:8b",
+    "ollama_url": "http://10.0.6.1:11434",
 }
 
 
@@ -1322,9 +1325,9 @@ def ai_provider():
     for role, label in AI_ROLES:
         provider = SiteSetting.get(f"ai_{role}_provider", "anthropic") or "anthropic"
         ollama_model = (SiteSetting.get(f"ai_{role}_ollama_model", "")
-                        or AI_PROVIDER_DEFAULT.get(f"{role}_ollama_model", ""))
+                        or AI_PROVIDER_DEFAULT.get("ollama_model", "qwen3:8b"))
         ollama_url = (SiteSetting.get(f"ai_{role}_ollama_url", "")
-                      or AI_PROVIDER_DEFAULT.get(f"{role}_ollama_url", ""))
+                      or AI_PROVIDER_DEFAULT.get("ollama_url", "http://10.0.6.1:11434"))
         config.append({
             "role": role,
             "label": label,
@@ -1346,16 +1349,15 @@ def ai_provider_health(role):
     if role not in {r for r, _ in AI_ROLES}:
         return jsonify(ok=False, error="unknown role"), 400
     try:
-        from profoundd.search.ai_explain import _build_llm, _strip_think
-        from langchain_core.messages import HumanMessage
+        from profoundd.search.llm_provider import build_llm, invoke_text, get_provider_for
         import time
-        llm = _build_llm()
+        # Bypass constitution for health check — keep it minimal.
+        llm = build_llm(role, max_tokens=50, temperature=0.0)
         t0 = time.time()
-        result = llm.invoke([HumanMessage(content="Say 'ok' if you are running. Reply with one word.")])
+        text = invoke_text(llm, "Say 'ok' if you are running. Reply with one word.")
         elapsed = round(time.time() - t0, 2)
-        text = _strip_think(result.content if hasattr(result, "content") else str(result))[:200]
-        provider = SiteSetting.get(f"ai_{role}_provider", "anthropic") or "anthropic"
-        return jsonify(ok=True, provider=provider, latency_s=elapsed, response=text)
+        return jsonify(ok=True, provider=get_provider_for(role),
+                       latency_s=elapsed, response=text[:200])
     except Exception as e:
         return jsonify(ok=False, error=str(e)[:300]), 200
 
