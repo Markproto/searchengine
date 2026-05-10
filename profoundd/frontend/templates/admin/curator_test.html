@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Curator Classifier Test{% endblock %}
+
+{% block content %}
+<div class="container admin-page" style="max-width:900px;">
+    <div class="admin-header">
+        <h1>Curator Classifier Test</h1>
+        <a href="{{ url_for('admin.curator_queue') }}" class="btn btn-secondary">Curator Queue</a>
+    </div>
+
+    <p class="action-desc">
+        Probe the v1 source-quality classifier (TF-IDF + sklearn LogisticRegression
+        trained on the seeded DomainCredibility table + your blocked_domains list).
+        Output: <strong>block</strong> likelihood (0..1), <strong>sponsor</strong>
+        signal (0..1), <strong>credibility</strong> 1..10.
+    </p>
+
+    <div class="admin-section">
+        <h2>By domain</h2>
+        <form method="POST" class="admin-form">
+            <input type="hidden" name="kind" value="domain">
+            <div class="form-group" style="display:flex;gap:0.5rem;align-items:center;">
+                <input type="text" name="domain" value="{{ domain or '' }}"
+                       class="form-control" placeholder="e.g. theintercept.com"
+                       style="flex:1;">
+                <button type="submit" class="btn btn-primary">Score</button>
+            </div>
+            <p style="font-size:0.85rem;color:var(--text-muted);">
+                Pulls up to 5 recent ES articles for this domain, runs them through the classifier.
+            </p>
+        </form>
+    </div>
+
+    <div class="admin-section">
+        <h2>By raw text</h2>
+        <form method="POST" class="admin-form">
+            <input type="hidden" name="kind" value="text">
+            <div class="form-group">
+                <textarea name="text" rows="6" class="form-control"
+                          placeholder="Paste an article excerpt or any text...">{{ text or '' }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Score Text</button>
+        </form>
+    </div>
+
+    {% if score is not none %}
+    <div class="admin-section" style="border-left:4px solid #0a7;padding-left:1rem;">
+        <h2>Result</h2>
+        {% if not score.model_loaded %}
+        <div style="background:#fff5f5;padding:1rem;border:1px solid #f5c2c2;border-radius:6px;">
+            <strong>⚠ Classifier not loaded.</strong>
+            Train the model first:
+            <pre style="background:#fff;padding:0.5rem;margin-top:0.5rem;">docker exec -e PYTHONPATH=/app profoundd python3 \
+    /app/scripts/train_curator_classifier.py</pre>
+            Then click <em>Reload classifier</em> below.
+        </div>
+        {% elif score.n_samples == 0 %}
+        <p>Classifier loaded but found <strong>0 sample articles</strong> in our index for this domain.
+            We can't score what we haven't seen — neutral defaults returned.</p>
+        {% else %}
+        <table class="admin-table" style="width:auto;font-size:1rem;">
+            <tbody>
+                <tr>
+                    <th style="text-align:left;width:240px;">Block likelihood</th>
+                    <td>
+                        <span style="font-size:1.5rem;color:{{ '#c00' if score.block > 0.6 else ('#a70' if score.block > 0.3 else '#0a7') }};">
+                            {{ '%.2f' % score.block }}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <th style="text-align:left;">Sponsor signal</th>
+                    <td>
+                        <span style="font-size:1.5rem;color:{{ '#c00' if score.sponsor > 0.6 else ('#a70' if score.sponsor > 0.3 else '#0a7') }};">
+                            {{ '%.2f' % score.sponsor }}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <th style="text-align:left;">Credibility (1-10)</th>
+                    <td>
+                        <span style="font-size:1.5rem;color:{{ '#c00' if score.credibility < 4 else ('#a70' if score.credibility < 7 else '#0a7') }};">
+                            {{ score.credibility }}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <th style="text-align:left;">Samples used</th>
+                    <td>{{ score.n_samples }} ES article(s)</td>
+                </tr>
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="admin-section" style="background:#f8f8f8;padding:1rem;font-size:0.85rem;">
+        <strong>Maintenance:</strong>
+        <form method="POST" action="{{ url_for('admin.curator_test_reload') }}" style="display:inline;margin-left:1rem;">
+            <button type="submit" class="btn btn-secondary btn-sm">Reload classifier from disk</button>
+        </form>
+        <p style="margin-top:0.5rem;color:var(--text-muted);">
+            Use this after a fresh training run to swap in the new model without restarting the container.
+        </p>
+    </div>
+</div>
+{% endblock %}

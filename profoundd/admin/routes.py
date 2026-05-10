@@ -1361,6 +1361,44 @@ def ai_provider_health(role):
 
 
 # ---------------------------------------------------------------------------
+# Curator classifier — admin tester
+# ---------------------------------------------------------------------------
+
+@admin_bp.route("/curator-test", methods=["GET", "POST"])
+@login_required
+def curator_test():
+    """Probe the trained classifier with a domain or freeform text."""
+    from profoundd.curator import classifier as curator_clf
+
+    score = None
+    domain = ""
+    text = ""
+    if request.method == "POST":
+        kind = request.form.get("kind", "domain")
+        if kind == "text":
+            text = request.form.get("text", "").strip()
+            if text:
+                score = curator_clf.score_text(text)
+        else:
+            domain = request.form.get("domain", "").strip().lower()
+            if domain:
+                score = curator_clf.score_domain(domain)
+
+    return render_template("admin/curator_test.html",
+                           score=score, domain=domain, text=text,
+                           categories=CATEGORIES)
+
+
+@admin_bp.route("/curator-test/reload", methods=["POST"])
+@login_required
+def curator_test_reload():
+    from profoundd.curator import classifier as curator_clf
+    curator_clf.reload()
+    flash("Classifier cache cleared. Next score will reload model from disk.", "success")
+    return redirect(url_for("admin.curator_test"))
+
+
+# ---------------------------------------------------------------------------
 # Curator review queue (Layer-2 rollback for autonomous source management)
 # ---------------------------------------------------------------------------
 
