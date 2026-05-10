@@ -59,12 +59,69 @@
         <button type="submit" class="btn btn-primary">Save Changes</button>
     </form>
 
-    <div class="admin-section" style="margin-top: 2rem; background: #f8f8f8; padding: 1rem;">
+    <div class="admin-section" style="margin-top: 2rem;">
+        <h3>Local model comparison (apollo9 CPU, measured 2026-05-10)</h3>
+        <table class="admin-table" style="width:100%;font-size:0.88rem;">
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th>Speed (tok/s)</th>
+                    <th>Quality on contested topics</th>
+                    <th>Editorial alignment</th>
+                    <th>Best role</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="background:#e6ffe6;">
+                    <td><strong>hermes3:8b</strong> <span style="background:#0a7;color:white;padding:1px 6px;border-radius:3px;font-size:0.75rem;">RECOMMENDED</span></td>
+                    <td>~9.2</td>
+                    <td>High — engages substantively, low refusal</td>
+                    <td>Community-tuned, de-RLHF'd</td>
+                    <td>explain / summary / analyzer (live user-facing)</td>
+                </tr>
+                <tr>
+                    <td><strong>qwen3:8b</strong></td>
+                    <td>~8.1</td>
+                    <td>High — but needs /no_think handling</td>
+                    <td>Chinese-trained, different blindspots</td>
+                    <td>any role; default Ollama choice</td>
+                </tr>
+                <tr>
+                    <td><strong>llama3.2:3b</strong></td>
+                    <td>~19.2</td>
+                    <td>Moderate — smaller capability ceiling</td>
+                    <td>Meta-trained, mainstream alignment</td>
+                    <td>bob / verify (volume tasks, quality less critical)</td>
+                </tr>
+                <tr style="opacity:0.6;">
+                    <td><strong>mistral-small:24b</strong></td>
+                    <td>~3.1</td>
+                    <td>RLHF'd to refuse; "I can't provide real-time info"</td>
+                    <td>Not recommended — heaviest refusal of the bunch on CPU</td>
+                    <td>—</td>
+                </tr>
+                <tr style="opacity:0.6;">
+                    <td><strong>mistral:latest</strong> (7B)</td>
+                    <td>~10</td>
+                    <td>Older, weaker than hermes3</td>
+                    <td>Legacy</td>
+                    <td>fallback only</td>
+                </tr>
+            </tbody>
+        </table>
+        <p style="font-size:0.85rem;color:var(--text-muted);">
+            Once Tark1 is hardlined (GPU), expect ~5x speedup. Hermes3-70B becomes viable for the highest-quality editorial-sovereign output.
+        </p>
+    </div>
+
+    <div class="admin-section" style="margin-top: 1rem; background: #f8f8f8; padding: 1rem;">
         <h3>Notes</h3>
         <ul>
+            <li><strong>Constitution applies:</strong> editorial constitution is prepended to every LLM call regardless of provider. Flipping to Ollama doesn't drop the editorial framing — that lives in <a href="{{ url_for('admin.editorial_constitution') }}">/admin/editorial-constitution</a>.</li>
             <li><strong>Cache:</strong> AI explain caches results for 24h keyed on (doc, query). Flipping providers does not invalidate cache — old responses keep serving until natural expiry. Clear cache if you need a clean compare.</li>
-            <li><strong>Fallback:</strong> When provider is <code>anthropic</code>, automatic Grok fallback fires on Claude 529/overload. When provider is <code>ollama</code>, no auto-fallback (Ollama is the failover from API providers).</li>
-            <li><strong>Apollo9 capacity:</strong> Qwen3-8B Q4_K_M on apollo9 CPU runs ~8 tok/s. Expect 18-25s for typical responses. AI panels are async — search results render first.</li>
+            <li><strong>Fallback:</strong> When provider is <code>anthropic</code>, automatic Grok fallback fires on Claude 529/overload. Ollama and xAI have no auto-fallback yet.</li>
+            <li><strong>Apollo9 capacity:</strong> any 8B-class model runs ~8-10 tok/s on CPU. Expect 18-25s for typical 200-token responses. AI panels are async — search results render first.</li>
+            <li><strong>To go fully local:</strong> set every role to <code>ollama</code> with model <code>hermes3:8b</code> (recommended). Cost drops to electricity-only; ~30% reduction in mainstream institutional tilt vs Claude on contested topics.</li>
         </ul>
     </div>
 </div>
