@@ -1500,6 +1500,31 @@ def curator_queue():
                            categories=CATEGORIES)
 
 
+@admin_bp.route("/curator-queue/run-now", methods=["POST"])
+@login_required
+def curator_run_now():
+    """Manually trigger the Curator nightly job."""
+    from profoundd.curator.source_curator import run_nightly
+    from flask import current_app
+    try:
+        summary = run_nightly(app=None)  # current app context already active
+        if summary.get("status") == "skipped":
+            flash(f"Curator skipped: {summary.get('reason', 'unknown')}", "error")
+        else:
+            n = summary.get("proposals_emitted", 0)
+            by_type = summary.get("proposed_by_type", {})
+            type_str = ", ".join(f"{k}={v}" for k, v in by_type.items()) or "none"
+            flash(f"Curator emitted {n} proposal(s) ({type_str}). "
+                  f"Scanned {summary.get('domains_seen', 0)} domains; "
+                  f"skipped {summary.get('skipped_known', 0)} user-curated "
+                  f"and {summary.get('skipped_existing_proposal', 0)} with existing proposals.",
+                  "success")
+    except Exception as e:
+        logger.exception("Curator manual run failed")
+        flash(f"Curator run failed: {e}", "error")
+    return redirect(url_for("admin.curator_queue"))
+
+
 @admin_bp.route("/curator-queue/<int:pid>/<action>", methods=["POST"])
 @login_required
 def curator_proposal_action(pid, action):

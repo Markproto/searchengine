@@ -7,6 +7,7 @@ import logging
 import os
 import fcntl
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 logger = logging.getLogger(__name__)
@@ -119,6 +120,16 @@ def init_scheduler(app):
         trigger=IntervalTrigger(hours=24),
         id="youtube_crawl",
         name="Discover YouTube videos matching popular searches",
+        replace_existing=True,
+        kwargs={"app": app},
+    )
+
+    # Curator nightly — score recent corpus, emit proposals at 03:00 UTC daily
+    _scheduler.add_job(
+        func=_run_curator_nightly,
+        trigger=CronTrigger(hour=3, minute=0),
+        id="curator_nightly",
+        name="Curator: score recent corpus, emit source proposals",
         replace_existing=True,
         kwargs={"app": app},
     )
@@ -296,6 +307,17 @@ def _run_youtube_crawl(app):
                 logger.info("YouTube crawl: %d videos indexed", count)
         except Exception as e:
             logger.exception("YouTube crawl failed: %s", e)
+
+
+def _run_curator_nightly(app):
+    """Run the Curator's nightly classification pass."""
+    with app.app_context():
+        try:
+            from profoundd.curator.source_curator import run_nightly
+            summary = run_nightly(app=None)  # already in context
+            logger.info("Curator nightly summary: %s", summary)
+        except Exception as e:
+            logger.exception("Curator nightly failed: %s", e)
 
 
 def _run_alert_matcher(app):
