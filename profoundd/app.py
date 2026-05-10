@@ -21,7 +21,7 @@ from flask_login import LoginManager
 
 from profoundd.config.settings import get_config
 from profoundd.config.sources import CATEGORIES
-from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick, DailyStats
+from profoundd.utils.models import db, AdminUser, SearchLog, Source, SourceSubmission, SiteSetting, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick, DailyStats, HumanVerifyEvent
 from profoundd.utils.dead_domains import rewrite_articles as _rewrite_dead_domains
 from profoundd.search.engine import SearchEngine
 from profoundd.search.ai_summary import generate_summary as ai_generate_summary, is_available as ai_is_available
@@ -259,6 +259,135 @@ def create_app(config_override=None):
         if _BLOCKED_BOTS_RE.search(ua):
             return Response("Blocked. See /robots.txt", status=403, mimetype="text/plain")
 
+    # --- Human-gate (proof-of-work) on document downloads ---
+    # AI crawlers (GPTBot, Amazonbot, ClaudeBot, etc.) get auto-403 — they
+    # ignore robots.txt and have downloaded ~50k PDFs in 7 days. Real
+    # browsers solve a tiny SHA-256 puzzle once per session (~250ms) and
+    # then download up to 50 docs without further friction.
+    from profoundd.utils import pow_challenge
+
+    _AI_CRAWLER_RE = _re.compile(
+        r"GPTBot|ChatGPT|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|"
+        r"CCBot|PerplexityBot|Bytespider|Amazonbot|Amzn-SearchBot|"
+        r"Google-Extended|GoogleOther|meta-externalagent|Applebot-Extended|"
+        r"YouBot|searchgpt|cohere-ai|Diffbot|FacebookBot|facebookexternalhit",
+        _re.IGNORECASE,
+    )
+
+    # Path patterns that require the human-gate. Match exact route signatures
+    # so we don't accidentally gate preview pages.
+    _GATED_PATH_RE = _re.compile(
+        r"^/(?:epstein-docs/[^/]+/download|"
+        r"climate-docs/[^/]+/download|"
+        r"wef-docs/[^/]+/download|"
+        r"archive-docs/[^/]+/[^/]+/pdf)$"
+    )
+
+    def _is_admin_session():
+        return bool(session.get("admin_logged_in") or session.get("user_logged_in"))
+
+    def _log_verify_event(status, ip_hash=None, ua=None, target=None,
+                          reason="", solve_ms=None, difficulty=None):
+        try:
+            db.session.add(HumanVerifyEvent(
+                ip_hash=ip_hash,
+                user_agent=(ua or "")[:500],
+                target_path=(target or "")[:500],
+                status=status,
+                reason=(reason or "")[:80],
+                solve_time_ms=solve_ms,
+                difficulty=difficulty,
+            ))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+    @app.before_request
+    def enforce_human_gate():
+        if not _GATED_PATH_RE.match(request.path):
+            return None
+        # Master kill switches
+        if SiteSetting.get("downloads_disabled", "0") == "1":
+            return Response("Downloads temporarily disabled.", status=503, mimetype="text/plain")
+        if SiteSetting.get("pow_gate_enabled", "1") == "0":
+            return None  # gate disabled — pass through to original handler
+        # Admins bypass entirely
+        if _is_admin_session():
+            return None
+        ua = request.user_agent.string or ""
+        # Auto-deny known AI crawlers without showing them the puzzle
+        if _AI_CRAWLER_RE.search(ua):
+            ip_hash = _hash_ip(_get_client_ip())
+            _log_verify_event("auto_blocked", ip_hash=ip_hash, ua=ua,
+                              target=request.path, reason="ai_crawler_ua")
+            return Response("Forbidden. AI crawlers must respect robots.txt.",
+                            status=403, mimetype="text/plain")
+        # Already verified? let through; bump counter when the original
+        # handler succeeds (we wrap response below).
+        if pow_challenge.is_verified(session):
+            return None
+        # Otherwise, redirect to the challenge page with the original target
+        return redirect(url_for("verify_human_page", target=request.path))
+
+    @app.after_request
+    def _bump_human_download_count(response):
+        if (_GATED_PATH_RE.match(request.path or "")
+                and 200 <= response.status_code < 300
+                and not _is_admin_session()
+                and pow_challenge.is_verified(session)):
+            try:
+                pow_challenge.increment_download_count(session)
+            except Exception:
+                pass
+        return response
+
+    @app.route("/verify-human", methods=["GET"])
+    def verify_human_page():
+        """Render the PoW challenge page. Issues a challenge bound to the
+        requester's IP + intended target."""
+        target = request.args.get("target", "/").strip()
+        # Only accept gated paths as targets; default home for anything else.
+        if not _GATED_PATH_RE.match(target):
+            target = "/"
+        ip_hash = _hash_ip(_get_client_ip())
+        try:
+            difficulty = int(SiteSetting.get("pow_difficulty_bits",
+                                             str(pow_challenge.DIFFICULTY_DEFAULT)))
+        except (ValueError, TypeError):
+            difficulty = pow_challenge.DIFFICULTY_DEFAULT
+        chal = pow_challenge.issue_challenge(ip_hash, target, difficulty)
+        _log_verify_event("issued", ip_hash=ip_hash, ua=request.user_agent.string,
+                          target=target, difficulty=chal["difficulty"])
+        return render_template("verify_human.html", challenge=chal)
+
+    @app.route("/api/verify-human", methods=["POST"])
+    def api_verify_human():
+        """Validate the PoW nonce. On success, mark session as verified
+        and return the redirect URL."""
+        data = request.get_json(silent=True) or {}
+        challenge = (data.get("challenge") or "").strip()
+        nonce = (data.get("nonce") or "").strip()
+        target = (data.get("target") or "/").strip()
+        difficulty = int(data.get("difficulty") or pow_challenge.DIFFICULTY_DEFAULT)
+        solve_ms = int(data.get("solve_ms") or 0) or None
+
+        if not _GATED_PATH_RE.match(target):
+            target = "/"
+
+        ip_hash = _hash_ip(_get_client_ip())
+        ua = request.user_agent.string or ""
+
+        ok, reason = pow_challenge.verify_nonce(ip_hash, target, challenge, nonce, difficulty)
+        if not ok:
+            _log_verify_event("failed", ip_hash=ip_hash, ua=ua, target=target,
+                              reason=reason, difficulty=difficulty, solve_ms=solve_ms)
+            return jsonify(ok=False, error="Verification failed.", reason=reason), 400
+
+        pow_challenge.mark_verified(session)
+        _log_verify_event("solved", ip_hash=ip_hash, ua=ua, target=target,
+                          difficulty=difficulty, solve_ms=solve_ms)
+        return jsonify(ok=True, redirect=target)
+
     # --- Analytics: record page views ---
     from profoundd.utils.bot_detection import detect_bot
 
@@ -271,7 +400,7 @@ def create_app(config_override=None):
         path = request.path
         if (
             request.method != "GET"
-            or path.startswith(("/static", "/api/", "/admin", "/health", "/robots", "/sitemap", "/opensearch", "/indexnow"))
+            or path.startswith(("/static", "/api/", "/admin", "/health", "/robots", "/sitemap", "/opensearch", "/indexnow", "/verify-human"))
             or response.status_code >= 400
         ):
             return response

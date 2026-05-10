@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}Human Verify (PoW) - Admin{% endblock %}
+
+{% macro relative_time(dt) -%}
+    {%- if not dt -%}—{%- else -%}
+        {%- set delta = (now - dt).total_seconds() | int -%}
+        {%- if delta < 60 -%}{{ delta }}s ago
+        {%- elif delta < 3600 -%}{{ (delta // 60) }}m ago
+        {%- elif delta < 86400 -%}{{ (delta // 3600) }}h ago
+        {%- else -%}{{ (delta // 86400) }}d ago
+        {%- endif -%}
+    {%- endif -%}
+{%- endmacro %}
+
+{% block content %}
+<div class="container admin-page" style="max-width:1200px;">
+    <div class="admin-header">
+        <h1>Human Verify (PoW Download Gate)</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+    </div>
+
+    <p class="action-desc">
+        Proof-of-work challenge gates all document download endpoints
+        (Epstein, Climate, WEF, Archive). Real browsers solve a SHA-256
+        puzzle in ~250ms (at K=18) and get a 1-hour, 50-download session
+        token. AI crawlers (GPTBot, Amazonbot, etc.) get auto-403 before
+        the puzzle is even shown. curl/wget/scripts can't solve the puzzle.
+    </p>
+
+    {# Master switches #}
+    <div class="admin-section" style="background:#fff5f5;border:1px solid #f5c2c2;padding:1rem;">
+        <h2 style="margin-top:0;">Master switches</h2>
+        <div style="display:flex;flex-wrap:wrap;gap:1rem;align-items:center;">
+            <form method="POST" style="display:inline;">
+                <input type="hidden" name="action" value="toggle_gate">
+                <strong>PoW gate:</strong>
+                <button type="submit" class="btn"
+                        style="background:{{ '#0a7' if gate_enabled else '#888' }};color:white;">
+                    {{ 'ON — flip OFF' if gate_enabled else 'OFF — flip ON' }}
+                </button>
+            </form>
+            <form method="POST" style="display:inline;">
+                <input type="hidden" name="action" value="toggle_downloads">
+                <strong>Downloads:</strong>
+                <button type="submit" class="btn"
+                        style="background:{{ '#c00' if downloads_disabled else '#0a7' }};color:white;">
+                    {{ 'BLOCKED (503) — re-enable' if downloads_disabled else 'OPEN — block all' }}
+                </button>
+            </form>
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-top:0.75rem;">
+            "Downloads OFF" returns 503 unconditionally even if PoW is solved.
+            "PoW OFF" lets downloads through with no challenge.
+        </p>
+    </div>
+
+    {# Difficulty knob #}
+    <div class="admin-section">
+        <h2>Difficulty (K leading zero bits)</h2>
+        <form method="POST">
+            <input type="hidden" name="action" value="save_difficulty">
+            <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+                <label>K =
+                    <input type="number" name="difficulty" value="{{ difficulty }}"
+                           min="{{ difficulty_min }}" max="{{ difficulty_max }}"
+                           style="width:5rem;font-size:1.1rem;">
+                </label>
+                <button type="submit" class="btn btn-primary">Save</button>
+                <span style="color:var(--text-muted);font-size:0.85rem;">
+                    Default {{ difficulty_default }} ≈ 250 ms median solve. Each +1 doubles solve time.
+                </span>
+            </div>
+        </form>
+        <table class="admin-table" style="width:auto;margin-top:1rem;font-size:0.85rem;">
+            <thead><tr><th>K</th><th>Median solve (modern desktop)</th><th>Phone</th></tr></thead>
+            <tbody>
+                <tr><td>14</td><td>~30 ms</td><td>~80 ms</td></tr>
+                <tr><td>16</td><td>~50 ms</td><td>~150 ms</td></tr>
+                <tr style="background:#e6ffe6;"><td>18 (default)</td><td>~250 ms</td><td>~700 ms</td></tr>
+                <tr><td>20</td><td>~1 sec</td><td>~3 sec</td></tr>
+                <tr><td>22</td><td>~4 sec</td><td>~12 sec</td></tr>
+                <tr><td>24</td><td>~16 sec</td><td>~50 sec</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    {# Counters #}
+    <div class="admin-section">
+        <h2>Activity</h2>
+        <table class="admin-table" style="width:100%;">
+            <thead>
+                <tr>
+                    <th>Window</th>
+                    <th style="color:#0a7;">Solved</th>
+                    <th style="color:#888;">Issued</th>
+                    <th style="color:#c00;">Failed</th>
+                    <th style="color:#c00;">Auto-blocked</th>
+                    <th>Solve rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for label, s in [("Last 24h", stats_24h), ("Last 7d", stats_7d), ("All time", stats_all)] %}
+                {% set issued = s.get("issued", 0) %}
+                {% set solved = s.get("solved", 0) %}
+                {% set failed = s.get("failed", 0) %}
+                {% set blocked = s.get("auto_blocked", 0) %}
+                <tr>
+                    <td><strong>{{ label }}</strong></td>
+                    <td>{{ solved }}</td>
+                    <td>{{ issued }}</td>
+                    <td>{{ failed }}</td>
+                    <td>{{ blocked }}</td>
+                    <td>{% if issued %}{{ '%.0f' % (solved / issued * 100) }}%{% else %}—{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {# Solve-time histogram (last 24h) #}
+    <div class="admin-section">
+        <h2>Solve-time distribution <small style="font-weight:400;color:var(--text-muted);">(last 24h, solved only)</small></h2>
+        <table class="admin-table" style="max-width:500px;">
+            <thead><tr><th>Bucket</th><th>Count</th></tr></thead>
+            <tbody>
+                {% for bucket, count in solve_buckets.items() %}
+                <tr>
+                    <td>{{ bucket }}</td>
+                    <td>{{ count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {# Top failing UAs / blocked #}
+    <div class="admin-section">
+        <h2>Top failing / blocked UAs <small style="font-weight:400;color:var(--text-muted);">(last 7d)</small></h2>
+        {% if not top_failing_uas %}
+            <p class="text-muted">No failures or auto-blocks yet.</p>
+        {% else %}
+        <table class="admin-table" style="width:100%;">
+            <thead><tr><th>UA (first 100 chars)</th><th>Status</th><th>Count</th></tr></thead>
+            <tbody>
+                {% for ua, status, c in top_failing_uas %}
+                <tr>
+                    <td><code style="font-size:0.78rem;">{{ (ua or '')[:100] }}</code></td>
+                    <td>
+                        <span style="background:{{ '#c00' if status == 'auto_blocked' else '#888' }};color:white;font-size:0.75rem;padding:1px 6px;border-radius:3px;">{{ status }}</span>
+                    </td>
+                    <td><strong>{{ c }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+
+    {# Recent events feed #}
+    <div class="admin-section">
+        <h2>Recent events <small style="font-weight:400;color:var(--text-muted);">(last 50)</small></h2>
+        {% if not recent %}
+            <p class="text-muted">No events recorded yet. Try downloading a doc in incognito.</p>
+        {% else %}
+        <table class="admin-table" style="width:100%;font-size:0.85rem;">
+            <thead><tr><th>When</th><th>Status</th><th>Target</th><th>Solve ms</th><th>UA</th><th>Reason</th></tr></thead>
+            <tbody>
+                {% for r in recent %}
+                <tr>
+                    <td title="{{ r.occurred_at }}">{{ relative_time(r.occurred_at) }}</td>
+                    <td>
+                        {% if r.status == 'solved' %}<span style="color:#0a7;">✓ solved</span>
+                        {% elif r.status == 'issued' %}<span style="color:#888;">issued</span>
+                        {% elif r.status == 'failed' %}<span style="color:#c00;">✗ failed</span>
+                        {% elif r.status == 'auto_blocked' %}<span style="color:#c00;font-weight:600;">⛔ blocked</span>
+                        {% else %}{{ r.status }}{% endif %}
+                    </td>
+                    <td><code style="font-size:0.78rem;">{{ (r.target_path or '')[:60] }}</code></td>
+                    <td>{{ r.solve_time_ms or '' }}</td>
+                    <td><code style="font-size:0.75rem;">{{ (r.user_agent or '')[:60] }}</code></td>
+                    <td>{{ r.reason or '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+
+    <div class="admin-section">
+        <form method="POST">
+            <input type="hidden" name="action" value="purge_failed">
+            <button type="submit" class="btn btn-secondary"
+                    onclick="return confirm('Delete failed/auto-blocked events older than 7 days?');">
+                Purge old failures (>7d)
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Verifying — Profoundd{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 540px; margin: 4rem auto; padding: 2rem; text-align: center;">
+    <h1 style="font-size: 1.5rem; margin-bottom: 0.5rem;">One quick check</h1>
+    <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.95rem;">
+        Profoundd is mirroring 1.4M+ Epstein documents and other large
+        archives. To keep this free for real readers, we ask your browser
+        to do a small calculation before downloads. Takes about a second.
+        No tracking, no third-party services.
+    </p>
+
+    <div id="pow-spinner" aria-hidden="true" style="margin: 1.5rem auto;">
+        <div style="width: 48px; height: 48px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; margin: 0 auto; animation: pow-spin 0.9s linear infinite;"></div>
+    </div>
+
+    <p id="pow-status" style="font-weight: 600; font-size: 1rem;">Loading…</p>
+    <p id="pow-progress" style="color: var(--text-muted); font-family: monospace; font-size: 0.8rem; min-height: 1.2em;"></p>
+
+    <noscript>
+        <div style="margin-top: 2rem; padding: 1rem; background: #fff5f5; border: 1px solid #f5c2c2; border-radius: 6px;">
+            <strong>JavaScript required.</strong> The verification puzzle runs
+            in your browser. Enable JavaScript and reload, or contact the
+            admin if you need an alternate access method.
+        </div>
+    </noscript>
+
+    <p style="margin-top: 2rem; font-size: 0.8rem; color: var(--text-muted);">
+        <a href="/" style="color: inherit;">← Back to Profoundd</a>
+    </p>
+</div>
+
+<div id="pow-data"
+     data-challenge="{{ challenge.challenge }}"
+     data-difficulty="{{ challenge.difficulty }}"
+     data-target="{{ challenge.target }}"
+     style="display:none;"></div>
+
+<style>
+@keyframes pow-spin { to { transform: rotate(360deg); } }
+</style>
+
+<script src="{{ url_for('static', filename='js/pow.js') }}?v=1"></script>
+{% endblock %}

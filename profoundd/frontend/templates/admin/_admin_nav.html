@@ -32,6 +32,7 @@
         <span style="color:#555;font-weight:600;">Insights</span>
         <a href="{{ url_for('admin.analytics') }}" {% if p.endswith('/analytics') %}style="font-weight:700;text-decoration:underline;"{% endif %}>Visitors</a>
         <a href="{{ url_for('admin.search_analytics') }}" {% if '/search-analytics' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>Searches</a>
+        <a href="{{ url_for('admin.human_verify') }}" {% if '/human-verify' in p %}style="font-weight:700;text-decoration:underline;color:#0a7;"{% endif %}>Human Verify</a>
 
         <span style="color:#999;">·</span>
         <span style="color:#555;font-weight:600;">Tools</span>

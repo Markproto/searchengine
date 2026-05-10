@@ -186,6 +186,29 @@ class SiteSetting(db.Model):
         db.session.commit()
 
 
+class HumanVerifyEvent(db.Model):
+    """Telemetry for the proof-of-work human-gate.
+
+    One row per challenge lifecycle event: 'issued', 'solved', 'failed',
+    'auto_blocked' (AI crawler UA, didn't even see the challenge).
+
+    Used by /admin/human-verify to surface success rate, top failing UAs,
+    and load-baseline for tuning difficulty.
+    """
+    __tablename__ = "human_verify_events"
+
+    id = db.Column(db.Integer, primary_key=True)
+    ip_hash = db.Column(db.String(64), index=True)
+    user_agent = db.Column(db.String(500))
+    target_path = db.Column(db.String(500))
+    status = db.Column(db.String(20), nullable=False, index=True)
+    # 'issued' | 'solved' | 'failed' | 'auto_blocked'
+    reason = db.Column(db.String(80), default="")  # for failed: why; for auto_blocked: which UA pattern
+    solve_time_ms = db.Column(db.Integer, nullable=True)
+    difficulty = db.Column(db.Integer, nullable=True)
+    occurred_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+
 class CuratorProposal(db.Model):
     """Autonomous-curator-generated change proposals awaiting human review.
 

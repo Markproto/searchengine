@@ -11,7 +11,7 @@ from functools import wraps
 import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick, AudioTranscript, DailyStats, CuratorProposal, CuratorAuditLog, DomainCredibility
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick, AudioTranscript, DailyStats, CuratorProposal, CuratorAuditLog, DomainCredibility, HumanVerifyEvent
 from profoundd.config.settings import get_config
 from profoundd.config.sources import ALL_SOURCES, CATEGORIES, SPECIAL_SECTION_KEYWORDS
 from profoundd.search.engine import SearchEngine
@@ -1420,6 +1420,110 @@ def curator_audit():
     return render_template("admin/curator_audit.html",
                            rows=rows, proposals_by_id=proposals_by_id,
                            categories=CATEGORIES)
+
+
+# ---------------------------------------------------------------------------
+# Human-verify gate (proof-of-work) — telemetry + controls
+# ---------------------------------------------------------------------------
+
+@admin_bp.route("/human-verify", methods=["GET", "POST"])
+@login_required
+def human_verify():
+    """Telemetry + tuning for the PoW download gate."""
+    from profoundd.utils import pow_challenge
+    from sqlalchemy import func
+
+    if request.method == "POST":
+        action = request.form.get("action", "")
+        if action == "save_difficulty":
+            try:
+                k = int(request.form.get("difficulty", pow_challenge.DIFFICULTY_DEFAULT))
+                k = max(pow_challenge.DIFFICULTY_MIN,
+                        min(pow_challenge.DIFFICULTY_MAX, k))
+                SiteSetting.set("pow_difficulty_bits", str(k))
+                flash(f"Difficulty set to K={k}.", "success")
+            except (ValueError, TypeError):
+                flash("Invalid difficulty value.", "error")
+        elif action == "toggle_gate":
+            cur = SiteSetting.get("pow_gate_enabled", "1")
+            new = "0" if cur == "1" else "1"
+            SiteSetting.set("pow_gate_enabled", new)
+            flash(f"Human-gate is now {'OFF (downloads open)' if new == '0' else 'ON (PoW required)'}", "success")
+        elif action == "toggle_downloads":
+            cur = SiteSetting.get("downloads_disabled", "0")
+            new = "0" if cur == "1" else "1"
+            SiteSetting.set("downloads_disabled", new)
+            flash(f"Downloads are now {'DISABLED (503)' if new == '1' else 'ENABLED'}", "success")
+        elif action == "purge_failed":
+            cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+            n = (db.session.query(HumanVerifyEvent)
+                 .filter(HumanVerifyEvent.status.in_(["failed", "auto_blocked"]),
+                         HumanVerifyEvent.occurred_at < cutoff)
+                 .delete(synchronize_session=False))
+            db.session.commit()
+            flash(f"Purged {n} old failed/blocked events.", "success")
+        return redirect(url_for("admin.human_verify"))
+
+    # State
+    difficulty = SiteSetting.get("pow_difficulty_bits", str(pow_challenge.DIFFICULTY_DEFAULT))
+    gate_enabled = SiteSetting.get("pow_gate_enabled", "1") == "1"
+    downloads_disabled = SiteSetting.get("downloads_disabled", "0") == "1"
+
+    cutoff_24h = datetime.now(timezone.utc) - timedelta(hours=24)
+    cutoff_7d = datetime.now(timezone.utc) - timedelta(days=7)
+
+    def _counts(since):
+        rows = (db.session.query(HumanVerifyEvent.status, func.count(HumanVerifyEvent.id))
+                .filter(HumanVerifyEvent.occurred_at >= since)
+                .group_by(HumanVerifyEvent.status).all())
+        return {s: c for s, c in rows}
+
+    stats_24h = _counts(cutoff_24h)
+    stats_7d = _counts(cutoff_7d)
+    stats_all = _counts(datetime(1970, 1, 1, tzinfo=timezone.utc))
+
+    # Top 10 failing UAs (last 7d)
+    top_failing_uas = (db.session.query(HumanVerifyEvent.user_agent,
+                                        HumanVerifyEvent.status,
+                                        func.count(HumanVerifyEvent.id).label("c"))
+                       .filter(HumanVerifyEvent.occurred_at >= cutoff_7d,
+                               HumanVerifyEvent.status.in_(["failed", "auto_blocked"]))
+                       .group_by(HumanVerifyEvent.user_agent, HumanVerifyEvent.status)
+                       .order_by(func.count(HumanVerifyEvent.id).desc())
+                       .limit(15).all())
+
+    # Solve-time histogram (last 24h, solved only)
+    solve_times = [r[0] for r in db.session.query(HumanVerifyEvent.solve_time_ms)
+                   .filter(HumanVerifyEvent.occurred_at >= cutoff_24h,
+                           HumanVerifyEvent.status == "solved",
+                           HumanVerifyEvent.solve_time_ms.isnot(None)).all()]
+    solve_buckets = {"<200ms": 0, "200-500ms": 0, "500ms-1s": 0, "1-3s": 0, "3-10s": 0, ">10s": 0}
+    for t in solve_times:
+        if t < 200: solve_buckets["<200ms"] += 1
+        elif t < 500: solve_buckets["200-500ms"] += 1
+        elif t < 1000: solve_buckets["500ms-1s"] += 1
+        elif t < 3000: solve_buckets["1-3s"] += 1
+        elif t < 10000: solve_buckets["3-10s"] += 1
+        else: solve_buckets[">10s"] += 1
+
+    # Recent events feed
+    recent = (db.session.query(HumanVerifyEvent)
+              .order_by(HumanVerifyEvent.occurred_at.desc())
+              .limit(50).all())
+
+    return render_template("admin/human_verify.html",
+                           difficulty=difficulty,
+                           difficulty_min=pow_challenge.DIFFICULTY_MIN,
+                           difficulty_max=pow_challenge.DIFFICULTY_MAX,
+                           difficulty_default=pow_challenge.DIFFICULTY_DEFAULT,
+                           gate_enabled=gate_enabled,
+                           downloads_disabled=downloads_disabled,
+                           stats_24h=stats_24h, stats_7d=stats_7d, stats_all=stats_all,
+                           top_failing_uas=top_failing_uas,
+                           solve_buckets=solve_buckets,
+                           recent=recent,
+                           categories=CATEGORIES,
+                           now=datetime.utcnow())
 
 
 @admin_bp.route("/analyze-url", methods=["GET", "POST"])
