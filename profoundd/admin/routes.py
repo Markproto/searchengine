@@ -71,6 +71,34 @@ def login_required(f):
     return decorated
 
 
+def _current_admin_email():
+    """Email of the logged-in admin, or empty string."""
+    uname = session.get("admin_user", "")
+    if not uname:
+        return ""
+    row = (db.session.query(AdminUser)
+           .filter_by(username=uname).first())
+    return (row.email or "") if row else ""
+
+
+def is_owner():
+    """True iff the logged-in admin is the site owner (Mark)."""
+    return (_current_admin_email() or "").strip().lower() == ADMIN_MAGIC_EMAIL.lower()
+
+
+def owner_required(f):
+    """Gate routes to the site owner only. Other admins see a 403 page."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("admin_logged_in"):
+            return redirect(url_for("admin.login"))
+        if not is_owner():
+            flash("This page is restricted to the site owner.", "error")
+            return redirect(url_for("admin.dashboard"))
+        return f(*args, **kwargs)
+    return decorated
+
+
 def _is_locked_out(ip):
     """Check if IP is locked out from too many login attempts."""
     now = datetime.now(timezone.utc)
@@ -1291,7 +1319,7 @@ AI_PROVIDER_DEFAULT = {
 
 
 @admin_bp.route("/ai-provider", methods=["GET", "POST"])
-@login_required
+@owner_required
 def ai_provider():
     """Per-role provider toggle. Layer-1 rollback for the Ollama swap."""
     from profoundd.search import ai_explain as _ai_explain
@@ -1343,7 +1371,7 @@ def ai_provider():
 
 
 @admin_bp.route("/ai-provider/health/<role>", methods=["POST"])
-@login_required
+@owner_required
 def ai_provider_health(role):
     """One-shot health check: send a tiny prompt to the configured provider for `role`."""
     if role not in {r for r, _ in AI_ROLES}:
@@ -1367,7 +1395,7 @@ def ai_provider_health(role):
 # ---------------------------------------------------------------------------
 
 @admin_bp.route("/editorial-constitution", methods=["GET", "POST"])
-@login_required
+@owner_required
 def editorial_constitution():
     """Edit the text prepended to every LLM prompt across the site."""
     from profoundd.utils import editorial_constitution as ec

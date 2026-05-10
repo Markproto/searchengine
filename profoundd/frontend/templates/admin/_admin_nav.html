@@ -19,8 +19,10 @@
 
         <span style="color:#999;">·</span>
         <span style="color:#555;font-weight:600;">AI</span>
-        <a href="{{ url_for('admin.editorial_constitution') }}" {% if '/editorial-constitution' in p %}style="font-weight:700;text-decoration:underline;color:#0a7;"{% endif %}>Constitution</a>
-        <a href="{{ url_for('admin.ai_provider') }}" {% if '/ai-provider' in p %}style="font-weight:700;text-decoration:underline;color:#0a7;"{% endif %}>Provider</a>
+        {% if is_owner_admin %}
+        <a href="{{ url_for('admin.editorial_constitution') }}" {% if '/editorial-constitution' in p %}style="font-weight:700;text-decoration:underline;color:#0a7;"{% endif %}>Constitution<span title="Owner-only" style="color:#888;font-size:0.7rem;"> 🔒</span></a>
+        <a href="{{ url_for('admin.ai_provider') }}" {% if '/ai-provider' in p %}style="font-weight:700;text-decoration:underline;color:#0a7;"{% endif %}>Provider<span title="Owner-only" style="color:#888;font-size:0.7rem;"> 🔒</span></a>
+        {% endif %}
         <a href="{{ url_for('admin.ai_settings') }}" {% if p.endswith('/ai-settings') %}style="font-weight:700;text-decoration:underline;"{% endif %}>Settings</a>
         <a href="{{ url_for('admin.analyze_url') }}" {% if '/analyze-url' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>Analyze URL</a>
 

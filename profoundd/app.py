@@ -49,6 +49,25 @@ _download_rate_state = {}
 _download_rate_lock = threading.Lock()
 
 
+OWNER_EMAIL_FALLBACK = "mark.hutto@protonmail.com"
+
+
+def _is_owner_admin():
+    """True iff the logged-in admin is the site owner (matches OWNER_EMAIL)."""
+    if not session.get("admin_logged_in"):
+        return False
+    uname = session.get("admin_user", "")
+    if not uname:
+        return False
+    try:
+        row = db.session.query(AdminUser).filter_by(username=uname).first()
+        if not row:
+            return False
+        return (row.email or "").strip().lower() == OWNER_EMAIL_FALLBACK.lower()
+    except Exception:
+        return False
+
+
 def _get_client_ip():
     """Real client IP — honor Cloudflare/proxy headers before falling back to remote_addr."""
     cf = request.headers.get("CF-Connecting-IP")
@@ -232,6 +251,7 @@ def create_app(config_override=None):
             "bing_verification": bing_verification,
             "yandex_verification": yandex_verification,
             "is_admin": request.path.startswith("/admin"),
+            "is_owner_admin": _is_owner_admin(),
             "get_newsroom_note": get_newsroom_note,
             "get_source_note": get_source_note,
             "user_logged_in": session.get("user_logged_in", False),
@@ -605,6 +625,7 @@ def create_app(config_override=None):
             "ALTER TABLE page_views ADD COLUMN language VARCHAR(20)",
             "ALTER TABLE admin_users ADD COLUMN magic_token VARCHAR(128)",
             "ALTER TABLE admin_users ADD COLUMN magic_token_expires DATETIME",
+            "ALTER TABLE admin_users ADD COLUMN email VARCHAR(255)",
             "ALTER TABLE search_logs ADD COLUMN is_bot BOOLEAN DEFAULT 0",
         ]:
             try:
@@ -3356,14 +3377,26 @@ Disallow: /
     return app
 
 
+OWNER_EMAIL = "mark.hutto@protonmail.com"
+
+
 def _ensure_admin(config):
-    """Create default admin user if none exists."""
+    """Create default admin user if none exists; backfill owner email."""
     if db.session.query(AdminUser).count() == 0:
-        admin = AdminUser(username=config.get("ADMIN_USERNAME", "admin"))
+        admin = AdminUser(username=config.get("ADMIN_USERNAME", "admin"),
+                          email=OWNER_EMAIL)
         admin.set_password(config.get("ADMIN_PASSWORD", "changeme"))
         db.session.add(admin)
         db.session.commit()
-        logger.info("Created default admin user: %s", admin.username)
+        logger.info("Created default admin user: %s (%s)", admin.username, OWNER_EMAIL)
+    else:
+        # Backfill owner email on the primary admin row if missing.
+        primary = (db.session.query(AdminUser)
+                   .order_by(AdminUser.id.asc()).first())
+        if primary and not primary.email:
+            primary.email = OWNER_EMAIL
+            db.session.commit()
+            logger.info("Backfilled owner email on admin id=%s", primary.id)
 
 
 # Entry point

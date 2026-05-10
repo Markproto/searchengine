@@ -43,7 +43,7 @@ from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 
 from profoundd.app import create_app
-from profoundd.utils.models import db, DomainCredibility, SiteSetting, Source
+from profoundd.utils.models import db, SiteSetting, Source, AdminRankingAction, CuratorProposal
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -56,49 +56,165 @@ MIN_SAMPLES_PER_DOMAIN = 1     # skip domains with 0 articles
 MAX_VOCAB = 20_000             # TF-IDF vocab cap
 
 
+def _domain_of(url: str) -> str | None:
+    """Extract apex domain from a URL string."""
+    if not url:
+        return None
+    d = url.lower().strip()
+    for prefix in ("https://", "http://"):
+        if d.startswith(prefix):
+            d = d[len(prefix):]
+    if d.startswith("www."):
+        d = d[4:]
+    d = d.split("/")[0].split("?")[0].split("#")[0]
+    return d or None
+
+
 def load_labels(app):
-    """Build (domain → label dict) from DB sources of truth."""
+    """Build (domain → label dict) from USER-OWNED editorial signals only.
+
+    Deliberately excludes external datasets (CRED-1, Wikipedia RSP) since
+    those import mainstream gatekeeper bias the editorial constitution is
+    specifically designed to escape. The classifier learns from labels
+    the user has personally generated:
+
+      1. Source.credibility (1-10)       — user-set per RSS feed
+      2. Source.is_active=False          — manually deactivated feeds
+      3. Source.sponsor_tags             — user-set sponsor positives
+      4. SiteSetting('blocked_domains')  — explicit blocks
+      5. AdminRankingAction              — promote/demote history
+      6. CuratorProposal applied/rejected — user verdicts on past proposals
+
+    Each signal contributes to one or more of:
+      credibility (0.0-1.0)  - mapped to 1-10 at train time
+      block       (0/1)
+      sponsor     (0/1)
+    """
     with app.app_context():
-        labels = {}
+        labels: dict[str, dict] = {}
 
-        # 1. DomainCredibility — the primary credibility label.
-        # Map 0.0-1.0 score → block/cred/etc.
-        rows = db.session.query(DomainCredibility).all()
-        for r in rows:
-            cred = r.credibility or 0.5
-            labels[r.domain] = {
-                "credibility": cred,
-                "block": 1 if cred < 0.25 else 0,
-                "sponsor": 0,  # default; overridden below
-                "category": r.category or "",
-            }
-        log.info("DomainCredibility rows: %d", len(labels))
-
-        # 2. blocked_domains SiteSetting — hard positives for block head.
-        blocked_raw = SiteSetting.get("blocked_domains", "")
-        for d in [s.strip().lower() for s in blocked_raw.replace("\r", "").split("\n") if s.strip()]:
+        def _ensure(d):
             if d not in labels:
-                labels[d] = {"credibility": 0.1, "block": 1, "sponsor": 0, "category": "user_blocked"}
-            else:
-                labels[d]["block"] = 1
-                labels[d]["credibility"] = min(labels[d]["credibility"], 0.2)
-        log.info("After blocked_domains merge: %d labels", len(labels))
+                labels[d] = {"credibility": 0.5, "block": 0, "sponsor": 0,
+                             "category": "", "sources": []}
 
-        # 3. Source.sponsor_tags — positives for sponsor head.
-        sources = db.session.query(Source).filter(Source.sponsor_tags != "").filter(Source.sponsor_tags.isnot(None)).all()
+        # 1. Source table — primary user-curated labels.
+        # Map credibility 1-10 -> 0.1-1.0. Inactive sources flagged for block.
+        sources = db.session.query(Source).all()
         for s in sources:
-            domain = (s.url or "").lower()
-            for prefix in ("https://", "http://", "www."):
-                if domain.startswith(prefix):
-                    domain = domain[len(prefix):]
-            domain = domain.split("/")[0]
+            domain = _domain_of(s.url)
             if not domain:
                 continue
-            if domain not in labels:
-                labels[domain] = {"credibility": 0.5, "block": 0, "sponsor": 1, "category": "sponsored"}
-            else:
+            _ensure(domain)
+            cred_normalized = max(0.05, min(1.0, (s.credibility or 5) / 10.0))
+            labels[domain]["credibility"] = cred_normalized
+            labels[domain]["sources"].append("source_table")
+            if not s.is_active:
+                # Manually deactivated → strong block signal
+                labels[domain]["block"] = 1
+                labels[domain]["sources"].append("source_deactivated")
+            if s.sponsor_tags:
                 labels[domain]["sponsor"] = 1
-        log.info("After sponsor_tags merge: %d labels", len(labels))
+                labels[domain]["sources"].append("sponsor_tags")
+            if s.category:
+                labels[domain]["category"] = s.category
+        log.info("Source-table labels: %d", len(labels))
+
+        # 2. blocked_domains SiteSetting — hard block positives.
+        blocked_raw = SiteSetting.get("blocked_domains", "")
+        n_blocked_added = 0
+        for d in [s.strip().lower() for s in blocked_raw.replace("\r", "").split("\n") if s.strip()]:
+            _ensure(d)
+            labels[d]["block"] = 1
+            labels[d]["credibility"] = min(labels[d]["credibility"], 0.2)
+            labels[d]["sources"].append("blocked_domains")
+            n_blocked_added += 1
+        log.info("blocked_domains signals: %d (total labels now %d)", n_blocked_added, len(labels))
+
+        # 3. AdminRankingAction history — promote/demote signals.
+        # Each action targets an article URL; we aggregate by domain.
+        try:
+            actions = db.session.query(AdminRankingAction).all()
+            promote_counts: dict[str, int] = {}
+            demote_counts: dict[str, int] = {}
+            for a in actions:
+                domain = _domain_of(getattr(a, "article_url", "") or getattr(a, "url", ""))
+                if not domain:
+                    continue
+                act = (getattr(a, "action", "") or "").lower()
+                if act == "promote":
+                    promote_counts[domain] = promote_counts.get(domain, 0) + 1
+                elif act == "demote":
+                    demote_counts[domain] = demote_counts.get(domain, 0) + 1
+            # Convert to per-domain credibility nudges
+            for d in set(list(promote_counts.keys()) + list(demote_counts.keys())):
+                p = promote_counts.get(d, 0)
+                dm = demote_counts.get(d, 0)
+                net = p - dm
+                if net == 0:
+                    continue
+                _ensure(d)
+                # Nudge credibility by 0.05 per net action, clamp to [0.05, 1.0]
+                cur = labels[d]["credibility"]
+                labels[d]["credibility"] = max(0.05, min(1.0, cur + 0.05 * net))
+                labels[d]["sources"].append(f"admin_rank({p}+,{dm}-)")
+                if dm >= 3 and dm > p * 2:
+                    labels[d]["block"] = 1
+                    labels[d]["sources"].append("admin_rank_demote_heavy")
+            log.info("AdminRankingAction signals on %d domains", len(set(list(promote_counts.keys()) + list(demote_counts.keys()))))
+        except Exception as e:
+            log.warning("AdminRankingAction lookup failed: %s", e)
+
+        # 4. CuratorProposal verdicts — user-confirmed positives/negatives.
+        try:
+            applied = db.session.query(CuratorProposal).filter_by(status="applied").all()
+            rejected = db.session.query(CuratorProposal).filter_by(status="rejected").all()
+            for p in applied:
+                d = (p.target_domain or "").lower().strip()
+                if not d:
+                    continue
+                _ensure(d)
+                if p.proposal_type == "block_domain":
+                    labels[d]["block"] = 1
+                    labels[d]["credibility"] = min(labels[d]["credibility"], 0.15)
+                    labels[d]["sources"].append("curator_block_applied")
+                elif p.proposal_type == "sponsor_tag":
+                    labels[d]["sponsor"] = 1
+                    labels[d]["sources"].append("curator_sponsor_applied")
+                elif p.proposal_type == "credibility_adjust":
+                    try:
+                        new_cred = int(p.proposed_value) / 10.0
+                        labels[d]["credibility"] = new_cred
+                        labels[d]["sources"].append("curator_cred_applied")
+                    except (ValueError, TypeError):
+                        pass
+            for p in rejected:
+                d = (p.target_domain or "").lower().strip()
+                if not d:
+                    continue
+                _ensure(d)
+                # User REJECTED a block proposal → treat as positive signal
+                # for credibility (the user disagreed that this domain should be blocked).
+                if p.proposal_type == "block_domain":
+                    labels[d]["block"] = 0
+                    labels[d]["credibility"] = max(labels[d]["credibility"], 0.6)
+                    labels[d]["sources"].append("curator_block_rejected")
+            log.info("CuratorProposal verdicts: %d applied / %d rejected", len(applied), len(rejected))
+        except Exception as e:
+            log.warning("CuratorProposal lookup failed: %s", e)
+
+        log.info("Total user-labeled domains: %d", len(labels))
+        # Quick distribution snapshot
+        cred_buckets = {"<0.3": 0, "0.3-0.5": 0, "0.5-0.7": 0, ">=0.7": 0}
+        for d, lbl in labels.items():
+            c = lbl["credibility"]
+            if c < 0.3: cred_buckets["<0.3"] += 1
+            elif c < 0.5: cred_buckets["0.3-0.5"] += 1
+            elif c < 0.7: cred_buckets["0.5-0.7"] += 1
+            else: cred_buckets[">=0.7"] += 1
+        log.info("Credibility distribution: %s", cred_buckets)
+        log.info("Block positives: %d", sum(1 for l in labels.values() if l["block"] == 1))
+        log.info("Sponsor positives: %d", sum(1 for l in labels.values() if l["sponsor"] == 1))
 
         return labels
 
