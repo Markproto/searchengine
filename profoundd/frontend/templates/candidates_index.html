@@ -1,17 +1,16 @@
 {% extends "base.html" %}
 {% block title %}2028 Presidential Candidates — Profoundd{% endblock %}
-{% block description %}Weekly Wikipedia change tracking for 2028 presidential candidates. See what's being edited about each figure and why.{% endblock %}
+{% block description %}Weekly Wikipedia change tracking with visual archive — see how each candidate's page changes week to week.{% endblock %}
 
 {% block content %}
 <div class="container candidates-page">
     <div class="candidates-header">
         <h1>2028 Presidential Candidates</h1>
         <p class="candidates-intro">
-            Profoundd watches each figure's Wikipedia article every week and records
-            what's been added, removed, or reshaped — plus an AI analysis of the
-            editing pattern. Wikipedia is one source whose editors have their own
-            perspectives; this page surfaces the changes so you can judge them
-            yourself.
+            Profoundd snapshots each figure's Wikipedia article every week. Each
+            card shows the most recent screenshot, the number of edits that hit
+            the page, and a short description of what changed. Click any
+            candidate for the full weekly archive.
         </p>
     </div>
 
@@ -27,29 +26,34 @@
         <h2>{{ party }}{% if party == 'Democrat' or party == 'Republican' %}s{% endif %}</h2>
         <div class="candidates-grid">
             {% for f in group %}
-            {% set ch = latest_by_figure.get(f.id) %}
+            {% set ch = latest_change.get(f.id) %}
+            {% set snap = latest_snapshot.get(f.id) %}
             <a class="candidate-card" href="{{ url_for('candidates_profile', slug=f.slug) }}">
-                <h3>{{ f.name }}</h3>
-                <p class="candidate-role">{{ f.role }}</p>
-                {% if ch %}
-                <div class="candidate-change">
-                    <div class="candidate-change-meta">
-                        <strong>{{ ch.edit_count }} edit{% if ch.edit_count != 1 %}s{% endif %}</strong>
-                        by {{ ch.editor_count }} editor{% if ch.editor_count != 1 %}s{% endif %}
-                        · {{ ch.size_delta_chars|abs }} char{% if ch.size_delta_chars|abs != 1 %}s{% endif %}
-                        {% if ch.size_delta_chars > 0 %}added{% else %}removed{% endif %}
-                        · {{ ch.occurred_at.strftime('%Y-%m-%d') }}
-                    </div>
-                    {% if ch.ai_explanation %}
-                    <p class="candidate-explanation">{{ ch.ai_explanation[:280] }}{% if ch.ai_explanation|length > 280 %}…{% endif %}</p>
-                    {% endif %}
+                {% if snap %}
+                <div class="candidate-thumb">
+                    <img src="{{ url_for('wiki_snapshot', filename=snap.path) }}"
+                         alt="Wikipedia snapshot of {{ f.name }}"
+                         loading="lazy" decoding="async">
                 </div>
                 {% else %}
-                <p class="candidate-change-empty">No changes recorded yet.</p>
+                <div class="candidate-thumb candidate-thumb-empty">
+                    <span>no snapshot yet</span>
+                </div>
                 {% endif %}
-                {% if f.last_checked_at %}
-                <p class="candidate-checked">Last checked: {{ f.last_checked_at.strftime('%Y-%m-%d %H:%M UTC') }}</p>
-                {% endif %}
+                <div class="candidate-body">
+                    <h3>{{ f.name }}</h3>
+                    <p class="candidate-role">{{ f.role }}</p>
+                    {% if ch %}
+                    <div class="candidate-stats">
+                        <strong>{{ ch.edit_count }}</strong> edit{% if ch.edit_count != 1 %}s{% endif %} this week
+                        · <span class="candidate-delta {% if ch.size_delta_chars > 0 %}positive{% elif ch.size_delta_chars < 0 %}negative{% endif %}">
+                            {% if ch.size_delta_chars >= 0 %}+{% endif %}{{ ch.size_delta_chars }}c
+                        </span>
+                    </div>
+                    {% elif snap %}
+                    <div class="candidate-stats candidate-stats-baseline">Baseline — first snapshot</div>
+                    {% endif %}
+                </div>
             </a>
             {% endfor %}
         </div>
@@ -59,30 +63,51 @@
 </div>
 
 <style>
-.candidates-page { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+.candidates-page { max-width: 1300px; margin: 0 auto; padding: 24px 16px; }
 .candidates-header h1 { margin: 0 0 8px; font-size: 1.8rem; }
 .candidates-intro { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; max-width: 760px; margin-bottom: 18px; }
 .candidates-group h2 { font-size: 1.15rem; margin: 24px 0 12px; padding-left: 8px; border-left: 4px solid var(--border); }
 .candidates-group-democrat h2 { border-left-color: #1d4ed8; }
 .candidates-group-republican h2 { border-left-color: #b91c1c; }
-.candidates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.candidates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+}
 .candidate-card {
     display: block;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 14px 16px;
+    overflow: hidden;
     text-decoration: none;
     color: inherit;
     transition: border-color 0.15s, transform 0.15s;
 }
 .candidate-card:hover { border-color: var(--accent); transform: translateY(-1px); }
-.candidate-card h3 { margin: 0 0 4px; font-size: 1rem; color: var(--accent); }
-.candidate-role { color: var(--text-secondary); font-size: 0.82rem; margin: 0 0 10px; }
-.candidate-change { background: var(--bg-secondary); border-radius: 6px; padding: 8px 10px; }
-.candidate-change-meta { color: var(--text-secondary); font-size: 0.78rem; margin-bottom: 4px; }
-.candidate-explanation { color: var(--text); font-size: 0.85rem; line-height: 1.45; margin: 0; }
-.candidate-change-empty { color: var(--text-muted); font-size: 0.82rem; margin: 0; font-style: italic; }
-.candidate-checked { font-size: 0.72rem; color: var(--text-muted); margin: 8px 0 0; }
+.candidate-thumb { background: #f5f5f5; border-bottom: 1px solid var(--border); }
+.candidate-thumb img {
+    display: block;
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    object-position: top center;
+}
+.candidate-thumb-empty {
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 0.85rem;
+}
+.candidate-body { padding: 12px 14px; }
+.candidate-body h3 { margin: 0 0 2px; font-size: 1rem; color: var(--accent); }
+.candidate-role { color: var(--text-secondary); font-size: 0.82rem; margin: 0 0 8px; }
+.candidate-stats { color: var(--text-secondary); font-size: 0.82rem; }
+.candidate-stats-baseline { font-style: italic; color: var(--text-muted); }
+.candidate-delta.positive { color: #0a7; }
+.candidate-delta.negative { color: #c00; }
 </style>
 {% endblock %}

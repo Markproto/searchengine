@@ -216,8 +216,9 @@ class WikipediaChange(db.Model):
     """A detected aggregate change between two Wikipedia revisions of a TrackedFigure.
 
     One row represents the sum of all edits in a single check window (typically
-    one week). diff_summary captures the human-readable change set; ai_explanation
-    holds the LLM analysis written with the editorial-constitution preamble.
+    one week). Public display uses ai_explanation (neutral, descriptive) and
+    snapshot_path (PNG of the page at to_revid). editor_comments and diff_text
+    are retained for forensic / audit purposes but not surfaced publicly.
     """
     __tablename__ = "wikipedia_changes"
 
@@ -228,10 +229,30 @@ class WikipediaChange(db.Model):
     edit_count = db.Column(db.Integer, default=0)
     editor_count = db.Column(db.Integer, default=0)
     size_delta_chars = db.Column(db.Integer, default=0)         # to_size - from_size
-    editor_comments = db.Column(db.Text, default="")            # newline-joined Wikipedia edit summaries
-    diff_text = db.Column(db.Text, default="")                  # truncated content diff
-    ai_explanation = db.Column(db.Text, default="")             # LLM analysis (~3 sentences)
+    editor_comments = db.Column(db.Text, default="")            # retained but not displayed publicly
+    diff_text = db.Column(db.Text, default="")                  # retained but not displayed publicly
+    ai_explanation = db.Column(db.Text, default="")             # neutral, descriptive (~3 sentences)
+    snapshot_path = db.Column(db.String(500), default="")       # relative path under /app/data/wiki-snapshots/
     occurred_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+
+class WikipediaSnapshot(db.Model):
+    """A PNG screenshot of a TrackedFigure's Wikipedia page at a specific revision.
+
+    One row per check (even when no edits happened) so we have a continuous
+    weekly visual archive — readers can scroll the timeline and see how the
+    page actually looked each week, not just what numerically changed.
+    """
+    __tablename__ = "wikipedia_snapshots"
+
+    id = db.Column(db.Integer, primary_key=True)
+    figure_id = db.Column(db.Integer, db.ForeignKey("tracked_figures.id"), nullable=False, index=True)
+    revision_id = db.Column(db.BigInteger, nullable=False)
+    path = db.Column(db.String(500), nullable=False)            # relative under /app/data/wiki-snapshots/
+    width = db.Column(db.Integer, default=0)
+    height = db.Column(db.Integer, default=0)
+    byte_size = db.Column(db.Integer, default=0)
+    captured_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
 
 class EditorialConstitutionRevision(db.Model):

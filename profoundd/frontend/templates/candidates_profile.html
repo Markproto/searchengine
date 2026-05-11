@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ figure.name }} — Wikipedia change timeline — Profoundd{% endblock %}
+{% block title %}{{ figure.name }} — weekly Wikipedia archive — Profoundd{% endblock %}
 
 {% block content %}
 <div class="container candidate-profile">
@@ -23,61 +23,60 @@
         </p>
     </header>
 
-    <section class="candidate-changes">
-        <h2>Change timeline</h2>
-        {% if not changes %}
+    <section class="candidate-archive">
+        <h2>Weekly visual archive</h2>
+        <p class="archive-help">
+            One screenshot per week. Hover for the change summary; click to view full-size.
+            The number on each card shows how many edits Wikipedia recorded that week.
+        </p>
+
+        {% if not snapshots %}
             <p class="candidate-empty">
-                No changes recorded yet. The next check will run Sunday at 04:00 UTC,
-                or an admin can trigger it manually from
-                <code>/admin/tracked-figures</code>.
+                No snapshots yet. The first weekly capture runs Sunday at 04:00 UTC,
+                or an admin can trigger it manually from <code>/admin/tracked-figures</code>.
             </p>
         {% else %}
-        {% for ch in changes %}
-        <article class="change-card">
-            <header class="change-header">
-                <span class="change-date">{{ ch.occurred_at.strftime('%Y-%m-%d %H:%M UTC') }}</span>
-                <span class="change-stat">
-                    {{ ch.edit_count }} edit{% if ch.edit_count != 1 %}s{% endif %}
-                    · {{ ch.editor_count }} editor{% if ch.editor_count != 1 %}s{% endif %}
-                    · <span class="change-delta {% if ch.size_delta_chars > 0 %}positive{% elif ch.size_delta_chars < 0 %}negative{% endif %}">{{ ch.size_delta_chars|abs }} char{% if ch.size_delta_chars|abs != 1 %}s{% endif %} {% if ch.size_delta_chars >= 0 %}added{% else %}removed{% endif %}</span>
-                </span>
-            </header>
+        {# Index changes by revision_id so we can show counts on the snapshot strip #}
+        {% set change_by_rev = {} %}
+        {% for c in changes %}{% set _ = change_by_rev.update({c.to_revid: c}) %}{% endfor %}
 
-            {% if ch.ai_explanation %}
-            <div class="change-ai">
-                <strong>Profoundd analysis:</strong>
-                <p>{{ ch.ai_explanation }}</p>
-            </div>
-            {% endif %}
-
-            {% if ch.editor_comments %}
-            <details class="change-detail">
-                <summary>Editor commit summaries ({{ ch.edit_count }})</summary>
-                <pre class="change-comments">{{ ch.editor_comments }}</pre>
-            </details>
-            {% endif %}
-
-            {% if ch.diff_text %}
-            <details class="change-detail">
-                <summary>Content diff snippet</summary>
-                <pre class="change-diff">{{ ch.diff_text }}</pre>
-            </details>
-            {% endif %}
-
-            <footer class="change-footer">
-                <a href="https://en.wikipedia.org/w/index.php?title={{ figure.wikipedia_title }}&diff={{ ch.to_revid }}&oldid={{ ch.from_revid }}"
-                   target="_blank" rel="noopener" class="change-wikilink">
-                    View this diff on Wikipedia ↗
+        <div class="archive-strip">
+            {% for snap in snapshots %}
+            {% set ch = change_by_rev.get(snap.revision_id) %}
+            <figure class="archive-frame">
+                <a href="{{ url_for('wiki_snapshot', filename=snap.path) }}" target="_blank">
+                    <img src="{{ url_for('wiki_snapshot', filename=snap.path) }}"
+                         alt="Wikipedia snapshot of {{ figure.name }} on {{ snap.captured_at.strftime('%Y-%m-%d') }}"
+                         loading="lazy" decoding="async">
                 </a>
-            </footer>
-        </article>
-        {% endfor %}
+                <figcaption>
+                    <div class="archive-date">{{ snap.captured_at.strftime('%b %d, %Y') }}</div>
+                    {% if ch %}
+                    <div class="archive-stats">
+                        <strong>{{ ch.edit_count }}</strong> edit{% if ch.edit_count != 1 %}s{% endif %}
+                        · <span class="archive-delta {% if ch.size_delta_chars > 0 %}positive{% elif ch.size_delta_chars < 0 %}negative{% endif %}">
+                            {% if ch.size_delta_chars >= 0 %}+{% endif %}{{ ch.size_delta_chars }}c
+                        </span>
+                    </div>
+                    {% if ch.ai_explanation %}
+                    <details class="archive-desc">
+                        <summary>What changed</summary>
+                        <p>{{ ch.ai_explanation }}</p>
+                    </details>
+                    {% endif %}
+                    {% else %}
+                    <div class="archive-stats archive-stats-baseline">Baseline snapshot — no prior</div>
+                    {% endif %}
+                </figcaption>
+            </figure>
+            {% endfor %}
+        </div>
         {% endif %}
     </section>
 </div>
 
 <style>
-.candidate-profile { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+.candidate-profile { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
 .back-link { color: var(--text-secondary); font-size: 0.85rem; text-decoration: none; }
 .back-link:hover { color: var(--accent); }
 .candidate-profile-header { margin: 16px 0 28px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
@@ -85,22 +84,56 @@
 .candidate-profile-role { color: var(--text-secondary); font-size: 0.95rem; margin: 0 0 8px; }
 .candidate-profile-link a { color: var(--accent); font-size: 0.85rem; }
 .candidate-profile-checked { color: var(--text-muted); font-size: 0.78rem; margin-left: 6px; }
-.candidate-changes h2 { font-size: 1.15rem; margin: 0 0 14px; }
+.candidate-archive h2 { font-size: 1.15rem; margin: 0 0 6px; }
+.archive-help { color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 18px; }
 .candidate-empty { color: var(--text-muted); font-style: italic; padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 8px; }
-.change-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; }
-.change-header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
-.change-date { font-weight: 600; font-size: 0.9rem; }
-.change-stat { color: var(--text-secondary); font-size: 0.82rem; }
-.change-delta.positive { color: #0a7; }
-.change-delta.negative { color: #c00; }
-.change-ai { background: var(--bg-secondary); border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 4px; margin-bottom: 10px; }
-.change-ai strong { font-size: 0.82rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }
-.change-ai p { margin: 4px 0 0; font-size: 0.92rem; line-height: 1.55; }
-.change-detail { margin: 8px 0; }
-.change-detail summary { cursor: pointer; color: var(--text-secondary); font-size: 0.82rem; }
-.change-comments, .change-diff { background: var(--bg-secondary); padding: 10px; border-radius: 4px; font-size: 0.78rem; white-space: pre-wrap; max-height: 320px; overflow: auto; margin-top: 6px; }
-.change-footer { margin-top: 8px; }
-.change-wikilink { font-size: 0.78rem; color: var(--text-secondary); }
-.change-wikilink:hover { color: var(--accent); }
+
+.archive-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 18px;
+}
+.archive-frame {
+    margin: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.15s, transform 0.15s;
+}
+.archive-frame:hover { border-color: var(--accent); }
+.archive-frame img {
+    display: block;
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    object-position: top center;
+    background: #f5f5f5;
+    border-bottom: 1px solid var(--border);
+}
+.archive-frame figcaption { padding: 10px 12px 12px; }
+.archive-date { font-weight: 600; font-size: 0.88rem; margin-bottom: 2px; }
+.archive-stats { color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 6px; }
+.archive-stats-baseline { font-style: italic; color: var(--text-muted); }
+.archive-delta.positive { color: #0a7; }
+.archive-delta.negative { color: #c00; }
+.archive-desc summary {
+    cursor: pointer;
+    color: var(--accent);
+    font-size: 0.8rem;
+    list-style: none;
+}
+.archive-desc summary::after { content: " →"; }
+.archive-desc[open] summary::after { content: " ↓"; }
+.archive-desc p {
+    margin: 8px 0 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--bg-secondary);
+    padding: 8px 10px;
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+}
 </style>
 {% endblock %}

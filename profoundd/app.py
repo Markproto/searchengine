@@ -653,6 +653,7 @@ def create_app(config_override=None):
             "ALTER TABLE admin_users ADD COLUMN magic_token_expires DATETIME",
             "ALTER TABLE admin_users ADD COLUMN email VARCHAR(255)",
             "ALTER TABLE search_logs ADD COLUMN is_bot BOOLEAN DEFAULT 0",
+            "ALTER TABLE wikipedia_changes ADD COLUMN snapshot_path VARCHAR(500) DEFAULT ''",
         ]:
             try:
                 db.session.execute(db.text(col_sql))
@@ -2509,37 +2510,61 @@ def create_app(config_override=None):
     # ----------------------------------------------------------------------
     @app.route("/candidates")
     def candidates_index():
-        """Public list of tracked figures with their most recent change."""
-        from profoundd.utils.models import TrackedFigure, WikipediaChange
+        """Public list of tracked figures with their most recent snapshot + change count."""
+        from profoundd.utils.models import TrackedFigure, WikipediaChange, WikipediaSnapshot
         figures = (TrackedFigure.query
                    .filter_by(is_active=True)
                    .order_by(TrackedFigure.party.asc(), TrackedFigure.name.asc())
                    .all())
-        # Latest change per figure (one query, group on the Python side)
-        latest_by_figure = {}
+        latest_change = {}
         for c in (WikipediaChange.query
                   .order_by(WikipediaChange.occurred_at.desc()).all()):
-            latest_by_figure.setdefault(c.figure_id, c)
+            latest_change.setdefault(c.figure_id, c)
+        latest_snapshot = {}
+        for s in (WikipediaSnapshot.query
+                  .order_by(WikipediaSnapshot.captured_at.desc()).all()):
+            latest_snapshot.setdefault(s.figure_id, s)
         return render_template("candidates_index.html",
                                figures=figures,
-                               latest_by_figure=latest_by_figure,
+                               latest_change=latest_change,
+                               latest_snapshot=latest_snapshot,
                                categories=CATEGORIES)
 
     @app.route("/candidates/<slug>")
     def candidates_profile(slug):
-        """One figure's profile + full change timeline."""
-        from profoundd.utils.models import TrackedFigure, WikipediaChange
+        """One figure's profile + visual change archive."""
+        from profoundd.utils.models import TrackedFigure, WikipediaChange, WikipediaSnapshot
         figure = TrackedFigure.query.filter_by(slug=slug).first()
         if not figure:
             return render_template("404.html"), 404
         changes = (WikipediaChange.query
                    .filter_by(figure_id=figure.id)
                    .order_by(WikipediaChange.occurred_at.desc())
-                   .limit(50).all())
+                   .limit(52).all())  # one year of weekly snapshots
+        snapshots = (WikipediaSnapshot.query
+                     .filter_by(figure_id=figure.id)
+                     .order_by(WikipediaSnapshot.captured_at.desc())
+                     .limit(52).all())
         return render_template("candidates_profile.html",
                                figure=figure,
                                changes=changes,
+                               snapshots=snapshots,
                                categories=CATEGORIES)
+
+    @app.route("/wiki-snapshots/<path:filename>")
+    def wiki_snapshot(filename):
+        """Serve a stored Wikipedia-page snapshot PNG."""
+        from flask import send_from_directory, abort
+        import os as _os
+        # Reject path traversal
+        if ".." in filename or filename.startswith("/"):
+            abort(400)
+        root = _os.environ.get("WIKI_SNAPSHOT_ROOT", "/app/data/wiki-snapshots")
+        try:
+            return send_from_directory(root, filename, mimetype="image/png",
+                                       max_age=3600 * 24 * 7)
+        except Exception:
+            abort(404)
 
     @app.route("/climate-docs")
     def climate_docs_index():

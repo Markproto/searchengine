@@ -23,8 +23,10 @@ Endpoint shape:
 from __future__ import annotations
 
 import logging
+import os
 import time
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from urllib.parse import quote
 
 import requests
@@ -39,6 +41,10 @@ MAX_REVISIONS_PER_CHECK = 100
 # How long to wait between API calls — Wikipedia's etiquette: max 200 req/min,
 # but for a low-volume task like this 0.5s between calls is plenty.
 API_SLEEP_SECONDS = 0.5
+
+# Where weekly PNG snapshots are stored on disk
+SNAPSHOT_ROOT = Path(os.environ.get("WIKI_SNAPSHOT_ROOT", "/app/data/wiki-snapshots"))
+SCREENSHOT_VIEWPORT = (1024, 1400)   # width x height; tall enough for above-fold + intro
 
 
 def _api_get(params: dict, timeout: int = 15) -> dict:
@@ -113,52 +119,144 @@ def _fetch_compare_diff(from_revid: int, to_revid: int) -> str:
     return text[:6000]
 
 
-def _ai_explain_change(figure, change_data: dict) -> str:
-    """Ask the LLM to explain what changed and why it might matter.
+def _ai_describe_change(figure, change_data: dict) -> str:
+    """Generate a NEUTRAL, descriptive summary of what changed.
 
-    Uses the centralized llm_provider with the editorial constitution
-    prepended. Defaults to whatever role='analyzer' is configured at
-    /admin/ai-provider (Hermes3 on Tark1 by default).
+    Deliberately NOT editorial — no judgments about why (e.g., 'narrative
+    shaping', 'contested editing'). Just: this was added, this was removed,
+    this paragraph now reads differently. Reader draws their own conclusions.
+
+    Uses build_llm('analyzer') which routes to whatever provider is configured
+    at /admin/ai-provider (Hermes3 on Tark1 by default).
     """
     try:
-        from profoundd.utils.editorial_constitution import prepend as ec_prepend
         from profoundd.search.llm_provider import build_llm, invoke_text
     except Exception as e:
-        logger.warning("LLM unavailable for change explanation: %s", e)
+        logger.warning("LLM unavailable for change description: %s", e)
         return ""
 
-    comments = change_data.get("editor_comments", "")[:2000]
     diff = change_data.get("diff_text", "")[:4000]
     edit_count = change_data.get("edit_count", 0)
-    editor_count = change_data.get("editor_count", 0)
     size_delta = change_data.get("size_delta_chars", 0)
 
     prompt = (
-        f"A Wikipedia article about {figure.name} ({figure.role}) has changed "
-        f"in the last week.\n\n"
-        f"Number of edits: {edit_count}\n"
-        f"Distinct editors: {editor_count}\n"
+        f"Two versions of the Wikipedia article about {figure.name} differ.\n\n"
+        f"Number of edits in this window: {edit_count}\n"
         f"Net size change: {size_delta:+d} characters\n\n"
-        f"EDIT SUMMARIES (what the Wikipedia editors wrote in their commit "
-        f"messages):\n{comments or '(none provided)'}\n\n"
-        f"CONTENT DIFF (highlights of additions/removals):\n{diff or '(unavailable)'}\n\n"
-        f"In 2-3 sentences, explain to a Profoundd reader: WHAT changed factually "
-        f"about this person's biography, and what the editing pattern looks like "
-        f"(routine update, narrative shaping, contested editing, ideological re-framing, "
-        f"sanitizing controversy, etc.). Treat Wikipedia as one source whose editors "
-        f"have their own perspectives — do not assume edits reflect neutral fact. "
-        f"Be specific about concrete claims added or removed."
+        f"CONTENT DIFF (what the article gained vs. lost):\n"
+        f"{diff or '(diff unavailable — describe based on counts alone)'}\n\n"
+        f"In 2-3 plain sentences, describe ONLY what changed. Stick to:\n"
+        f"  - which sections were added or removed\n"
+        f"  - which factual claims, dates, names, or quoted material differ\n"
+        f"  - whether the changes are concentrated in one section or spread out\n"
+        f"\n"
+        f"Do NOT speculate about motive, bias, editorial intent, or whether the\n"
+        f"edits are good or bad. Do NOT use words like 'narrative', 'agenda',\n"
+        f"'contested', 'sanitized', 'whitewashed', 'shaped'. No judgment of any\n"
+        f"kind. Just: 'X was added to the section about Y; the paragraph about\n"
+        f"Z was rewritten to remove the phrase \"...\"; a new infobox field for\n"
+        f"... was added.' That kind of dry, factual inventory."
     )
     try:
-        llm = build_llm("analyzer", max_tokens=400, temperature=0.3)
-        return invoke_text(llm, ec_prepend(prompt)).strip()
+        llm = build_llm("analyzer", max_tokens=350, temperature=0.2)
+        # Note: NOT calling ec_prepend — the editorial constitution would
+        # encourage exactly the judgments we want to suppress here.
+        return invoke_text(llm, prompt).strip()
     except Exception as e:
-        logger.warning("AI explain failed for figure %s: %s", figure.slug, e)
+        logger.warning("AI describe failed for figure %s: %s", figure.slug, e)
         return ""
 
 
+def _capture_snapshot(figure, revid: int) -> dict:
+    """Render the Wikipedia article at this revid to a PNG file. Returns
+    a dict with path/width/height/byte_size, or {} on failure.
+
+    Uses Playwright + Chromium (installed via pip + playwright install).
+    Skips silently if Playwright isn't available — image archive degrades
+    gracefully, the rest of the watcher still works.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        logger.info("playwright not installed; skipping snapshot for %s", figure.slug)
+        return {}
+
+    SNAPSHOT_ROOT.mkdir(parents=True, exist_ok=True)
+    figure_dir = SNAPSHOT_ROOT / figure.slug
+    figure_dir.mkdir(parents=True, exist_ok=True)
+
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    filename = f"{ts}-r{revid}.png"
+    full_path = figure_dir / filename
+    rel_path = f"{figure.slug}/{filename}"
+
+    url = f"https://en.wikipedia.org/wiki/{figure.wikipedia_title}?oldid={revid}"
+
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(args=[
+                "--no-sandbox",          # required when running as root in container
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+            ])
+            ctx = browser.new_context(
+                viewport={"width": SCREENSHOT_VIEWPORT[0], "height": SCREENSHOT_VIEWPORT[1]},
+                user_agent=WIKI_UA,
+            )
+            page = ctx.new_page()
+            page.goto(url, wait_until="networkidle", timeout=30_000)
+            # Strip nav / banners that aren't part of the article body
+            page.evaluate("""() => {
+                ['#mw-head', '#mw-navigation', '#mw-page-base', '#mw-head-base',
+                 '#siteSub', '#contentSub', '#jump-to-nav', '.mw-jump-link',
+                 '#footer', '.cookieinfo', '.mw-indicators',
+                 '.mw-editsection', '.vector-page-titlebar'].forEach(sel => {
+                    document.querySelectorAll(sel).forEach(el => el.remove());
+                });
+            }""")
+            page.screenshot(path=str(full_path), full_page=False,
+                            type="png", clip={"x": 0, "y": 0,
+                                              "width": SCREENSHOT_VIEWPORT[0],
+                                              "height": SCREENSHOT_VIEWPORT[1]})
+            browser.close()
+        size = full_path.stat().st_size if full_path.exists() else 0
+        logger.info("snapshot saved: %s (%.0f KB)", rel_path, size / 1024)
+        return {
+            "path": rel_path,
+            "width": SCREENSHOT_VIEWPORT[0],
+            "height": SCREENSHOT_VIEWPORT[1],
+            "byte_size": size,
+        }
+    except Exception as e:
+        logger.warning("snapshot capture failed for %s @ rev=%s: %s",
+                       figure.slug, revid, e)
+        return {}
+
+
+def _save_snapshot_row(figure, revid: int, snap_info: dict):
+    """Persist a WikipediaSnapshot row if we captured an image."""
+    from profoundd.utils.models import db, WikipediaSnapshot
+    if not snap_info.get("path"):
+        return None
+    row = WikipediaSnapshot(
+        figure_id=figure.id,
+        revision_id=revid,
+        path=snap_info["path"],
+        width=snap_info.get("width", 0),
+        height=snap_info.get("height", 0),
+        byte_size=snap_info.get("byte_size", 0),
+    )
+    db.session.add(row)
+    db.session.flush()
+    return row
+
+
 def check_figure(figure) -> dict:
-    """Check one figure for new Wikipedia revisions. Returns summary dict."""
+    """Check one figure for new Wikipedia revisions + capture a fresh snapshot.
+
+    Even when there are no new revisions, we still take a screenshot so the
+    weekly visual archive is unbroken.
+    """
     from profoundd.utils.models import db, WikipediaChange
     now = datetime.now(timezone.utc)
 
@@ -169,33 +267,41 @@ def check_figure(figure) -> dict:
         return {"figure": figure.slug, "status": "fetch_failed", "error": str(e)[:200]}
     time.sleep(API_SLEEP_SECONDS)
 
+    # ------------------------------------------------------------------ no edits
     if not revs:
+        # Still capture an archival snapshot at current revid (visual history
+        # is the point — readers see how the page looked each week).
+        if figure.last_revision_id:
+            snap = _capture_snapshot(figure, figure.last_revision_id)
+            _save_snapshot_row(figure, figure.last_revision_id, snap)
         figure.last_checked_at = now
         db.session.commit()
         return {"figure": figure.slug, "status": "no_changes", "edit_count": 0}
 
-    # First-time check: just record the latest revid as baseline; no change row.
+    # ----------------------------------------------------- first-ever check (baseline)
     if figure.last_revision_id is None:
         latest = revs[-1]
+        snap = _capture_snapshot(figure, latest["revid"])
+        _save_snapshot_row(figure, latest["revid"], snap)
         figure.last_revision_id = latest["revid"]
         figure.last_checked_at = now
         db.session.commit()
         logger.info("baseline recorded for %s @ revid=%s", figure.slug, latest["revid"])
         return {"figure": figure.slug, "status": "baseline", "to_revid": latest["revid"]}
 
-    # We have a prior revid AND new revisions — assemble the change row.
+    # --------------------------------------------------- normal weekly change
     from_revid = figure.last_revision_id
     to_revid = revs[-1]["revid"]
     first_rev = revs[0]
     last_rev = revs[-1]
     size_delta = (last_rev.get("size", 0) or 0) - (first_rev.get("size", 0) or 0)
     editors = {r.get("user", "?") for r in revs}
+    # Keep editor_comments in DB for forensic review but don't surface publicly
     comments = "\n".join(
         f"- {r.get('user', '?')} ({r.get('timestamp', '')[:10]}): {r.get('comment', '') or '(no comment)'}"
         for r in revs
     )
 
-    # Diff is expensive — fetch only if there were >=1 edits
     diff_text = _fetch_compare_diff(from_revid, to_revid)
     time.sleep(API_SLEEP_SECONDS)
 
@@ -203,10 +309,12 @@ def check_figure(figure) -> dict:
         "edit_count": len(revs),
         "editor_count": len(editors),
         "size_delta_chars": size_delta,
-        "editor_comments": comments,
         "diff_text": diff_text,
     }
-    ai_text = _ai_explain_change(figure, change_data)
+    ai_text = _ai_describe_change(figure, change_data)
+
+    snap = _capture_snapshot(figure, to_revid)
+    _save_snapshot_row(figure, to_revid, snap)
 
     row = WikipediaChange(
         figure_id=figure.id,
@@ -215,9 +323,10 @@ def check_figure(figure) -> dict:
         edit_count=len(revs),
         editor_count=len(editors),
         size_delta_chars=size_delta,
-        editor_comments=comments[:4000],
-        diff_text=diff_text[:8000],
+        editor_comments=comments[:4000],          # retained in DB, hidden from UI
+        diff_text=diff_text[:8000],               # retained in DB, hidden from UI
         ai_explanation=ai_text[:2000],
+        snapshot_path=snap.get("path", ""),
     )
     db.session.add(row)
     figure.last_revision_id = to_revid
@@ -231,7 +340,8 @@ def check_figure(figure) -> dict:
         "edits": len(revs),
         "editors": len(editors),
         "size_delta": size_delta,
-        "explained": bool(ai_text),
+        "snapshot": bool(snap),
+        "described": bool(ai_text),
     }
 
 
