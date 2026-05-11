@@ -266,6 +266,47 @@ def create_app(config_override=None):
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         return response
 
+    # --- Force HTTPS + add security headers ---
+    # Cloudflare passes the original scheme in X-Forwarded-Proto. If a visitor
+    # hits http://profoundd.com/... the request lands at this Flask app via
+    # the tunnel — without this guard we'd happily serve the login form over
+    # plain HTTP and browsers correctly flag "Not secure".
+    @app.before_request
+    def force_https():
+        # Skip for the health endpoint so docker healthchecks (which use http)
+        # still pass.
+        if request.path in ("/health", "/healthz"):
+            return None
+        fwd_proto = request.headers.get("X-Forwarded-Proto", "").lower()
+        if fwd_proto == "http":
+            url = request.url.replace("http://", "https://", 1)
+            return redirect(url, code=301)
+        return None
+
+    @app.after_request
+    def add_security_headers(response):
+        # HSTS — tells browsers "always HTTPS for this origin for 1 year".
+        # Only set on confirmed-HTTPS requests so we don't accidentally lock
+        # local dev / health checks.
+        fwd_proto = request.headers.get("X-Forwarded-Proto", "").lower()
+        if fwd_proto == "https" or request.scheme == "https":
+            response.headers.setdefault(
+                "Strict-Transport-Security",
+                "max-age=31536000; includeSubDomains",
+            )
+        # Stop click-jacking the admin panel inside an iframe on another site
+        response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        # Disable MIME sniffing — stops some XSS vectors
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        # Don't leak full URLs to outbound link targets — privacy + security
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        # Tighten permissions for sensors / camera / mic by default
+        response.headers.setdefault(
+            "Permissions-Policy",
+            "camera=(), microphone=(), geolocation=(self), interest-cohort=()",
+        )
+        return response
+
     # --- Block SEO leech bots that ignore robots.txt ---
     import re as _re
     _BLOCKED_BOTS_RE = _re.compile(
