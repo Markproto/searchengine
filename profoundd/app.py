@@ -2279,8 +2279,8 @@ def create_app(config_override=None):
         "military-manuals": "Survival, Water, Medical Field Manuals",
         "steiner": "Rudolf Steiner Archive",
         "hesperian": "Hesperian Health Guides (Where There Is No Doctor)",
-        "cia-crest": "CIA CREST",
-        "jfk-records": "JFK Records",
+        # cia-crest, jfk-records removed 2026-05-11 — both had 0 docs;
+        # re-add to this dict once an indexer is built for them.
     }
 
     @app.route("/archive-docs")
@@ -2503,6 +2503,43 @@ def create_app(config_override=None):
             prompt_template=PROMPTS.get("fwp", PROMPTS.get("epstein", "")),
         )
         return jsonify(**body), status
+
+    # ----------------------------------------------------------------------
+    # Tracked-figure pages (Wikipedia change watcher)
+    # ----------------------------------------------------------------------
+    @app.route("/candidates")
+    def candidates_index():
+        """Public list of tracked figures with their most recent change."""
+        from profoundd.utils.models import TrackedFigure, WikipediaChange
+        figures = (TrackedFigure.query
+                   .filter_by(is_active=True)
+                   .order_by(TrackedFigure.party.asc(), TrackedFigure.name.asc())
+                   .all())
+        # Latest change per figure (one query, group on the Python side)
+        latest_by_figure = {}
+        for c in (WikipediaChange.query
+                  .order_by(WikipediaChange.occurred_at.desc()).all()):
+            latest_by_figure.setdefault(c.figure_id, c)
+        return render_template("candidates_index.html",
+                               figures=figures,
+                               latest_by_figure=latest_by_figure,
+                               categories=CATEGORIES)
+
+    @app.route("/candidates/<slug>")
+    def candidates_profile(slug):
+        """One figure's profile + full change timeline."""
+        from profoundd.utils.models import TrackedFigure, WikipediaChange
+        figure = TrackedFigure.query.filter_by(slug=slug).first()
+        if not figure:
+            return render_template("404.html"), 404
+        changes = (WikipediaChange.query
+                   .filter_by(figure_id=figure.id)
+                   .order_by(WikipediaChange.occurred_at.desc())
+                   .limit(50).all())
+        return render_template("candidates_profile.html",
+                               figure=figure,
+                               changes=changes,
+                               categories=CATEGORIES)
 
     @app.route("/climate-docs")
     def climate_docs_index():

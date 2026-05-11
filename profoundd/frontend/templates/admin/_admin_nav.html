@@ -27,6 +27,10 @@
         <a href="{{ url_for('admin.analyze_url') }}" {% if '/analyze-url' in p %}style="font-weight:700;text-decoration:underline;"{% endif %}>Analyze URL</a>
 
         <span style="color:#999;">·</span>
+        <span style="color:#555;font-weight:600;">Trackers</span>
+        <a href="{{ url_for('admin.tracked_figures') }}" {% if '/tracked-figures' in p %}style="font-weight:700;text-decoration:underline;color:#0a7;"{% endif %}>Figures</a>
+
+        <span style="color:#999;">·</span>
         <span style="color:#555;font-weight:600;">Curator</span>
         <a href="{{ url_for('admin.curator_queue') }}" {% if '/curator-queue' in p %}style="font-weight:700;text-decoration:underline;color:#0a7;"{% endif %}>Queue</a>
         <a href="{{ url_for('admin.curator_audit') }}" {% if '/curator-audit' in p %}style="font-weight:700;text-decoration:underline;color:#0a7;"{% endif %}>Audit Log</a>

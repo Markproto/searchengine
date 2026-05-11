@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{{ figure.name }} — Wikipedia change timeline — Profoundd{% endblock %}
+
+{% block content %}
+<div class="container candidate-profile">
+    <a href="{{ url_for('candidates_index') }}" class="back-link">← All candidates</a>
+
+    <header class="candidate-profile-header">
+        <h1>{{ figure.name }}</h1>
+        <p class="candidate-profile-role">
+            <strong>{{ figure.party }}</strong>
+            {% if figure.role %} · {{ figure.role }}{% endif %}
+        </p>
+        <p class="candidate-profile-link">
+            <a href="https://en.wikipedia.org/wiki/{{ figure.wikipedia_title }}" target="_blank" rel="noopener">
+                View live on Wikipedia ↗
+            </a>
+            {% if figure.last_checked_at %}
+            <span class="candidate-profile-checked">
+                · Last checked {{ figure.last_checked_at.strftime('%Y-%m-%d %H:%M UTC') }}
+            </span>
+            {% endif %}
+        </p>
+    </header>
+
+    <section class="candidate-changes">
+        <h2>Change timeline</h2>
+        {% if not changes %}
+            <p class="candidate-empty">
+                No changes recorded yet. The next check will run Sunday at 04:00 UTC,
+                or an admin can trigger it manually from
+                <code>/admin/tracked-figures</code>.
+            </p>
+        {% else %}
+        {% for ch in changes %}
+        <article class="change-card">
+            <header class="change-header">
+                <span class="change-date">{{ ch.occurred_at.strftime('%Y-%m-%d %H:%M UTC') }}</span>
+                <span class="change-stat">
+                    {{ ch.edit_count }} edit{% if ch.edit_count != 1 %}s{% endif %}
+                    · {{ ch.editor_count }} editor{% if ch.editor_count != 1 %}s{% endif %}
+                    · <span class="change-delta {% if ch.size_delta_chars > 0 %}positive{% elif ch.size_delta_chars < 0 %}negative{% endif %}">{{ ch.size_delta_chars|abs }} char{% if ch.size_delta_chars|abs != 1 %}s{% endif %} {% if ch.size_delta_chars >= 0 %}added{% else %}removed{% endif %}</span>
+                </span>
+            </header>
+
+            {% if ch.ai_explanation %}
+            <div class="change-ai">
+                <strong>Profoundd analysis:</strong>
+                <p>{{ ch.ai_explanation }}</p>
+            </div>
+            {% endif %}
+
+            {% if ch.editor_comments %}
+            <details class="change-detail">
+                <summary>Editor commit summaries ({{ ch.edit_count }})</summary>
+                <pre class="change-comments">{{ ch.editor_comments }}</pre>
+            </details>
+            {% endif %}
+
+            {% if ch.diff_text %}
+            <details class="change-detail">
+                <summary>Content diff snippet</summary>
+                <pre class="change-diff">{{ ch.diff_text }}</pre>
+            </details>
+            {% endif %}
+
+            <footer class="change-footer">
+                <a href="https://en.wikipedia.org/w/index.php?title={{ figure.wikipedia_title }}&diff={{ ch.to_revid }}&oldid={{ ch.from_revid }}"
+                   target="_blank" rel="noopener" class="change-wikilink">
+                    View this diff on Wikipedia ↗
+                </a>
+            </footer>
+        </article>
+        {% endfor %}
+        {% endif %}
+    </section>
+</div>
+
+<style>
+.candidate-profile { max-width: 900px; margin: 0 auto; padding: 24px 16px; }
+.back-link { color: var(--text-secondary); font-size: 0.85rem; text-decoration: none; }
+.back-link:hover { color: var(--accent); }
+.candidate-profile-header { margin: 16px 0 28px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.candidate-profile-header h1 { margin: 0 0 6px; font-size: 1.8rem; }
+.candidate-profile-role { color: var(--text-secondary); font-size: 0.95rem; margin: 0 0 8px; }
+.candidate-profile-link a { color: var(--accent); font-size: 0.85rem; }
+.candidate-profile-checked { color: var(--text-muted); font-size: 0.78rem; margin-left: 6px; }
+.candidate-changes h2 { font-size: 1.15rem; margin: 0 0 14px; }
+.candidate-empty { color: var(--text-muted); font-style: italic; padding: 20px; text-align: center; border: 1px dashed var(--border); border-radius: 8px; }
+.change-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; }
+.change-header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.change-date { font-weight: 600; font-size: 0.9rem; }
+.change-stat { color: var(--text-secondary); font-size: 0.82rem; }
+.change-delta.positive { color: #0a7; }
+.change-delta.negative { color: #c00; }
+.change-ai { background: var(--bg-secondary); border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 4px; margin-bottom: 10px; }
+.change-ai strong { font-size: 0.82rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }
+.change-ai p { margin: 4px 0 0; font-size: 0.92rem; line-height: 1.55; }
+.change-detail { margin: 8px 0; }
+.change-detail summary { cursor: pointer; color: var(--text-secondary); font-size: 0.82rem; }
+.change-comments, .change-diff { background: var(--bg-secondary); padding: 10px; border-radius: 4px; font-size: 0.78rem; white-space: pre-wrap; max-height: 320px; overflow: auto; margin-top: 6px; }
+.change-footer { margin-top: 8px; }
+.change-wikilink { font-size: 0.78rem; color: var(--text-secondary); }
+.change-wikilink:hover { color: var(--accent); }
+</style>
+{% endblock %}

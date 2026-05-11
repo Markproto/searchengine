@@ -187,6 +187,53 @@ class SiteSetting(db.Model):
         db.session.commit()
 
 
+class TrackedFigure(db.Model):
+    """A public figure whose Wikipedia article Profoundd watches for changes.
+
+    Primary use: 2028 presidential candidates (both parties). Each TrackedFigure
+    is rechecked weekly by profoundd.trackers.wikipedia_watcher.run_weekly().
+    Detected changes land in WikipediaChange.
+    """
+    __tablename__ = "tracked_figures"
+
+    id = db.Column(db.Integer, primary_key=True)
+    slug = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    name = db.Column(db.String(200), nullable=False)
+    # Wikipedia title (URL-safe, may contain underscores). e.g. "Gavin_Newsom"
+    wikipedia_title = db.Column(db.String(200), nullable=False)
+    party = db.Column(db.String(40), default="")              # "Democrat" | "Republican" | "Independent" | "Other"
+    role = db.Column(db.String(200), default="")              # e.g. "Governor of California"
+    category = db.Column(db.String(40), default="presidential-2028", index=True)
+    is_active = db.Column(db.Boolean, default=True, index=True)
+    last_revision_id = db.Column(db.BigInteger, nullable=True)  # last seen Wikipedia revid
+    last_checked_at = db.Column(db.DateTime, nullable=True)
+    last_changed_at = db.Column(db.DateTime, nullable=True)    # last time we recorded a non-zero change
+    notes = db.Column(db.Text, default="")
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class WikipediaChange(db.Model):
+    """A detected aggregate change between two Wikipedia revisions of a TrackedFigure.
+
+    One row represents the sum of all edits in a single check window (typically
+    one week). diff_summary captures the human-readable change set; ai_explanation
+    holds the LLM analysis written with the editorial-constitution preamble.
+    """
+    __tablename__ = "wikipedia_changes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    figure_id = db.Column(db.Integer, db.ForeignKey("tracked_figures.id"), nullable=False, index=True)
+    from_revid = db.Column(db.BigInteger, nullable=True)        # null on first check (no prior)
+    to_revid = db.Column(db.BigInteger, nullable=False)
+    edit_count = db.Column(db.Integer, default=0)
+    editor_count = db.Column(db.Integer, default=0)
+    size_delta_chars = db.Column(db.Integer, default=0)         # to_size - from_size
+    editor_comments = db.Column(db.Text, default="")            # newline-joined Wikipedia edit summaries
+    diff_text = db.Column(db.Text, default="")                  # truncated content diff
+    ai_explanation = db.Column(db.Text, default="")             # LLM analysis (~3 sentences)
+    occurred_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+
+
 class EditorialConstitutionRevision(db.Model):
     """Append-only history of editorial-constitution edits.
 

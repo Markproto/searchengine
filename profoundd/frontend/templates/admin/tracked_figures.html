@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% from '_help_macros.html' import info, help_panel %}
+{% block title %}Tracked Figures{% endblock %}
+
+{% block content %}
+<div class="container admin-page" style="max-width:1200px;">
+    <div class="admin-header">
+        <h1>Tracked Figures {{ info("Public figures Profoundd watches weekly for Wikipedia changes. Primary use: 2028 presidential candidates. Each figure's article is checked every Sunday at 04:00 UTC; detected changes get an AI explanation written with the editorial constitution applied.") }}</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
+    </div>
+
+    {{ help_panel("How it works: every Sunday 04:00 UTC the scheduler walks every active figure, queries Wikipedia's revisions API for edits since the last check, aggregates them into one WikipediaChange row, and asks Hermes3 (or whichever model role='analyzer' is set to) to explain what changed in 2-3 sentences. The explanation calls out routine updates vs. narrative shaping vs. contested editing. Public timeline at <a href='/candidates'>/candidates</a>. Use 'Check now' for one-off pulls; 'Run watcher now' walks every active figure (may take 2-3 minutes for 20 figures because each makes 1-2 Wikipedia API calls + 1 LLM call).") }}
+
+    <div class="admin-section" style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;background:#f0f8ff;border:1px solid #c2d9f5;padding:0.75rem;margin-bottom:1rem;">
+        <form method="POST" style="display:inline;">
+            <input type="hidden" name="action" value="run_all">
+            <button type="submit" class="btn btn-primary" style="background:#0a7;"
+                    onclick="return confirm('Run the Wikipedia watcher across all active figures? This takes 2-3 minutes and may add new change rows.');">
+                Run watcher now
+            </button>
+        </form>
+        <span style="font-size:0.85rem;color:var(--text-muted);">
+            Or wait for the Sunday 04:00 UTC cron.
+        </span>
+    </div>
+
+    <div class="admin-section">
+        <h2>Add a figure</h2>
+        <form method="POST" class="admin-form" style="display:grid;grid-template-columns:repeat(5,1fr) auto;gap:0.5rem;align-items:end;">
+            <input type="hidden" name="action" value="add">
+            <div class="form-group" style="margin-bottom:0;">
+                <label>Slug</label>
+                <input type="text" name="slug" placeholder="kamala-harris" class="form-control" required>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label>Name</label>
+                <input type="text" name="name" placeholder="Kamala Harris" class="form-control" required>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label>Wikipedia title {{ info("URL slug from Wikipedia. Example: from <code>https://en.wikipedia.org/wiki/J._B._Pritzker</code>, use <code>J._B._Pritzker</code>. Underscores instead of spaces.") }}</label>
+                <input type="text" name="wikipedia_title" placeholder="Kamala_Harris" class="form-control" required>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label>Party</label>
+                <select name="party" class="form-control">
+                    <option value="Democrat">Democrat</option>
+                    <option value="Republican">Republican</option>
+                    <option value="Independent">Independent</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label>Role</label>
+                <input type="text" name="role" placeholder="Governor of …" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary">Add</button>
+        </form>
+    </div>
+
+    <div class="admin-section">
+        <h2>Watched ({{ figures|length }} total) {{ info("Click 'Check now' on a single row to trigger an immediate Wikipedia check for just that figure. 'Disable' makes it skip the weekly cron without losing the change history. 'Delete' removes the figure AND all its WikipediaChange rows.") }}</h2>
+        <table class="admin-table" style="width:100%;">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Party</th>
+                    <th>Role</th>
+                    <th>Wiki title</th>
+                    <th>Last checked</th>
+                    <th>Last revid</th>
+                    <th>Changes</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in figures %}
+                <tr {% if not f.is_active %}style="opacity:0.5;"{% endif %}>
+                    <td>
+                        <a href="/candidates/{{ f.slug }}" target="_blank">{{ f.name }}</a>
+                    </td>
+                    <td>{{ f.party }}</td>
+                    <td style="max-width:200px;font-size:0.85rem;">{{ f.role }}</td>
+                    <td><code style="font-size:0.75rem;">{{ f.wikipedia_title }}</code></td>
+                    <td>
+                        {% if f.last_checked_at %}
+                        <small>{{ f.last_checked_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        {% else %}<small class="text-muted">never</small>{% endif %}
+                    </td>
+                    <td><small>{{ f.last_revision_id or '—' }}</small></td>
+                    <td>{{ change_counts.get(f.id, 0) }}</td>
+                    <td>{% if f.is_active %}<span style="color:#0a7;">active</span>{% else %}<span style="color:#888;">disabled</span>{% endif %}</td>
+                    <td style="white-space:nowrap;">
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="action" value="check_now">
+                            <input type="hidden" name="figure_id" value="{{ f.id }}">
+                            <button type="submit" class="btn btn-secondary btn-sm"
+                                    onclick="return confirm('Check {{ f.name }} now? This makes ~2 Wikipedia API calls plus 1 LLM call (~15s).');">
+                                Check
+                            </button>
+                        </form>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="action" value="toggle">
+                            <input type="hidden" name="figure_id" value="{{ f.id }}">
+                            <button type="submit" class="btn btn-secondary btn-sm">
+                                {% if f.is_active %}Disable{% else %}Enable{% endif %}
+                            </button>
+                        </form>
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="figure_id" value="{{ f.id }}">
+                            <button type="submit" class="btn btn-sm" style="background:#c00;color:white;"
+                                    onclick="return confirm('Delete {{ f.name }} AND all change history? This cannot be undone.');">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

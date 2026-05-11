@@ -11,7 +11,7 @@ from functools import wraps
 import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 
-from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick, AudioTranscript, DailyStats, CuratorProposal, CuratorAuditLog, DomainCredibility, HumanVerifyEvent, EditorialConstitutionRevision
+from profoundd.utils.models import db, Source, Article, AdminUser, SearchLog, CrawlLog, SourceSubmission, SiteSetting, ResearchDocument, AdminRankingAction, BobStory, NewsroomNote, SourceNote, PageView, ArticleClick, AudioTranscript, DailyStats, CuratorProposal, CuratorAuditLog, DomainCredibility, HumanVerifyEvent, EditorialConstitutionRevision, TrackedFigure, WikipediaChange
 from profoundd.config.settings import get_config
 from profoundd.config.sources import ALL_SOURCES, CATEGORIES, SPECIAL_SECTION_KEYWORDS
 from profoundd.search.engine import SearchEngine
@@ -1388,6 +1388,84 @@ def ai_provider_health(role):
                        latency_s=elapsed, response=text[:200])
     except Exception as e:
         return jsonify(ok=False, error=str(e)[:300]), 200
+
+
+# ---------------------------------------------------------------------------
+# Tracked figures (Wikipedia change watcher)
+# ---------------------------------------------------------------------------
+
+@admin_bp.route("/tracked-figures", methods=["GET", "POST"])
+@login_required
+def tracked_figures():
+    """CRUD for the candidate watch list."""
+    if request.method == "POST":
+        action = request.form.get("action", "")
+        if action == "add":
+            slug = (request.form.get("slug") or "").strip().lower()
+            name = (request.form.get("name") or "").strip()
+            wiki = (request.form.get("wikipedia_title") or "").strip().replace(" ", "_")
+            party = (request.form.get("party") or "").strip()
+            role = (request.form.get("role") or "").strip()
+            if slug and name and wiki:
+                if not TrackedFigure.query.filter_by(slug=slug).first():
+                    db.session.add(TrackedFigure(
+                        slug=slug, name=name, wikipedia_title=wiki,
+                        party=party, role=role, is_active=True,
+                    ))
+                    db.session.commit()
+                    flash(f"Added {name}", "success")
+                else:
+                    flash(f"slug '{slug}' already exists", "error")
+            else:
+                flash("slug, name, and wikipedia_title required", "error")
+        elif action == "toggle":
+            fid = int(request.form.get("figure_id", 0))
+            row = db.session.get(TrackedFigure, fid)
+            if row:
+                row.is_active = not row.is_active
+                db.session.commit()
+                flash(f"{row.name}: {'active' if row.is_active else 'disabled'}", "success")
+        elif action == "delete":
+            fid = int(request.form.get("figure_id", 0))
+            row = db.session.get(TrackedFigure, fid)
+            if row:
+                WikipediaChange.query.filter_by(figure_id=row.id).delete()
+                db.session.delete(row)
+                db.session.commit()
+                flash("Deleted (and removed change history)", "success")
+        elif action == "check_now":
+            fid = int(request.form.get("figure_id", 0))
+            row = db.session.get(TrackedFigure, fid)
+            if row:
+                from profoundd.trackers.wikipedia_watcher import check_figure
+                try:
+                    res = check_figure(row)
+                    flash(f"Checked {row.name}: {res}", "success")
+                except Exception as e:
+                    flash(f"Check failed: {e}", "error")
+        elif action == "run_all":
+            from profoundd.trackers.wikipedia_watcher import run_weekly
+            try:
+                summary = run_weekly(app=None)
+                flash(f"Ran watcher across {summary.get('total', 0)} figures.", "success")
+            except Exception as e:
+                flash(f"Watcher run failed: {e}", "error")
+        return redirect(url_for("admin.tracked_figures"))
+
+    from sqlalchemy import func
+    figures = (db.session.query(TrackedFigure)
+               .order_by(TrackedFigure.is_active.desc(),
+                         TrackedFigure.party.asc(),
+                         TrackedFigure.name.asc()).all())
+    change_counts = {}
+    for fid, cnt in (db.session.query(WikipediaChange.figure_id,
+                                       func.count(WikipediaChange.id))
+                     .group_by(WikipediaChange.figure_id).all()):
+        change_counts[fid] = cnt
+    return render_template("admin/tracked_figures.html",
+                           figures=figures,
+                           change_counts=change_counts,
+                           categories=CATEGORIES)
 
 
 # ---------------------------------------------------------------------------

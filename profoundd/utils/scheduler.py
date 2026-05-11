@@ -134,6 +134,16 @@ def init_scheduler(app):
         kwargs={"app": app},
     )
 
+    # Wikipedia watcher — weekly snapshot of tracked figures (Sunday 04:00 UTC)
+    _scheduler.add_job(
+        func=_run_wikipedia_watcher,
+        trigger=CronTrigger(day_of_week="sun", hour=4, minute=0),
+        id="wikipedia_watcher",
+        name="Wikipedia watcher: check tracked figures for changes",
+        replace_existing=True,
+        kwargs={"app": app},
+    )
+
     _scheduler.start()
     logger.info("Scheduler started: crawl every %d min, OSM every %dh, markets every %dm, polls every %dh",
                 interval_minutes, osm_refresh_hours, polymarket_minutes, polls_hours)
@@ -318,6 +328,18 @@ def _run_curator_nightly(app):
             logger.info("Curator nightly summary: %s", summary)
         except Exception as e:
             logger.exception("Curator nightly failed: %s", e)
+
+
+def _run_wikipedia_watcher(app):
+    """Walk every active TrackedFigure for new Wikipedia revisions."""
+    with app.app_context():
+        try:
+            from profoundd.trackers.wikipedia_watcher import run_weekly
+            summary = run_weekly(app=None)  # already in context
+            logger.info("Wikipedia watcher summary: total=%s",
+                        summary.get("total"))
+        except Exception as e:
+            logger.exception("Wikipedia watcher failed: %s", e)
 
 
 def _run_alert_matcher(app):
