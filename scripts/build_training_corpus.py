@@ -57,23 +57,39 @@ def _constitution_messages() -> list[dict]:
 
 
 def _bob_stories(limit: int | None = None) -> Iterator[dict]:
-    """Each Bob story becomes a (write a story about X) → (story body) pair."""
-    q = db.session.query(BobStory).filter(BobStory.body.isnot(None))
+    """Each Bob story becomes a (write a story about X) → (story body) pair.
+
+    BobStory schema (verified): title, slug, content, summary, source_article_url,
+    source_article_title.
+    """
+    q = db.session.query(BobStory).filter(BobStory.status == "published")
     if limit:
         q = q.limit(limit)
     for s in q.all():
-        if not (s.body and s.headline):
+        if not (s.content and s.title):
             continue
-        instr = (
-            f"Write a Profoundd newsroom story with the headline "
-            f"'{s.headline}'. Apply your editorial principles. Cite "
-            f"primary sources. Keep the same voice."
-        )
+        if s.source_article_title:
+            instr = (
+                f"Profoundd's NewsRoom Bob received this source article: "
+                f"\"{s.source_article_title}\" from {s.source_name or 'unknown'}. "
+                f"Write a fresh Profoundd-perspective story based on it, "
+                f"with a headline and ~3-paragraph body. Apply your editorial "
+                f"principles: name regulators' funding sources, surface "
+                f"dissenting peer-reviewed work, drop 'misinformation/debunked' "
+                f"framings, cite primary sources where present."
+            )
+        else:
+            instr = (
+                f"Write a Profoundd newsroom story with the headline "
+                f"'{s.title}'. Apply your editorial principles. Cite "
+                f"primary sources. Keep the same voice."
+            )
+        response = f"HEADLINE: {s.title}\n\n{s.content}"
         yield {
             "messages": [
                 *_constitution_messages(),
                 {"role": "user", "content": instr},
-                {"role": "assistant", "content": s.body},
+                {"role": "assistant", "content": response},
             ],
             "_source": f"bob_story:{s.id}",
         }
