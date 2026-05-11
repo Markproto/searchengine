@@ -45,7 +45,8 @@
             from archive.org's open repository.
             {% else %}
             Combined archive search across FBI Vault, SPLC, PHMPT, ACIP, NIH
-            grants, and other collections we've ingested.
+            grants, the Federal Writers' Project, and other collections we've
+            ingested.
             {% endif %}
         </p>
         <nav class="archive-nav">
@@ -53,6 +54,8 @@
             {% for slug, label in archive_labels.items() %}
             <a href="/archive-docs/{{ slug }}" {% if collection == slug %}class="active"{% endif %}>{{ label }}</a>
             {% endfor %}
+            {# FWP lives on its own ES index + route but groups here visually. #}
+            <a href="/fwp-docs" class="archive-nav-external" title="Federal Writers' Project — 1936-1940 WPA oral histories">FWP ↗</a>
         </nav>
     </div>
 
@@ -142,6 +145,8 @@
 .archive-nav { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
 .archive-nav a { padding: 5px 12px; border: 1px solid var(--border); border-radius: 999px; font-size: 0.82rem; color: var(--text-secondary); text-decoration: none; }
 .archive-nav a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.archive-nav .archive-nav-external { color: #7c5e2c; border-color: rgba(124, 94, 44, 0.4); }
+.archive-nav .archive-nav-external:hover { background: rgba(124, 94, 44, 0.1); }
 .fwp-search-form { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 16px; }
 .fwp-search-row { display: flex; gap: 8px; margin-bottom: 10px; }
 .fwp-search-input { flex: 1; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 0.95rem; }
