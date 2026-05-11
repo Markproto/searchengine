@@ -296,6 +296,20 @@ def check_figure(figure) -> dict:
     last_rev = revs[-1]
     size_delta = (last_rev.get("size", 0) or 0) - (first_rev.get("size", 0) or 0)
     editors = {r.get("user", "?") for r in revs}
+
+    # Walk the revision chain to capture the TRUE volume of churn — net delta
+    # hides cases where someone adds 1000c and another removes 1000c. Also
+    # track the largest single edit so we can flag big rewrites.
+    prev_size = first_rev.get("size", 0) or 0
+    total_volume = 0
+    largest_edit = 0
+    for r in revs[1:]:
+        cur_size = r.get("size", 0) or 0
+        edit_delta = abs(cur_size - prev_size)
+        total_volume += edit_delta
+        if edit_delta > largest_edit:
+            largest_edit = edit_delta
+        prev_size = cur_size
     # Keep editor_comments in DB for forensic review but don't surface publicly
     comments = "\n".join(
         f"- {r.get('user', '?')} ({r.get('timestamp', '')[:10]}): {r.get('comment', '') or '(no comment)'}"
@@ -323,6 +337,8 @@ def check_figure(figure) -> dict:
         edit_count=len(revs),
         editor_count=len(editors),
         size_delta_chars=size_delta,
+        total_volume_chars=total_volume,
+        largest_edit_chars=largest_edit,
         editor_comments=comments[:4000],          # retained in DB, hidden from UI
         diff_text=diff_text[:8000],               # retained in DB, hidden from UI
         ai_explanation=ai_text[:2000],

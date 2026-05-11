@@ -654,6 +654,8 @@ def create_app(config_override=None):
             "ALTER TABLE admin_users ADD COLUMN email VARCHAR(255)",
             "ALTER TABLE search_logs ADD COLUMN is_bot BOOLEAN DEFAULT 0",
             "ALTER TABLE wikipedia_changes ADD COLUMN snapshot_path VARCHAR(500) DEFAULT ''",
+            "ALTER TABLE wikipedia_changes ADD COLUMN total_volume_chars INTEGER DEFAULT 0",
+            "ALTER TABLE wikipedia_changes ADD COLUMN largest_edit_chars INTEGER DEFAULT 0",
         ]:
             try:
                 db.session.execute(db.text(col_sql))
