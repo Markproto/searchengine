@@ -45,9 +45,10 @@
                     <p class="candidate-role">{{ f.role }}</p>
                     {% if ch %}
                     <div class="candidate-stats">
-                        <strong>{{ ch.edit_count }}</strong> edit{% if ch.edit_count != 1 %}s{% endif %} this week
+                        <strong>{{ ch.edit_count }}{% if ch.truncated %}+{% endif %}</strong> edit{% if ch.edit_count != 1 %}s{% endif %}
+                        by <strong>{{ ch.editor_count }}</strong> editor{% if ch.editor_count != 1 %}s{% endif %}
                         · <span class="candidate-delta {% if ch.size_delta_chars > 0 %}positive{% elif ch.size_delta_chars < 0 %}negative{% endif %}">
-                            {% if ch.size_delta_chars >= 0 %}+{% endif %}{{ ch.size_delta_chars }}c
+                            net {% if ch.size_delta_chars >= 0 %}+{% endif %}{{ ch.size_delta_chars }}c
                         </span>
                     </div>
                     {% elif snap %}

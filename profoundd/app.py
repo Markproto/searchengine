@@ -179,6 +179,19 @@ def create_app(config_override=None):
     app.register_blueprint(auth_bp)
 
     # Make categories and SEO tags available to all templates
+    @app.template_filter("from_json")
+    def _from_json_filter(value):
+        """Parse a JSON string into a Python object. Returns [] on failure
+        so templates can do {% for x in foo|from_json %} safely on empty
+        or malformed fields."""
+        import json as _json
+        if not value:
+            return []
+        try:
+            return _json.loads(value)
+        except (ValueError, TypeError):
+            return []
+
     @app.context_processor
     def inject_globals():
         # Determine which page we're on for SEO lookup
@@ -656,6 +669,8 @@ def create_app(config_override=None):
             "ALTER TABLE wikipedia_changes ADD COLUMN snapshot_path VARCHAR(500) DEFAULT ''",
             "ALTER TABLE wikipedia_changes ADD COLUMN total_volume_chars INTEGER DEFAULT 0",
             "ALTER TABLE wikipedia_changes ADD COLUMN largest_edit_chars INTEGER DEFAULT 0",
+            "ALTER TABLE wikipedia_changes ADD COLUMN top_editors TEXT DEFAULT ''",
+            "ALTER TABLE wikipedia_changes ADD COLUMN truncated BOOLEAN DEFAULT 0",
         ]:
             try:
                 db.session.execute(db.text(col_sql))

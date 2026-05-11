@@ -53,19 +53,38 @@
                     <div class="archive-date">{{ snap.captured_at.strftime('%b %d, %Y') }}</div>
                     {% if ch %}
                     <div class="archive-stats">
-                        <strong>{{ ch.edit_count }}</strong> edit{% if ch.edit_count != 1 %}s{% endif %}
-                        · net <span class="archive-delta {% if ch.size_delta_chars > 0 %}positive{% elif ch.size_delta_chars < 0 %}negative{% endif %}">
-                            {% if ch.size_delta_chars >= 0 %}+{% endif %}{{ ch.size_delta_chars }}c
-                        </span>
-                    </div>
-                    {% if ch.total_volume_chars %}
-                    <div class="archive-stats archive-stats-extra">
-                        <span title="Sum of |added/removed| across every edit. Reveals churn the net delta hides.">
-                            {{ '{:,}'.format(ch.total_volume_chars) }}c total churn
-                        </span>
-                        {% if ch.largest_edit_chars %}
-                        · biggest single edit: <strong>{{ ch.largest_edit_chars }}c</strong>
+                        <strong>{{ ch.edit_count }}{% if ch.truncated %}+{% endif %}</strong>
+                        edit{% if ch.edit_count != 1 %}s{% endif %} by
+                        <strong>{{ ch.editor_count }}</strong> editor{% if ch.editor_count != 1 %}s{% endif %}
+                        {% if ch.editor_count and ch.edit_count > ch.editor_count %}
+                        <span class="archive-stats-hint" title="Some editors made multiple edits in this window. Average: {{ '%.1f' % (ch.edit_count / ch.editor_count) }} edits per editor.">(avg {{ '%.1f' % (ch.edit_count / ch.editor_count) }} per editor)</span>
                         {% endif %}
+                    </div>
+                    <div class="archive-stats">
+                        net <span class="archive-delta {% if ch.size_delta_chars > 0 %}positive{% elif ch.size_delta_chars < 0 %}negative{% endif %}">{% if ch.size_delta_chars >= 0 %}+{% endif %}{{ ch.size_delta_chars }}c</span>
+                        {% if ch.total_volume_chars %}
+                        · <span title="Sum of |added/removed| across every edit. Reveals churn the net delta hides.">{{ '{:,}'.format(ch.total_volume_chars) }}c churn</span>
+                        {% endif %}
+                        {% if ch.largest_edit_chars %}
+                        · biggest single: <strong>{{ ch.largest_edit_chars }}c</strong>
+                        {% endif %}
+                    </div>
+                    {% if ch.top_editors %}
+                    {% set _editors = ch.top_editors|from_json %}
+                    {% if _editors and _editors|length > 1 %}
+                    <details class="archive-desc archive-editors">
+                        <summary>Top editors this week</summary>
+                        <ol>
+                            {% for e in _editors %}
+                            <li><strong>{{ e.edits }}</strong> edit{% if e.edits != 1 %}s{% endif %} — <code>{{ e.user }}</code></li>
+                            {% endfor %}
+                        </ol>
+                    </details>
+                    {% endif %}
+                    {% endif %}
+                    {% if ch.truncated %}
+                    <div class="archive-stats archive-stats-truncated" title="The 500-edit-per-week API cap was hit. Real edit count may be higher.">
+                        ⚠ edit cap hit — count may be higher
                     </div>
                     {% endif %}
                     {% if ch.ai_explanation %}
@@ -123,10 +142,15 @@
 }
 .archive-frame figcaption { padding: 10px 12px 12px; }
 .archive-date { font-weight: 600; font-size: 0.88rem; margin-bottom: 2px; }
-.archive-stats { color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 6px; }
+.archive-stats { color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 4px; }
 .archive-stats-extra { color: var(--text-muted); font-size: 0.75rem; margin-bottom: 6px; }
-.archive-stats-extra span[title] { cursor: help; border-bottom: 1px dotted var(--text-muted); }
+.archive-stats span[title] { cursor: help; border-bottom: 1px dotted var(--text-muted); }
+.archive-stats-hint { color: var(--text-muted); font-style: italic; }
+.archive-stats-truncated { color: #a70; font-size: 0.78rem; }
 .archive-stats-baseline { font-style: italic; color: var(--text-muted); }
+.archive-editors ol { font-size: 0.85rem; margin: 6px 0; padding-left: 24px; }
+.archive-editors li { margin-bottom: 2px; }
+.archive-editors code { font-size: 0.85em; }
 .archive-delta.positive { color: #0a7; }
 .archive-delta.negative { color: #c00; }
 .archive-desc summary {

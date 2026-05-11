@@ -37,7 +37,10 @@ WIKI_API = "https://en.wikipedia.org/w/api.php"
 WIKI_UA = "ProfounddWatcher/1.0 (contact: mark.hutto@protonmail.com)"
 
 # Per-figure budget: don't load more than this many revisions in one run.
-MAX_REVISIONS_PER_CHECK = 100
+# Wikipedia's unprivileged API caps at 500 per request — we honor that.
+# For weekly windows this is plenty for ~99% of figures; flagged via
+# truncated=True on the change row when we hit it.
+MAX_REVISIONS_PER_CHECK = 500
 # How long to wait between API calls — Wikipedia's etiquette: max 200 req/min,
 # but for a low-volume task like this 0.5s between calls is plenty.
 API_SLEEP_SECONDS = 0.5
@@ -295,7 +298,11 @@ def check_figure(figure) -> dict:
     first_rev = revs[0]
     last_rev = revs[-1]
     size_delta = (last_rev.get("size", 0) or 0) - (first_rev.get("size", 0) or 0)
-    editors = {r.get("user", "?") for r in revs}
+
+    # Per-editor breakdown: who made how many edits in this window?
+    from collections import Counter
+    editor_counts = Counter(r.get("user", "?") for r in revs)
+    editors = set(editor_counts.keys())
 
     # Walk the revision chain to capture the TRUE volume of churn — net delta
     # hides cases where someone adds 1000c and another removes 1000c. Also
@@ -310,6 +317,16 @@ def check_figure(figure) -> dict:
         if edit_delta > largest_edit:
             largest_edit = edit_delta
         prev_size = cur_size
+
+    # Truncation flag: if we got back exactly the cap, we probably missed some.
+    truncated = len(revs) >= (MAX_REVISIONS_PER_CHECK - 1)
+
+    # Top 5 editors by edit count, serialized as JSON for the public template.
+    import json as _json
+    top_editors_json = _json.dumps([
+        {"user": u, "edits": c}
+        for u, c in editor_counts.most_common(5)
+    ])
     # Keep editor_comments in DB for forensic review but don't surface publicly
     comments = "\n".join(
         f"- {r.get('user', '?')} ({r.get('timestamp', '')[:10]}): {r.get('comment', '') or '(no comment)'}"
@@ -339,6 +356,8 @@ def check_figure(figure) -> dict:
         size_delta_chars=size_delta,
         total_volume_chars=total_volume,
         largest_edit_chars=largest_edit,
+        top_editors=top_editors_json,
+        truncated=truncated,
         editor_comments=comments[:4000],          # retained in DB, hidden from UI
         diff_text=diff_text[:8000],               # retained in DB, hidden from UI
         ai_explanation=ai_text[:2000],

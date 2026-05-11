@@ -231,6 +231,8 @@ class WikipediaChange(db.Model):
     size_delta_chars = db.Column(db.Integer, default=0)         # NET: to_size - from_size (can hide churn)
     total_volume_chars = db.Column(db.Integer, default=0)       # SUM of |delta per consecutive edit|
     largest_edit_chars = db.Column(db.Integer, default=0)       # |biggest single edit|
+    top_editors = db.Column(db.Text, default="")                # JSON list of {user, edit_count} top 5 contributors this window
+    truncated = db.Column(db.Boolean, default=False)            # True if we hit the API cap and didn't see all edits
     editor_comments = db.Column(db.Text, default="")            # retained but not displayed publicly
     diff_text = db.Column(db.Text, default="")                  # retained but not displayed publicly
     ai_explanation = db.Column(db.Text, default="")             # neutral, descriptive (~3 sentences)
