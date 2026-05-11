@@ -149,12 +149,14 @@
     </div>
     {% endif %}
 
+    {% from '_help_macros.html' import info, help_panel %}
+
     <!-- Quick Links — grouped for fast scan -->
     <div class="admin-section">
         <h2>Manage</h2>
 
         <div class="admin-link-group">
-            <h3 style="margin:0.5rem 0;font-size:0.95rem;color:#555;">AI &amp; Curator</h3>
+            <h3 style="margin:0.5rem 0;font-size:0.95rem;color:#555;">AI &amp; Curator {{ info("Controls for how Profoundd's AI surfaces think. <strong>Editorial Constitution</strong> 🔒 sets the editorial framing prepended to every LLM prompt. <strong>AI Provider</strong> 🔒 picks which LLM serves each role. <strong>Curator Queue</strong> reviews autonomous proposals. <strong>Audit Log</strong> shows every Curator-driven change. <strong>Analyze URL</strong> walks a URL through draft→feedback→publish.") }}</h3>
             <div class="admin-links">
                 {% if is_owner_admin %}
                 <a href="{{ url_for('admin.editorial_constitution') }}" class="btn btn-primary" style="background:#0a7;">Editorial Constitution 🔒</a>

@@ -1,16 +1,19 @@
 {% extends "base.html" %}
+{% from '_help_macros.html' import info, help_panel %}
 {% block title %}Curator Classifier Test{% endblock %}
 
 {% block content %}
 <div class="container admin-page" style="max-width:900px;">
     <div class="admin-header">
-        <h1>Curator Classifier Test</h1>
+        <h1>Curator Classifier Test {{ info("Manually score any domain or text against the trained classifier. Useful for understanding why the Curator made a particular proposal, or for sanity-checking the model before it goes autonomous.") }}</h1>
         <a href="{{ url_for('admin.curator_queue') }}" class="btn btn-secondary">Curator Queue</a>
     </div>
 
+    {{ help_panel("Architecture: TF-IDF features over per-domain article samples + 3 scikit-learn LogisticRegression heads (block / sponsor / credibility). Trained on your editorial labels (NOT external datasets) — so it learns your perspective. Retrain via <code>scripts/train_curator_classifier.py</code>; reload the live model via the button at the bottom of this page.") }}
+
     <p class="action-desc">
-        Probe the v1 source-quality classifier (TF-IDF + sklearn LogisticRegression
-        trained on the seeded DomainCredibility table + your blocked_domains list).
+        Probe the source-quality classifier (TF-IDF + sklearn LogisticRegression
+        trained on YOUR editorial labels — Source ratings, blocked_domains, sponsor_tags).
         Output: <strong>block</strong> likelihood (0..1), <strong>sponsor</strong>
         signal (0..1), <strong>credibility</strong> 1..10.
     </p>

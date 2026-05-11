@@ -1,12 +1,15 @@
 {% extends "base.html" %}
+{% from '_help_macros.html' import info, help_panel %}
 {% block title %}Editorial Constitution{% endblock %}
 
 {% block content %}
 <div class="container admin-page" style="max-width:1100px;">
     <div class="admin-header">
-        <h1>Editorial Constitution</h1>
+        <h1>Editorial Constitution {{ info("The text below is prepended to <em>every</em> LLM prompt across all of Profoundd. It defines the editorial perspective the system speaks from. Changing this changes what every AI surface produces — globally, instantly, no redeploy.") }}</h1>
         <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
     </div>
+
+    {{ help_panel("Where bias enters an AI search engine: (1) source labels imported from external datasets, (2) the LLM's training data, (3) implicit prompt framings. The constitution addresses #3 — it gives you a single text knob that overrides whatever editorial assumptions the model picked up during training. Default text treats regulators (FDA/CDC/WHO) as industry-funded rather than neutral arbiters; forbids 'misinformation/debunked' as standalone judgments; requires funding-disclosure on contested medical claims. Edit freely; saves are versioned in the revision log below.") }}
 
     <p class="action-desc">
         This text is <strong>prepended verbatim to every LLM prompt</strong> across
@@ -60,7 +63,7 @@
     </form>
 
     <div class="admin-section" style="margin-top:1.5rem;border-left:4px solid #c00;padding-left:1rem;">
-        <h2 style="color:#c00;">Reset to default</h2>
+        <h2 style="color:#c00;">Reset to default {{ info("Removes any saved override and restores the shipped default constitution. Your previous custom text is preserved in the Revision history below — click 'Restore this revision' on any past entry to bring it back.") }}</h2>
         <p style="font-size:0.9rem;color:var(--text-muted);">
             Removes any saved override; ships behavior reverts to the built-in default constitution.
             (Your custom text remains in the revision log so you can restore it.)
@@ -76,7 +79,7 @@
     </div>
 
     <div class="admin-section" style="margin-top:1.5rem;">
-        <h2>Revision history <small style="font-weight:400;color:var(--text-muted);">(last 20)</small></h2>
+        <h2>Revision history <small style="font-weight:400;color:var(--text-muted);">(last 20)</small> {{ info("Every save creates a new immutable row here. 'Restore' applies a past revision verbatim, which itself creates a new entry — so nothing is ever lost. Used for rollback if a constitution edit produces undesirable AI output.") }}</h2>
         {% if not revisions %}
             <p class="text-muted">No saved revisions yet.</p>
         {% else %}

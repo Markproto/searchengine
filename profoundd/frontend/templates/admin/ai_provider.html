@@ -1,15 +1,18 @@
 {% extends "base.html" %}
+{% from '_help_macros.html' import info, help_panel %}
 {% block title %}AI Provider{% endblock %}
 
 {% block content %}
 <div class="container admin-page">
     <div class="admin-header">
-        <h1>AI Provider</h1>
+        <h1>AI Provider {{ info("Per-role provider/model selection. Each Profoundd AI surface (explain, summary, analyzer, etc.) can independently point at Anthropic Claude, local Ollama (Tark1 GPU or apollo9 CPU), or xAI Grok. Settings live in the database and take effect on the very next request — no redeploy.") }}</h1>
         <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
     </div>
 
+    {{ help_panel("This is one of two highest-leverage editorial controls (the other is /admin/editorial-constitution). Flipping a role's provider changes which LLM responds to that surface. The model comparison table at the bottom of this page benchmarks local options. When in doubt, use the big red 'Revert all to Anthropic' button to return to a known-good state.") }}
+
     <div class="admin-section" style="background: #fff5f5; border: 1px solid #f5c2c2; padding: 1rem; margin-bottom: 1rem;">
-        <h2 style="margin-top: 0;">Emergency rollback</h2>
+        <h2 style="margin-top: 0;">Emergency rollback {{ info("Click this button if any Ollama-served role starts misbehaving (refusing, hallucinating, latency spikes). Reverts ALL roles to Anthropic Claude in one click. Editorial constitution still applies — only the model changes. Reversible: re-flip per-role afterward.") }}</h2>
         <p class="action-desc">If Ollama responses are degraded or unavailable, click below to instantly route every AI module back to Anthropic Claude. Takes effect on the next request — no redeploy.</p>
         <form method="POST" style="display: inline;">
             <input type="hidden" name="action" value="revert_all">
@@ -60,7 +63,7 @@
     </form>
 
     <div class="admin-section" style="margin-top: 2rem;">
-        <h3>Local model comparison (apollo9 CPU, measured 2026-05-10)</h3>
+        <h3>Local model comparison (apollo9 CPU, measured 2026-05-10) {{ info("Benchmarks for each Ollama model running on apollo9 CPU (not GPU). On Tark1 GPU expect ~15-20× speedup. <strong>Hermes3-8B</strong> is the production default — community-tuned, low refusal rate, fast enough on CPU and very fast on GPU. <strong>Qwen3-8B</strong> needs /no_think handling for clean output. <strong>Mistral-Small-24B</strong> hits RLHF refusals on contested topics — avoid for Profoundd's use case.") }}</h3>
         <table class="admin-table" style="width:100%;font-size:0.88rem;">
             <thead>
                 <tr>

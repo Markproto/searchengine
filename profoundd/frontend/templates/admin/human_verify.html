@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from '_help_macros.html' import info, help_panel %}
 {% block title %}Human Verify (PoW) - Admin{% endblock %}
 
 {% macro relative_time(dt) -%}
@@ -15,9 +16,11 @@
 {% block content %}
 <div class="container admin-page" style="max-width:1200px;">
     <div class="admin-header">
-        <h1>Human Verify (PoW Download Gate)</h1>
+        <h1>Human Verify (PoW Download Gate) {{ info("Proof-of-work challenge that gates document downloads. Browsers solve a tiny SHA-256 puzzle (~250ms at K=18); curl/wget/AI-crawlers can't because they don't run JS. Stops mass-scraping while letting real readers through with at most ~1-second delay.") }}</h1>
         <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">Dashboard</a>
     </div>
+
+    {{ help_panel("Why this exists: GPTBot rotated 8+ IPs to download ~50,000 Epstein/PHMPT PDFs in 7 days despite robots.txt explicitly disallowing it. Per-IP rate limits failed because they rotated. Captchas fail because vision models solve them. <strong>Proof-of-work is computational, not perceptual</strong> — Claude/GPT/vision models offer no shortcut to the SHA-256 math. Cost asymmetry: human pays ~250ms once per hour; bot pays ~250ms per download per IP. Anubis (the open-source project this implementation is based on) is used by Codeberg, Gitea, sourcehut, etc. for the same reason.") }}
 
     <p class="action-desc">
         Proof-of-work challenge gates all document download endpoints
@@ -29,7 +32,7 @@
 
     {# Master switches #}
     <div class="admin-section" style="background:#fff5f5;border:1px solid #f5c2c2;padding:1rem;">
-        <h2 style="margin-top:0;">Master switches</h2>
+        <h2 style="margin-top:0;">Master switches {{ info("Two independent kill-switches. <strong>PoW gate</strong>: turns the challenge on/off. OFF means anyone can download (legacy behavior). <strong>Downloads</strong>: separate hard block — returns 503 to everyone including admins. Use Downloads=BLOCKED if a Cloudflare/edge issue is sending unwanted traffic and you need to stop everything immediately.") }}</h2>
         <div style="display:flex;flex-wrap:wrap;gap:1rem;align-items:center;">
             <form method="POST" style="display:inline;">
                 <input type="hidden" name="action" value="toggle_gate">

@@ -1,12 +1,15 @@
 {% extends "base.html" %}
+{% from '_help_macros.html' import info, help_panel %}
 {% block title %}Curator Audit Log{% endblock %}
 
 {% block content %}
 <div class="container admin-page">
     <div class="admin-header">
-        <h1>Curator Audit Log</h1>
+        <h1>Curator Audit Log {{ info("Append-only ledger of every Curator-driven change. No row is ever modified or deleted — only inserted. Use this to reconstruct what the system did, when, and by whom. Critical for forensic review after a 'something feels off' moment.") }}</h1>
         <a href="{{ url_for('admin.curator_queue') }}" class="btn btn-secondary">Back to queue</a>
     </div>
+
+    {{ help_panel("Each time you Apply a proposal, a row is written here with the before_value snapshot. Reverting writes a second row with action='revert'. The audit log answers 'what changed and when' questions definitively, even if the underlying CuratorProposal is later edited or deleted.") }}
 
     <p class="action-desc">
         Append-only history of every Curator-driven mutation. Use this to reconstruct
